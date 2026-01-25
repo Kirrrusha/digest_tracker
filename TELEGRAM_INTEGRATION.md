@@ -76,7 +76,7 @@ lib/
 
 ```typescript
 // lib/telegram/bot.ts
-import TelegramBot from "node-telegram-bot-api";
+import { Bot, InlineKeyboard } from "grammy";
 
 import { db } from "@/lib/db";
 
@@ -84,13 +84,10 @@ import { registerCallbacks } from "./handlers/callbacks";
 import { registerCommands } from "./handlers/commands";
 
 export class DevDigestBot {
-  private bot: TelegramBot;
+  private bot: Bot;
 
   constructor() {
-    this.bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN!, {
-      polling: process.env.NODE_ENV === "development",
-    });
-
+    this.bot = new Bot(process.env.TELEGRAM_BOT_TOKEN!);
     this.setupHandlers();
   }
 
@@ -99,11 +96,17 @@ export class DevDigestBot {
     registerCallbacks(this.bot);
   }
 
+  async start() {
+    if (process.env.NODE_ENV === "development") {
+      await this.bot.start();
+    }
+  }
+
   // Отправка саммари пользователю
   async sendSummary(telegramId: string, summary: string) {
-    await this.bot.sendMessage(telegramId, summary, {
+    await this.bot.api.sendMessage(telegramId, summary, {
       parse_mode: "Markdown",
-      disable_web_page_preview: false,
+      link_preview_options: { is_disabled: false },
     });
   }
 
@@ -120,22 +123,16 @@ export class DevDigestBot {
       where: { id: summaryId },
     });
 
-    await this.bot.sendMessage(
+    const keyboard = new InlineKeyboard()
+      .webApp("📖 Читать", `${process.env.APP_URL}/summaries/${summaryId}`)
+      .webApp("📱 Открыть Mini App", process.env.MINI_APP_URL!);
+
+    await this.bot.api.sendMessage(
       user.telegramAccount.telegramId,
       `🔔 *Новое саммари готово!*\n\n${summary?.title}`,
       {
         parse_mode: "Markdown",
-        reply_markup: {
-          inline_keyboard: [
-            [
-              {
-                text: "📖 Читать",
-                web_app: { url: `${process.env.APP_URL}/summaries/${summaryId}` },
-              },
-              { text: "📱 Открыть Mini App", web_app: { url: process.env.MINI_APP_URL! } },
-            ],
-          ],
-        },
+        reply_markup: keyboard,
       }
     );
   }
@@ -150,19 +147,19 @@ export const devDigestBot = new DevDigestBot();
 
 ```typescript
 // lib/telegram/handlers/commands.ts
-import TelegramBot from "node-telegram-bot-api";
+import { Bot, InlineKeyboard, Keyboard } from "grammy";
 
 import { db } from "@/lib/db";
 
 import { channelsKeyboard } from "../keyboards/inline";
 import { mainKeyboard, settingsKeyboard } from "../keyboards/reply";
 
-export function registerCommands(bot: TelegramBot) {
+export function registerCommands(bot: Bot) {
   // /start - регистрация пользователя
-  bot.onText(/\/start/, async (msg) => {
-    const telegramId = msg.from!.id.toString();
-    const username = msg.from!.username;
-    const firstName = msg.from!.first_name;
+  bot.command("start", async (ctx) => {
+    const telegramId = ctx.from!.id.toString();
+    const username = ctx.from!.username;
+    const firstName = ctx.from!.first_name;
 
     // Проверяем, есть ли пользователь
     let user = await db.user.findFirst({
@@ -184,8 +181,7 @@ export function registerCommands(bot: TelegramBot) {
       });
     }
 
-    await bot.sendMessage(
-      msg.chat.id,
+    await ctx.reply(
       `👋 Привет, ${firstName}!\n\n` +
         `Я помогу тебе отслеживать интересный контент по программированию.\n\n` +
         `Что я умею:\n` +
@@ -196,18 +192,15 @@ export function registerCommands(bot: TelegramBot) {
         `Используй команды или открывай Mini App для удобной работы!`,
       {
         parse_mode: "Markdown",
-        reply_markup: {
-          keyboard: mainKeyboard,
-          resize_keyboard: true,
-        },
+        reply_markup: mainKeyboard,
       }
     );
   });
 
   // /subscribe - подписка на канал
-  bot.onText(/\/subscribe (.+)/, async (msg, match) => {
-    const channelUrl = match![1];
-    const telegramId = msg.from!.id.toString();
+  bot.hears(/\/subscribe (.+)/, async (ctx) => {
+    const channelUrl = ctx.match[1];
+    const telegramId = ctx.from!.id.toString();
 
     try {
       const user = await db.user.findFirst({
@@ -215,7 +208,7 @@ export function registerCommands(bot: TelegramBot) {
       });
 
       if (!user) {
-        await bot.sendMessage(msg.chat.id, "❌ Сначала выполни /start");
+        await ctx.reply("❌ Сначала выполни /start");
         return;
       }
 
@@ -231,8 +224,7 @@ export function registerCommands(bot: TelegramBot) {
         },
       });
 
-      await bot.sendMessage(
-        msg.chat.id,
+      await ctx.reply(
         `✅ Канал *${channel.name}* добавлен!\n\nТеперь я буду отслеживать новые посты.`,
         { parse_mode: "Markdown" }
       );
@@ -240,16 +232,13 @@ export function registerCommands(bot: TelegramBot) {
       // Запускаем первичный парсинг
       await fetchChannelPosts(channel.id);
     } catch (error) {
-      await bot.sendMessage(
-        msg.chat.id,
-        "❌ Не удалось добавить канал. Проверь URL и попробуй снова."
-      );
+      await ctx.reply("❌ Не удалось добавить канал. Проверь URL и попробуй снова.");
     }
   });
 
   // /list - список каналов
-  bot.onText(/\/list/, async (msg) => {
-    const telegramId = msg.from!.id.toString();
+  bot.command("list", async (ctx) => {
+    const telegramId = ctx.from!.id.toString();
 
     const user = await db.user.findFirst({
       where: { telegramAccount: { telegramId } },
@@ -257,29 +246,28 @@ export function registerCommands(bot: TelegramBot) {
     });
 
     if (!user?.channels.length) {
-      await bot.sendMessage(
-        msg.chat.id,
+      await ctx.reply(
         "📭 У тебя пока нет добавленных каналов.\n\nИспользуй /subscribe для добавления."
       );
       return;
     }
 
-    await bot.sendMessage(msg.chat.id, "📋 *Твои каналы:*", {
+    await ctx.reply("📋 *Твои каналы:*", {
       parse_mode: "Markdown",
       reply_markup: channelsKeyboard(user.channels),
     });
   });
 
   // /summary - получить саммари
-  bot.onText(/\/summary/, async (msg) => {
-    const telegramId = msg.from!.id.toString();
+  bot.command("summary", async (ctx) => {
+    const telegramId = ctx.from!.id.toString();
 
     const user = await db.user.findFirst({
       where: { telegramAccount: { telegramId } },
     });
 
     if (!user) {
-      await bot.sendMessage(msg.chat.id, "❌ Сначала выполни /start");
+      await ctx.reply("❌ Сначала выполни /start");
       return;
     }
 
@@ -292,50 +280,38 @@ export function registerCommands(bot: TelegramBot) {
     });
 
     if (!summary) {
-      await bot.sendMessage(
-        msg.chat.id,
-        "🤖 Саммари за сегодня еще не готово.\n\nСгенерировать сейчас?",
-        {
-          reply_markup: {
-            inline_keyboard: [
-              [
-                { text: "✅ Да, сгенерировать", callback_data: "generate_summary" },
-                { text: "❌ Отмена", callback_data: "cancel" },
-              ],
-            ],
-          },
-        }
-      );
+      const keyboard = new InlineKeyboard()
+        .text("✅ Да, сгенерировать", "generate_summary")
+        .text("❌ Отмена", "cancel");
+
+      await ctx.reply("🤖 Саммари за сегодня еще не готово.\n\nСгенерировать сейчас?", {
+        reply_markup: keyboard,
+      });
       return;
     }
 
-    await bot.sendMessage(msg.chat.id, formatSummary(summary), {
+    const keyboard = new InlineKeyboard().webApp(
+      "📱 Открыть в Mini App",
+      `${process.env.MINI_APP_URL}/summaries/${summary.id}`
+    );
+
+    await ctx.reply(formatSummary(summary), {
       parse_mode: "Markdown",
-      reply_markup: {
-        inline_keyboard: [
-          [
-            {
-              text: "📱 Открыть в Mini App",
-              web_app: { url: `${process.env.MINI_APP_URL}/summaries/${summary.id}` },
-            },
-          ],
-        ],
-      },
+      reply_markup: keyboard,
     });
   });
 
   // /settings - настройки
-  bot.onText(/\/settings/, async (msg) => {
-    await bot.sendMessage(msg.chat.id, "⚙️ *Настройки*\n\nВыбери, что хочешь настроить:", {
+  bot.command("settings", async (ctx) => {
+    await ctx.reply("⚙️ *Настройки*\n\nВыбери, что хочешь настроить:", {
       parse_mode: "Markdown",
       reply_markup: settingsKeyboard,
     });
   });
 
   // /help - справка
-  bot.onText(/\/help/, async (msg) => {
-    await bot.sendMessage(
-      msg.chat.id,
+  bot.command("help", async (ctx) => {
+    await ctx.reply(
       `📖 *Справка по командам*\n\n` +
         `/start - начать работу\n` +
         `/subscribe <url> - подписаться на канал\n` +
@@ -370,34 +346,24 @@ function formatSummary(summary: any): string {
 
 ```typescript
 // lib/telegram/keyboards/inline.ts
-import { InlineKeyboardMarkup } from "node-telegram-bot-api";
+import { InlineKeyboard } from "grammy";
 
-export function channelsKeyboard(channels: any[]): InlineKeyboardMarkup {
-  return {
-    inline_keyboard: channels.map((channel) => [
-      {
-        text: `${channel.isActive ? "✅" : "⏸"} ${channel.name}`,
-        callback_data: `channel_${channel.id}`,
-      },
-    ]),
-  };
+export function channelsKeyboard(channels: any[]): InlineKeyboard {
+  const keyboard = new InlineKeyboard();
+  channels.forEach((channel) => {
+    keyboard
+      .text(`${channel.isActive ? "✅" : "⏸"} ${channel.name}`, `channel_${channel.id}`)
+      .row();
+  });
+  return keyboard;
 }
 
-export function summaryActionsKeyboard(summaryId: string): InlineKeyboardMarkup {
-  return {
-    inline_keyboard: [
-      [
-        {
-          text: "📱 Открыть в Mini App",
-          web_app: { url: `${process.env.MINI_APP_URL}/summaries/${summaryId}` },
-        },
-      ],
-      [
-        { text: "📤 Поделиться", switch_inline_query: summaryId },
-        { text: "💾 Сохранить", callback_data: `save_${summaryId}` },
-      ],
-    ],
-  };
+export function summaryActionsKeyboard(summaryId: string): InlineKeyboard {
+  return new InlineKeyboard()
+    .webApp("📱 Открыть в Mini App", `${process.env.MINI_APP_URL}/summaries/${summaryId}`)
+    .row()
+    .switchInline("📤 Поделиться", summaryId)
+    .text("💾 Сохранить", `save_${summaryId}`);
 }
 ```
 

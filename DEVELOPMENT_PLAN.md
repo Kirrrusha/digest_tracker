@@ -280,8 +280,7 @@ pnpm install next-auth@beta bcryptjs
 pnpm install -D @types/bcryptjs
 
 # Telegram & RSS
-pnpm install node-telegram-bot-api rss-parser
-pnpm install -D @types/node-telegram-bot-api
+pnpm install grammy rss-parser
 
 # AI
 pnpm install openai
@@ -353,10 +352,10 @@ npx prisma generate
 
 ```typescript
 // lib/telegram/client.ts
-import TelegramBot from "node-telegram-bot-api";
+import { Bot } from "grammy";
 
 export class TelegramService {
-  private bot: TelegramBot;
+  private bot: Bot;
 
   async getChannelPosts(channelId: string, limit: number = 100) {
     // Получение постов из канала

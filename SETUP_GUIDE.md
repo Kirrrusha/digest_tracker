@@ -38,8 +38,7 @@ pnpm install next-auth@beta bcryptjs
 pnpm install -D @types/bcryptjs
 
 # Парсинг контента
-pnpm install node-telegram-bot-api rss-parser
-pnpm install -D @types/node-telegram-bot-api
+pnpm install grammy rss-parser
 
 # AI для саммари
 pnpm install openai
@@ -425,25 +424,25 @@ declare module "next-auth/jwt" {
 Создайте `lib/telegram/client.ts`:
 
 ```typescript
-import TelegramBot from "node-telegram-bot-api";
+import { Bot } from "grammy";
 
 export class TelegramService {
-  private bot: TelegramBot;
+  private bot: Bot;
 
   constructor() {
     const token = process.env.TELEGRAM_BOT_TOKEN;
     if (!token) {
       throw new Error("TELEGRAM_BOT_TOKEN is not defined");
     }
-    this.bot = new TelegramBot(token, { polling: false });
+    this.bot = new Bot(token);
   }
 
   async getChannelInfo(channelUsername: string) {
     try {
-      const chat = await this.bot.getChat(`@${channelUsername}`);
+      const chat = await this.bot.api.getChat(`@${channelUsername}`);
       return {
         id: chat.id.toString(),
-        title: chat.title || channelUsername,
+        title: chat.type !== "private" ? chat.title : channelUsername,
         type: chat.type,
       };
     } catch (error) {
