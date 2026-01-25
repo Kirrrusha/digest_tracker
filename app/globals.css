@@ -1,26 +1,129 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Кастомные цвета из UI_GUIDELINES.md в OKLCH формате */
+  --color-primary-50: oklch(0.98 0.01 240);
+  --color-primary-100: oklch(0.95 0.02 240);
+  --color-primary-500: oklch(0.65 0.15 240);
+  --color-primary-600: oklch(0.55 0.18 240);
+  --color-primary-700: oklch(0.45 0.2 240);
+  --color-primary-900: oklch(0.25 0.15 240);
+
+  --color-accent-500: oklch(0.65 0.2 290);
+  --color-accent-600: oklch(0.55 0.22 290);
+
+  --color-neutral-50: oklch(0.99 0 0);
+  --color-neutral-100: oklch(0.97 0 0);
+  --color-neutral-200: oklch(0.9 0 0);
+  --color-neutral-400: oklch(0.65 0 0);
+  --color-neutral-600: oklch(0.45 0 0);
+  --color-neutral-700: oklch(0.35 0 0);
+  --color-neutral-800: oklch(0.2 0 0);
+  --color-neutral-900: oklch(0.15 0 0);
+
+  /* Семантические цвета */
+  --color-success: oklch(0.65 0.18 145);
+  --color-error: oklch(0.6 0.22 25);
+  --color-warning: oklch(0.75 0.15 85);
+  --color-info: oklch(0.6 0.18 240);
+
+  /* Шрифты */
+  --font-sans: var(--font-inter);
+  --font-mono: "JetBrains Mono", "Fira Code", "SF Mono", monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Светлая тема (по умолчанию) */
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.15 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.15 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.15 0 0);
+  --primary: oklch(0.55 0.18 240);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.15 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.45 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.15 0 0);
+  --destructive: oklch(0.6 0.22 25);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.9 0 0);
+  --input: oklch(0.9 0 0);
+  --ring: oklch(0.55 0.18 240);
+  --radius: 0.5rem;
+}
+
+/* Тёмная тема */
+.dark {
+  --background: oklch(0.12 0 0);
+  --foreground: oklch(0.97 0 0);
+  --card: oklch(0.15 0 0);
+  --card-foreground: oklch(0.97 0 0);
+  --popover: oklch(0.15 0 0);
+  --popover-foreground: oklch(0.97 0 0);
+  --primary: oklch(0.65 0.15 240);
+  --primary-foreground: oklch(0.15 0 0);
+  --secondary: oklch(0.2 0 0);
+  --secondary-foreground: oklch(0.97 0 0);
+  --muted: oklch(0.2 0 0);
+  --muted-foreground: oklch(0.65 0 0);
+  --accent: oklch(0.2 0 0);
+  --accent-foreground: oklch(0.97 0 0);
+  --destructive: oklch(0.6 0.22 25);
+  --destructive-foreground: oklch(0.97 0 0);
+  --border: oklch(0.25 0 0);
+  --input: oklch(0.25 0 0);
+  --ring: oklch(0.65 0.15 240);
 }
 
 body {
-  background: var(--background);
+  font-family: var(--font-sans);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Кастомные utility классы из UI_GUIDELINES */
+@layer utilities {
+  .heading-1 {
+    @apply text-4xl leading-tight font-bold tracking-tight;
+  }
+
+  .heading-2 {
+    @apply text-3xl font-semibold tracking-tight;
+  }
+
+  .heading-3 {
+    @apply text-2xl font-semibold;
+  }
+
+  .heading-4 {
+    @apply text-xl font-semibold;
+  }
+
+  .body-large {
+    @apply text-base leading-relaxed;
+  }
+
+  .body {
+    @apply text-sm leading-normal;
+  }
+
+  .body-small {
+    @apply text-xs leading-normal;
+  }
+
+  .caption {
+    @apply text-xs text-neutral-600 dark:text-neutral-400;
+  }
+
+  .overline {
+    @apply text-xs font-semibold tracking-wide uppercase;
+  }
+
+  .container-padding {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
 }

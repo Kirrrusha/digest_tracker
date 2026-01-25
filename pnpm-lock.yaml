@@ -1,9 +1,5 @@
 lockfileVersion: '6.0'
 
-settings:
-  autoInstallPeers: true
-  excludeLinksFromLockfile: false
-
 importers:
 
   .:
@@ -18,22 +14,22 @@ importers:
         specifier: ^1.1.1
         version: 1.1.12(@types/react-dom@19.2.3)(@types/react@19.2.9)(react-dom@19.2.3)(react@19.2.3)
       '@radix-ui/react-dialog':
-        specifier: ^1.1.2
+        specifier: ^1.1.15
         version: 1.1.15(@types/react-dom@19.2.3)(@types/react@19.2.9)(react-dom@19.2.3)(react@19.2.3)
       '@radix-ui/react-dropdown-menu':
-        specifier: ^2.1.2
+        specifier: ^2.1.16
         version: 2.1.16(@types/react-dom@19.2.3)(@types/react@19.2.9)(react-dom@19.2.3)(react@19.2.3)
       '@radix-ui/react-label':
-        specifier: ^2.1.0
+        specifier: ^2.1.8
         version: 2.1.8(@types/react-dom@19.2.3)(@types/react@19.2.9)(react-dom@19.2.3)(react@19.2.3)
       '@radix-ui/react-select':
         specifier: ^2.1.2
         version: 2.2.6(@types/react-dom@19.2.3)(@types/react@19.2.9)(react-dom@19.2.3)(react@19.2.3)
       '@radix-ui/react-separator':
-        specifier: ^1.1.0
+        specifier: ^1.1.8
         version: 1.1.8(@types/react-dom@19.2.3)(@types/react@19.2.9)(react-dom@19.2.3)(react@19.2.3)
       '@radix-ui/react-slot':
-        specifier: ^1.1.0
+        specifier: ^1.2.4
         version: 1.2.4(@types/react@19.2.9)(react@19.2.3)
       '@radix-ui/react-tabs':
         specifier: ^1.1.1
@@ -6426,3 +6422,7 @@ packages:
   /zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
     dev: false
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
