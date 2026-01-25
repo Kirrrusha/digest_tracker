@@ -1,0 +1,29 @@
+{
+  "recommendations": [
+    // Основные инструменты
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "bradlc.vscode-tailwindcss",
+
+    // TypeScript
+    "usernamehw.errorlens",
+    "yoavbls.pretty-ts-errors",
+
+    // Prisma
+    "prisma.prisma",
+
+    // Git
+    "eamodio.gitlens",
+    "github.vscode-pull-request-github",
+
+    // Разработка
+    "christian-kohler.path-intellisense",
+    "formulahendry.auto-rename-tag",
+    "gruntfuggly.todo-tree",
+
+    // Markdown
+    "yzhang.markdown-all-in-one",
+    "davidanson.vscode-markdownlint"
+  ],
+  "unwantedRecommendations": []
+}

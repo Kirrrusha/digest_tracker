@@ -1,0 +1,55 @@
+# Lefthook configuration
+# https://github.com/evilmartians/lefthook
+
+# Запускается перед коммитом
+pre-commit:
+  parallel: true
+  commands:
+    # Проверка типов TypeScript
+    type-check:
+      glob: "*.{ts,tsx}"
+      run: pnpm type-check
+      stage_fixed: true
+
+    # Линтинг и автофикс
+    lint:
+      glob: "*.{js,jsx,ts,tsx}"
+      run: pnpm lint:fix
+      stage_fixed: true
+
+    # Форматирование кода
+    format:
+      glob: "*.{js,jsx,ts,tsx,json,md,mdx,css}"
+      run: pnpm format {staged_files}
+      stage_fixed: true
+
+# Запускается перед пушем
+pre-push:
+  parallel: false
+  commands:
+    # Полная валидация перед пушем
+    validate:
+      run: pnpm validate
+
+    # Проверка что билд проходит успешно
+    build:
+      run: pnpm build
+
+# Commit message hook (опционально)
+commit-msg:
+  commands:
+    # Проверка формата commit message
+    # Uncomment to enable conventional commits check
+    # conventional:
+    #   run: |
+    #     message=$(cat {1})
+    #     if ! echo "$message" | grep -qE "^(feat|fix|docs|style|refactor|perf|test|chore|build|ci|revert)(\(.+\))?: .+"; then
+    #       echo "❌ Commit message must follow conventional commits format"
+    #       echo "   Example: feat: add new feature"
+    #       echo "   Types: feat, fix, docs, style, refactor, perf, test, chore, build, ci, revert"
+    #       exit 1
+    #     fi
+
+# Skip hooks для экстренных случаев
+# git commit --no-verify
+# LEFTHOOK=0 git commit
