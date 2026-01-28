@@ -1,0 +1,95 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Пользователи
+model User {
+  id           String           @id @default(cuid())
+  email        String           @unique
+  name         String?
+  passwordHash String
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  channels     Channel[]
+  preferences  UserPreferences?
+  summaries    Summary[]
+
+  @@map("users")
+}
+
+// Настройки пользователя
+model UserPreferences {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  topics          String[] // Избранные темы (React, TS, etc)
+  summaryInterval String   @default("daily") // daily, weekly
+  language        String   @default("ru")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+// Каналы/источники
+model Channel {
+  id         String   @id @default(cuid())
+  userId     String
+  name       String
+  type       String   // telegram, rss
+  sourceUrl  String   // URL канала или RSS
+  telegramId String?  // ID Telegram канала
+  isActive   Boolean  @default(true)
+  tags       String[] // Категории (frontend, backend, etc)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  posts      Post[]
+
+  @@unique([userId, sourceUrl])
+  @@map("channels")
+}
+
+// Посты из каналов
+model Post {
+  id          String    @id @default(cuid())
+  channelId   String
+  externalId  String    // ID поста в источнике
+  title       String?
+  content     String    @db.Text
+  url         String?
+  author      String?
+  publishedAt DateTime
+  createdAt   DateTime  @default(now())
+  channel     Channel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  summaries   Summary[]
+
+  @@unique([channelId, externalId])
+  @@index([publishedAt])
+  @@map("posts")
+}
+
+// Саммари
+model Summary {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  content   String   @db.Text
+  topics    String[] // Выделенные темы
+  period    String   // daily-2024-01-25
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  posts     Post[]
+
+  @@index([userId, period])
+  @@map("summaries")
+}
