@@ -12,11 +12,19 @@ const loginSchema = z.object({
   password: z.string().min(6),
 });
 
+const passkeyLoginSchema = z.object({
+  userId: z.string(),
+  email: z.string().email(),
+  name: z.string().nullable().optional(),
+});
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
   providers: [
+    // Email/Password provider
     Credentials({
-      name: "credentials",
+      id: "credentials",
+      name: "Email & Password",
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
@@ -34,13 +42,45 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           where: { email },
         });
 
-        if (!user) {
+        if (!user || !user.passwordHash) {
           return null;
         }
 
         const passwordMatch = await bcrypt.compare(password, user.passwordHash);
 
         if (!passwordMatch) {
+          return null;
+        }
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+        };
+      },
+    }),
+    // Passkey provider (called after WebAuthn verification)
+    Credentials({
+      id: "passkey",
+      name: "Passkey",
+      credentials: {
+        userId: { label: "User ID", type: "text" },
+        email: { label: "Email", type: "email" },
+        name: { label: "Name", type: "text" },
+      },
+      async authorize(credentials) {
+        const parsed = passkeyLoginSchema.safeParse(credentials);
+
+        if (!parsed.success) {
+          return null;
+        }
+
+        // Verify user exists
+        const user = await db.user.findUnique({
+          where: { id: parsed.data.userId },
+        });
+
+        if (!user) {
           return null;
         }
 

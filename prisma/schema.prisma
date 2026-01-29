@@ -13,17 +13,35 @@ datasource db {
 
 // Пользователи
 model User {
-  id           String           @id @default(cuid())
-  email        String           @unique
-  name         String?
-  passwordHash String
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-  channels     Channel[]
-  preferences  UserPreferences?
-  summaries    Summary[]
+  id             String          @id @default(cuid())
+  email          String          @unique
+  name           String?
+  passwordHash   String?         // Опционально для passkey-only пользователей
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  channels       Channel[]
+  preferences    UserPreferences?
+  summaries      Summary[]
+  authenticators Authenticator[]
 
   @@map("users")
+}
+
+// WebAuthn Authenticators (Passkeys)
+model Authenticator {
+  id                   String   @id @default(cuid())
+  credentialID         String   @unique
+  credentialPublicKey  String   @db.Text
+  counter              BigInt
+  credentialDeviceType String
+  credentialBackedUp   Boolean
+  transports           String?  // comma-separated list
+  userId               String
+  name                 String?  // User-friendly name for the passkey
+  createdAt            DateTime @default(now())
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("authenticators")
 }
 
 // Настройки пользователя
