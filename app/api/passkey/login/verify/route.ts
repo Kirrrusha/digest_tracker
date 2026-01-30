@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { type NextRequest, NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { verifyAuthenticationResponse } from "@simplewebauthn/server";
 
 import { db } from "@/lib/db";
