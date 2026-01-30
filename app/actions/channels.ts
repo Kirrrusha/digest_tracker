@@ -1,16 +1,15 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
   fetchAndSaveChannelPosts,
-  parserFactory,
   validateAndGetSourceInfo,
   ParseError,
-  ParseErrorCode,
 } from "@/lib/parsers";
+import { invalidateCache, CACHE_KEYS } from "@/lib/cache";
 
 /**
  * Результат действия
@@ -71,6 +70,12 @@ export async function addChannel(
       console.error("Failed to fetch initial posts for channel:", channel.id);
     }
 
+    // Инвалидируем кэш
+    await Promise.all([
+      invalidateCache(CACHE_KEYS.userChannels(session.user.id)),
+      invalidateCache(CACHE_KEYS.userStats(session.user.id)),
+    ]);
+    revalidateTag("posts");
     revalidatePath("/channels");
     revalidatePath("/dashboard");
 
@@ -123,6 +128,13 @@ export async function deleteChannel(
       where: { id: channelId },
     });
 
+    // Инвалидируем кэш
+    await Promise.all([
+      invalidateCache(CACHE_KEYS.userChannels(session.user.id)),
+      invalidateCache(CACHE_KEYS.userStats(session.user.id)),
+      invalidateCache(CACHE_KEYS.channelPosts(channelId)),
+    ]);
+    revalidateTag("posts");
     revalidatePath("/channels");
     revalidatePath("/dashboard");
 
@@ -163,6 +175,11 @@ export async function toggleChannel(
       data: { isActive },
     });
 
+    // Инвалидируем кэш
+    await Promise.all([
+      invalidateCache(CACHE_KEYS.userChannels(session.user.id)),
+      invalidateCache(CACHE_KEYS.userStats(session.user.id)),
+    ]);
     revalidatePath("/channels");
 
     return { success: true, data: undefined };
@@ -198,6 +215,13 @@ export async function refreshChannel(
 
     const result = await fetchAndSaveChannelPosts(channelId);
 
+    // Инвалидируем кэш
+    await Promise.all([
+      invalidateCache(CACHE_KEYS.userChannels(session.user.id)),
+      invalidateCache(CACHE_KEYS.userStats(session.user.id)),
+      invalidateCache(CACHE_KEYS.channelPosts(channelId)),
+    ]);
+    revalidateTag("posts");
     revalidatePath("/channels");
     revalidatePath(`/channels/${channelId}`);
 
@@ -248,6 +272,12 @@ export async function refreshAllChannels(): Promise<
       }
     }
 
+    // Инвалидируем кэш
+    await Promise.all([
+      invalidateCache(CACHE_KEYS.userChannels(session.user.id)),
+      invalidateCache(CACHE_KEYS.userStats(session.user.id)),
+    ]);
+    revalidateTag("posts");
     revalidatePath("/channels");
     revalidatePath("/dashboard");
 
@@ -489,6 +519,8 @@ export async function updateChannel(
       data,
     });
 
+    // Инвалидируем кэш
+    await invalidateCache(CACHE_KEYS.userChannels(session.user.id));
     revalidatePath("/channels");
     revalidatePath(`/channels/${channelId}`);
 

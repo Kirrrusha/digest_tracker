@@ -1,74 +1,18 @@
 import { Suspense } from "react";
 import { Rss, FileText, Clock, TrendingUp } from "lucide-react";
-import { startOfDay, endOfDay } from "date-fns";
 
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
 import { Header } from "@/components/dashboard/header";
 import { StatsCard } from "@/components/dashboard/stats-card";
 import { TodaySummary } from "@/components/dashboard/today-summary";
 import { RecentPosts } from "@/components/dashboard/recent-posts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-
-async function getStats(userId: string) {
-  const [channelsCount, postsCount, summariesCount, todayPostsCount] = await Promise.all([
-    db.channel.count({ where: { userId, isActive: true } }),
-    db.post.count({
-      where: { channel: { userId } },
-    }),
-    db.summary.count({ where: { userId } }),
-    db.post.count({
-      where: {
-        channel: { userId },
-        publishedAt: {
-          gte: startOfDay(new Date()),
-          lte: endOfDay(new Date()),
-        },
-      },
-    }),
-  ]);
-
-  return { channelsCount, postsCount, summariesCount, todayPostsCount };
-}
-
-async function getTodaySummary(userId: string) {
-  const today = new Date().toISOString().split("T")[0];
-  const period = `daily-${today}`;
-
-  return db.summary.findFirst({
-    where: { userId, period },
-    select: {
-      id: true,
-      title: true,
-      content: true,
-      topics: true,
-      createdAt: true,
-    },
-  });
-}
-
-async function getRecentPosts(userId: string) {
-  return db.post.findMany({
-    where: { channel: { userId } },
-    orderBy: { publishedAt: "desc" },
-    take: 5,
-    select: {
-      id: true,
-      title: true,
-      content: true,
-      url: true,
-      publishedAt: true,
-      channel: {
-        select: {
-          id: true,
-          name: true,
-          sourceType: true,
-        },
-      },
-    },
-  });
-}
+import {
+  getCachedUserStats,
+  getCachedTodaySummary,
+  getCachedRecentPosts,
+} from "@/lib/cache";
 
 function StatsCardSkeleton() {
   return (
@@ -124,7 +68,7 @@ function PostsSkeleton() {
 }
 
 async function StatsSection({ userId }: { userId: string }) {
-  const stats = await getStats(userId);
+  const stats = await getCachedUserStats(userId);
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -155,24 +99,16 @@ async function StatsSection({ userId }: { userId: string }) {
 }
 
 async function SummarySection({ userId }: { userId: string }) {
-  const [summary, postsCount] = await Promise.all([
-    getTodaySummary(userId),
-    db.post.count({
-      where: {
-        channel: { userId },
-        publishedAt: {
-          gte: startOfDay(new Date()),
-          lte: endOfDay(new Date()),
-        },
-      },
-    }),
+  const [summary, stats] = await Promise.all([
+    getCachedTodaySummary(userId),
+    getCachedUserStats(userId),
   ]);
 
-  return <TodaySummary summary={summary} postsCount={postsCount} />;
+  return <TodaySummary summary={summary} postsCount={stats.todayPostsCount} />;
 }
 
 async function PostsSection({ userId }: { userId: string }) {
-  const posts = await getRecentPosts(userId);
+  const posts = await getCachedRecentPosts(userId, 5);
   return <RecentPosts posts={posts} />;
 }
 

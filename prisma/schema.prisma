@@ -72,6 +72,10 @@ model UserPreferences {
   summaryInterval String   @default("daily") // daily, weekly
   language        String   @default("ru")
 
+  // Общие настройки уведомлений
+  notificationsEnabled Boolean  @default(false)
+  notificationTime     String?  // Время уведомления (HH:mm)
+
   // Telegram настройки уведомлений
   telegramNotifications Boolean @default(true)
   notifyOnNewSummary    Boolean @default(true)
@@ -81,25 +85,30 @@ model UserPreferences {
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([summaryInterval])
   @@map("user_preferences")
 }
 
 // Каналы/источники
 model Channel {
-  id         String   @id @default(cuid())
-  userId     String
-  name       String
-  type       String   // telegram, rss
-  sourceUrl  String   // URL канала или RSS
-  telegramId String?  // ID Telegram канала
-  isActive   Boolean  @default(true)
-  tags       String[] // Категории (frontend, backend, etc)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  posts      Post[]
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  sourceType  String   // telegram, rss
+  sourceUrl   String   // URL канала или RSS
+  description String?
+  imageUrl    String?
+  telegramId  String?  // ID Telegram канала
+  isActive    Boolean  @default(true)
+  tags        String[] // Категории (frontend, backend, etc)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  posts       Post[]
 
   @@unique([userId, sourceUrl])
+  @@index([userId, isActive])
+  @@index([sourceType])
   @@map("channels")
 }
 
@@ -118,7 +127,9 @@ model Post {
   summaries   Summary[]
 
   @@unique([channelId, externalId])
+  @@index([channelId])
   @@index([publishedAt])
+  @@index([channelId, publishedAt])
   @@map("posts")
 }
 
@@ -135,5 +146,7 @@ model Summary {
   posts     Post[]
 
   @@index([userId, period])
+  @@index([userId, createdAt])
+  @@index([createdAt])
   @@map("summaries")
 }

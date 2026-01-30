@@ -5,6 +5,7 @@ import { revalidateTag } from "next/cache";
 import { auth } from "@/lib/auth";
 import { generateDailySummary, generateWeeklySummary } from "@/lib/ai/summarizer";
 import { db } from "@/lib/db";
+import { invalidateCache, CACHE_KEYS } from "@/lib/cache";
 
 /**
  * Результат действия
@@ -54,7 +55,14 @@ export async function generateDailySummaryAction(): Promise<
 
     const summary = await generateDailySummary(userId);
 
+    // Инвалидируем кэш
+    await Promise.all([
+      invalidateCache(CACHE_KEYS.userStats(userId)),
+      invalidateCache(CACHE_KEYS.todaySummary(userId)),
+      invalidateCache(CACHE_KEYS.userSummaries(userId)),
+    ]);
     revalidateTag("summary");
+    revalidateTag("summaries");
 
     return {
       success: true,
@@ -101,7 +109,14 @@ export async function createDailySummary(
 
     const summary = await generateDailySummary(userId);
 
+    // Инвалидируем кэш
+    await Promise.all([
+      invalidateCache(CACHE_KEYS.userStats(userId)),
+      invalidateCache(CACHE_KEYS.todaySummary(userId)),
+      invalidateCache(CACHE_KEYS.userSummaries(userId)),
+    ]);
     revalidateTag("summary");
+    revalidateTag("summaries");
 
     return {
       success: true,
@@ -128,7 +143,13 @@ export async function createWeeklySummary(
   try {
     const summary = await generateWeeklySummary(userId);
 
+    // Инвалидируем кэш
+    await Promise.all([
+      invalidateCache(CACHE_KEYS.userStats(userId)),
+      invalidateCache(CACHE_KEYS.userSummaries(userId)),
+    ]);
     revalidateTag("summary");
+    revalidateTag("summaries");
 
     return {
       success: true,
@@ -162,7 +183,7 @@ export async function getSummary(summaryId: string) {
             url: true,
             publishedAt: true,
             channel: {
-              select: { name: true, type: true },
+              select: { name: true, sourceType: true },
             },
           },
           orderBy: { publishedAt: "desc" },
@@ -265,7 +286,15 @@ export async function deleteSummary(
       where: { id: summaryId },
     });
 
+    // Инвалидируем кэш
+    await Promise.all([
+      invalidateCache(CACHE_KEYS.userStats(userId)),
+      invalidateCache(CACHE_KEYS.todaySummary(userId)),
+      invalidateCache(CACHE_KEYS.userSummaries(userId)),
+      invalidateCache(CACHE_KEYS.summary(summaryId)),
+    ]);
     revalidateTag("summary");
+    revalidateTag("summaries");
 
     return { success: true };
   } catch (error) {
@@ -309,7 +338,15 @@ export async function regenerateSummary(
       ? await generateWeeklySummary(userId)
       : await generateDailySummary(userId);
 
+    // Инвалидируем кэш
+    await Promise.all([
+      invalidateCache(CACHE_KEYS.userStats(userId)),
+      invalidateCache(CACHE_KEYS.todaySummary(userId)),
+      invalidateCache(CACHE_KEYS.userSummaries(userId)),
+      invalidateCache(CACHE_KEYS.summary(summaryId)),
+    ]);
     revalidateTag("summary");
+    revalidateTag("summaries");
 
     return {
       success: true,
