@@ -219,7 +219,6 @@ devdigest/
 
 ## Документация
 
-- [Подробный план разработки](DEVELOPMENT_PLAN.md)
 - [Руководство по настройке](SETUP_GUIDE.md)
 - [UI/UX рекомендации](UI_GUIDELINES.md)
 - [Качество кода (ESLint, Prettier, Lefthook)](CODE_QUALITY.md)
@@ -330,5 +329,3 @@ MIT
 Разработано с использованием Next.js 16 и Claude Code
 
 ---
-
-**Нужна помощь?** Смотрите детальную документацию в [SETUP_GUIDE.md](SETUP_GUIDE.md)

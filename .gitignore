@@ -64,3 +64,6 @@ redis_data/
 lefthook-local.yml
 
 /lib/generated/prisma
+
+.claude
+.docs
