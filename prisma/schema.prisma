@@ -13,18 +13,38 @@ datasource db {
 
 // Пользователи
 model User {
-  id             String          @id @default(cuid())
-  email          String          @unique
-  name           String?
-  passwordHash   String?         // Опционально для passkey-only пользователей
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  channels       Channel[]
-  preferences    UserPreferences?
-  summaries      Summary[]
-  authenticators Authenticator[]
+  id              String           @id @default(cuid())
+  email           String?          @unique // Опционально для Telegram пользователей
+  name            String?
+  passwordHash    String?          // Опционально для passkey-only и Telegram пользователей
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  channels        Channel[]
+  preferences     UserPreferences?
+  summaries       Summary[]
+  authenticators  Authenticator[]
+  telegramAccount TelegramAccount?
 
   @@map("users")
+}
+
+// Telegram аккаунты
+model TelegramAccount {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  telegramId   String   @unique // Telegram User ID
+  username     String?
+  firstName    String?
+  lastName     String?
+  photoUrl     String?
+  languageCode String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([telegramId])
+  @@map("telegram_accounts")
 }
 
 // WebAuthn Authenticators (Passkeys)
@@ -51,9 +71,15 @@ model UserPreferences {
   topics          String[] // Избранные темы (React, TS, etc)
   summaryInterval String   @default("daily") // daily, weekly
   language        String   @default("ru")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Telegram настройки уведомлений
+  telegramNotifications Boolean @default(true)
+  notifyOnNewSummary    Boolean @default(true)
+  notifyOnNewPosts      Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_preferences")
 }
