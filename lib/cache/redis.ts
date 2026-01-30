@@ -156,3 +156,31 @@ export const CACHE_TTL = {
   LONG: 3600, // 1 час
   DAY: 86400, // 24 часа
 } as const;
+
+/**
+ * Проверка соединения с Redis
+ */
+export async function checkRedisConnection(): Promise<{
+  connected: boolean;
+  latencyMs?: number;
+  error?: string;
+}> {
+  const redis = getRedisClient();
+
+  if (!redis) {
+    return { connected: false, error: "Redis URL not configured" };
+  }
+
+  try {
+    const start = performance.now();
+    await redis.ping();
+    const latencyMs = Math.round(performance.now() - start);
+
+    return { connected: true, latencyMs };
+  } catch (error) {
+    return {
+      connected: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
