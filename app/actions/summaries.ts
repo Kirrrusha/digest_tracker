@@ -2,6 +2,7 @@
 
 import { revalidateTag } from "next/cache";
 
+import { auth } from "@/lib/auth";
 import { generateDailySummary, generateWeeklySummary } from "@/lib/ai/summarizer";
 import { db } from "@/lib/db";
 
@@ -12,6 +13,66 @@ interface ActionResult<T> {
   success: boolean;
   data?: T;
   error?: string;
+}
+
+/**
+ * Генерация дневного саммари (без userId - для Server Action)
+ */
+export async function generateDailySummaryAction(): Promise<
+  ActionResult<{
+    id: string;
+    title: string;
+    content: string;
+    topics: string[];
+    createdAt: Date;
+  }>
+> {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Необходима авторизация" };
+    }
+
+    const userId = session.user.id;
+
+    // Проверяем наличие постов
+    const postsCount = await db.post.count({
+      where: {
+        channel: { userId },
+        publishedAt: {
+          gte: new Date(new Date().setHours(0, 0, 0, 0)),
+        },
+      },
+    });
+
+    if (postsCount === 0) {
+      return {
+        success: false,
+        error: "Нет постов за сегодня для генерации саммари",
+      };
+    }
+
+    const summary = await generateDailySummary(userId);
+
+    revalidateTag("summary");
+
+    return {
+      success: true,
+      data: {
+        id: summary.id,
+        title: summary.title,
+        content: summary.content,
+        topics: summary.topics,
+        createdAt: summary.createdAt,
+      },
+    };
+  } catch (error) {
+    console.error("Error generating daily summary:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Не удалось создать саммари",
+    };
+  }
 }
 
 /**
