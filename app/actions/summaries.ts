@@ -365,6 +365,74 @@ export async function regenerateSummary(
 }
 
 /**
+ * Получение саммари с фильтрацией по темам пользователя
+ */
+export async function getFilteredSummaries(
+  userId: string,
+  options: {
+    topics?: string[];
+    useUserPreferences?: boolean;
+    limit?: number;
+    offset?: number;
+  } = {}
+) {
+  const { topics, useUserPreferences = true, limit = 10, offset = 0 } = options;
+
+  try {
+    let filterTopics = topics;
+
+    // Если темы не указаны и нужно использовать предпочтения пользователя
+    if (!filterTopics && useUserPreferences) {
+      const preferences = await db.userPreferences.findUnique({
+        where: { userId },
+        select: { topics: true },
+      });
+      filterTopics = preferences?.topics;
+    }
+
+    // Формируем условие фильтрации
+    const where: { userId: string; topics?: { hasSome: string[] } } = { userId };
+    if (filterTopics && filterTopics.length > 0) {
+      where.topics = { hasSome: filterTopics };
+    }
+
+    const [summaries, total] = await Promise.all([
+      db.summary.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        take: limit,
+        skip: offset,
+        select: {
+          id: true,
+          title: true,
+          topics: true,
+          period: true,
+          createdAt: true,
+          _count: { select: { posts: true } },
+        },
+      }),
+      db.summary.count({ where }),
+    ]);
+
+    return {
+      success: true,
+      data: {
+        summaries,
+        total,
+        hasMore: offset + limit < total,
+        appliedTopics: filterTopics || [],
+      },
+    };
+  } catch (error) {
+    console.error("Error getting filtered summaries:", error);
+    return {
+      success: false,
+      error: "Не удалось загрузить саммари",
+    };
+  }
+}
+
+/**
  * Получение статистики саммари для дашборда
  */
 export async function getSummaryStats(userId: string) {

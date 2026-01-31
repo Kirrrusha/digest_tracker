@@ -29,7 +29,7 @@ async function getSummaries(
   const where: {
     userId: string;
     period?: { startsWith: string };
-    topics?: { has: string };
+    topics?: { has: string } | { hasSome: string[] };
   } = { userId };
 
   if (period === "daily") {
@@ -38,7 +38,16 @@ async function getSummaries(
     where.period = { startsWith: "weekly-" };
   }
 
-  if (topic) {
+  // Обработка фильтра "Мои темы"
+  if (topic === "_my") {
+    const preferences = await db.userPreferences.findUnique({
+      where: { userId },
+      select: { topics: true },
+    });
+    if (preferences?.topics && preferences.topics.length > 0) {
+      where.topics = { hasSome: preferences.topics };
+    }
+  } else if (topic) {
     where.topics = { has: topic };
   }
 
@@ -63,11 +72,17 @@ async function getSummaries(
   };
 }
 
-async function getTopics(userId: string) {
-  const summaries = await db.summary.findMany({
-    where: { userId },
-    select: { topics: true },
-  });
+async function getTopicsData(userId: string) {
+  const [summaries, preferences] = await Promise.all([
+    db.summary.findMany({
+      where: { userId },
+      select: { topics: true },
+    }),
+    db.userPreferences.findUnique({
+      where: { userId },
+      select: { topics: true },
+    }),
+  ]);
 
   const topicsMap = new Map<string, number>();
   summaries.forEach((s) => {
@@ -76,10 +91,15 @@ async function getTopics(userId: string) {
     });
   });
 
-  return Array.from(topicsMap.entries())
+  const allTopics = Array.from(topicsMap.entries())
     .sort((a, b) => b[1] - a[1])
     .slice(0, 20)
     .map(([topic, count]) => ({ topic, count }));
+
+  return {
+    allTopics,
+    userTopics: preferences?.topics || [],
+  };
 }
 
 function SummarySkeleton() {
@@ -163,36 +183,68 @@ async function SummariesList({
 }
 
 async function TopicsFilter({ userId, currentTopic }: { userId: string; currentTopic?: string }) {
-  const topics = await getTopics(userId);
+  const { allTopics, userTopics } = await getTopicsData(userId);
 
-  if (topics.length === 0) return null;
+  if (allTopics.length === 0) return null;
+
+  // Разделяем на пользовательские темы и остальные
+  const userTopicsWithCount = allTopics.filter((t) => userTopics.includes(t.topic));
+  const otherTopics = allTopics.filter((t) => !userTopics.includes(t.topic));
 
   return (
-    <div className="flex flex-wrap gap-2">
-      <a
-        href="/dashboard/summaries"
-        className={`inline-flex items-center justify-center rounded-full text-sm font-medium transition-colors px-3 py-1 ${
-          !currentTopic
-            ? "bg-primary text-primary-foreground"
-            : "bg-muted hover:bg-muted/80"
-        }`}
-      >
-        Все
-      </a>
-      {topics.map(({ topic, count }) => (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-2">
         <a
-          key={topic}
-          href={`/dashboard/summaries?topic=${encodeURIComponent(topic)}`}
+          href="/dashboard/summaries"
           className={`inline-flex items-center justify-center rounded-full text-sm font-medium transition-colors px-3 py-1 ${
-            currentTopic === topic
+            !currentTopic
               ? "bg-primary text-primary-foreground"
               : "bg-muted hover:bg-muted/80"
           }`}
         >
-          {topic}
-          <span className="ml-1 text-xs opacity-70">({count})</span>
+          Все
         </a>
-      ))}
+        {userTopics.length > 0 && (
+          <a
+            href="/dashboard/summaries?topic=_my"
+            className={`inline-flex items-center justify-center rounded-full text-sm font-medium transition-colors px-3 py-1 ${
+              currentTopic === "_my"
+                ? "bg-primary text-primary-foreground"
+                : "bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50"
+            }`}
+          >
+            Мои темы
+          </a>
+        )}
+        {userTopicsWithCount.map(({ topic, count }) => (
+          <a
+            key={topic}
+            href={`/dashboard/summaries?topic=${encodeURIComponent(topic)}`}
+            className={`inline-flex items-center justify-center rounded-full text-sm font-medium transition-colors px-3 py-1 ${
+              currentTopic === topic
+                ? "bg-primary text-primary-foreground"
+                : "bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50"
+            }`}
+          >
+            {topic}
+            <span className="ml-1 text-xs opacity-70">({count})</span>
+          </a>
+        ))}
+        {otherTopics.map(({ topic, count }) => (
+          <a
+            key={topic}
+            href={`/dashboard/summaries?topic=${encodeURIComponent(topic)}`}
+            className={`inline-flex items-center justify-center rounded-full text-sm font-medium transition-colors px-3 py-1 ${
+              currentTopic === topic
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted hover:bg-muted/80"
+            }`}
+          >
+            {topic}
+            <span className="ml-1 text-xs opacity-70">({count})</span>
+          </a>
+        ))}
+      </div>
     </div>
   );
 }
