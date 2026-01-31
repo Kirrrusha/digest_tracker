@@ -63,6 +63,10 @@ prisma/migrations/*
 postgres_data/
 redis_data/
 
+# Deployment
+certbot/
+backups/
+
 # Lefthook
 lefthook-local.yml
 
