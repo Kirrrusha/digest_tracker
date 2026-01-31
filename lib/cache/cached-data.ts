@@ -62,6 +62,7 @@ export async function getCachedUserChannels(userId: string) {
         description: channel.description,
         imageUrl: channel.imageUrl,
         isActive: channel.isActive,
+        tags: channel.tags,
         postsCount: channel._count.posts,
         lastPostAt: channel.posts[0]?.publishedAt || null,
       }));
@@ -115,6 +116,7 @@ export const getCachedRecentPosts = unstable_cache(
             id: true,
             name: true,
             sourceType: true,
+            tags: true,
           },
         },
       },
@@ -123,6 +125,58 @@ export const getCachedRecentPosts = unstable_cache(
   ["recent-posts"],
   { revalidate: 300, tags: ["posts"] }
 );
+
+/**
+ * Получение постов с фильтрацией по тегам каналов
+ */
+export async function getFilteredPosts(
+  userId: string,
+  options: {
+    tags?: string[];
+    useUserPreferences?: boolean;
+    limit?: number;
+  } = {}
+) {
+  const { tags, useUserPreferences = false, limit = 20 } = options;
+
+  let filterTags = tags;
+
+  // Если нужно использовать предпочтения пользователя
+  if (!filterTags && useUserPreferences) {
+    const preferences = await db.userPreferences.findUnique({
+      where: { userId },
+      select: { topics: true },
+    });
+    filterTags = preferences?.topics;
+  }
+
+  // Формируем условие для фильтрации каналов по тегам
+  const channelWhere: { userId: string; tags?: { hasSome: string[] } } = { userId };
+  if (filterTags && filterTags.length > 0) {
+    channelWhere.tags = { hasSome: filterTags };
+  }
+
+  return db.post.findMany({
+    where: { channel: channelWhere },
+    orderBy: { publishedAt: "desc" },
+    take: limit,
+    select: {
+      id: true,
+      title: true,
+      content: true,
+      url: true,
+      publishedAt: true,
+      channel: {
+        select: {
+          id: true,
+          name: true,
+          sourceType: true,
+          tags: true,
+        },
+      },
+    },
+  });
+}
 
 /**
  * Кэшированные последние саммари пользователя

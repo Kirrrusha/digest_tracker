@@ -25,4 +25,5 @@ export {
   getCachedRecentSummaries,
   getCachedTopTopics,
   getCachedWeeklyActivity,
+  getFilteredPosts,
 } from "./cached-data";

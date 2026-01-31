@@ -36,6 +36,8 @@ import {
 } from "@/app/actions/channels";
 import { cn } from "@/lib/utils";
 
+import { ChannelTags } from "./channel-tags";
+
 interface ChannelCardProps {
   channel: {
     id: string;
@@ -47,6 +49,7 @@ interface ChannelCardProps {
     isActive: boolean;
     postsCount: number;
     lastPostAt: Date | null;
+    tags?: string[];
   };
 }
 
@@ -171,7 +174,7 @@ export function ChannelCard({ channel }: ChannelCardProps) {
           </DropdownMenu>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-3">
         <div className="flex items-center justify-between text-sm">
           <div className="flex items-center gap-4">
             <span className="text-muted-foreground">
@@ -187,11 +190,18 @@ export function ChannelCard({ channel }: ChannelCardProps) {
               </span>
             )}
           </div>
-          <Link href={`/dashboard/channels/${channel.id}`}>
-            <Button variant="ghost" size="sm">
-              Посты
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <ChannelTags
+              channelId={channel.id}
+              tags={channel.tags || []}
+              compact
+            />
+            <Link href={`/dashboard/channels/${channel.id}`}>
+              <Button variant="ghost" size="sm">
+                Посты
+              </Button>
+            </Link>
+          </div>
         </div>
       </CardContent>
     </Card>

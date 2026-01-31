@@ -4,11 +4,13 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Header } from "@/components/dashboard/header";
 import { SettingsForm } from "@/components/settings/settings-form";
+import { TopicsManagement } from "@/components/settings/topics-management";
+import { NotificationSettings } from "@/components/settings/notification-settings";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 async function getPreferences(userId: string) {
-  const [preferences, user] = await Promise.all([
+  const [preferences, user, telegramAccount] = await Promise.all([
     db.userPreferences.findUnique({
       where: { userId },
     }),
@@ -16,16 +18,24 @@ async function getPreferences(userId: string) {
       where: { id: userId },
       select: { name: true, email: true },
     }),
+    db.telegramAccount.findUnique({
+      where: { userId },
+      select: { id: true },
+    }),
   ]);
 
   return {
     user,
+    hasTelegramAccount: !!telegramAccount,
     preferences: {
       topics: preferences?.topics || [],
       summaryInterval: preferences?.summaryInterval || "daily",
       language: preferences?.language || "ru",
       notificationsEnabled: preferences?.notificationsEnabled || false,
       notificationTime: preferences?.notificationTime || null,
+      telegramNotifications: preferences?.telegramNotifications ?? true,
+      notifyOnNewSummary: preferences?.notifyOnNewSummary ?? true,
+      notifyOnNewPosts: preferences?.notifyOnNewPosts ?? false,
     },
   };
 }
@@ -50,13 +60,17 @@ function SettingsSkeleton() {
 }
 
 async function SettingsContent({ userId }: { userId: string }) {
-  const { user, preferences } = await getPreferences(userId);
+  const { user, preferences, hasTelegramAccount } = await getPreferences(userId);
 
   return (
-    <SettingsForm
-      user={user}
-      preferences={preferences}
-    />
+    <div className="space-y-6">
+      <SettingsForm user={user} preferences={preferences} />
+      <TopicsManagement topics={preferences.topics} />
+      <NotificationSettings
+        settings={preferences}
+        hasTelegramAccount={hasTelegramAccount}
+      />
+    </div>
   );
 }
 

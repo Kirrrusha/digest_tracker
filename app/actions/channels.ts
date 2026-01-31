@@ -490,11 +490,54 @@ export async function validateChannelUrl(
 }
 
 /**
+ * Обновление тегов канала
+ */
+export async function updateChannelTags(
+  channelId: string,
+  tags: string[]
+): Promise<ActionResult> {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Необходима авторизация" };
+    }
+
+    // Проверяем, что канал принадлежит пользователю
+    const channel = await db.channel.findFirst({
+      where: {
+        id: channelId,
+        userId: session.user.id,
+      },
+    });
+
+    if (!channel) {
+      return { success: false, error: "Канал не найден" };
+    }
+
+    await db.channel.update({
+      where: { id: channelId },
+      data: { tags },
+    });
+
+    // Инвалидируем кэш
+    await invalidateCache(CACHE_KEYS.userChannels(session.user.id));
+    revalidateTag("posts");
+    revalidatePath("/channels");
+    revalidatePath(`/channels/${channelId}`);
+
+    return { success: true, data: undefined };
+  } catch (error) {
+    console.error("Error updating channel tags:", error);
+    return { success: false, error: "Не удалось обновить теги канала" };
+  }
+}
+
+/**
  * Обновление настроек канала
  */
 export async function updateChannel(
   channelId: string,
-  data: { name?: string; isActive?: boolean }
+  data: { name?: string; isActive?: boolean; tags?: string[] }
 ): Promise<ActionResult> {
   try {
     const session = await auth();
