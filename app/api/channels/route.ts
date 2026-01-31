@@ -1,12 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import {
-  fetchAndSaveChannelPosts,
-  validateAndGetSourceInfo,
-  ParseError,
-} from "@/lib/parsers";
+import { fetchAndSaveChannelPosts, ParseError, validateAndGetSourceInfo } from "@/lib/parsers";
 
 /**
  * GET /api/channels - Получение списка каналов пользователя
@@ -15,10 +11,7 @@ export async function GET() {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const channels = await db.channel.findMany({
@@ -53,10 +46,7 @@ export async function GET() {
     return NextResponse.json(result);
   } catch (error) {
     console.error("Error getting channels:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -67,20 +57,14 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
     const { url } = body;
 
     if (!url || typeof url !== "string") {
-      return NextResponse.json(
-        { error: "URL is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "URL is required" }, { status: 400 });
     }
 
     // Валидируем URL и получаем информацию о канале
@@ -139,15 +123,9 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     if (error instanceof ParseError) {
-      return NextResponse.json(
-        { error: error.message, code: error.code },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: error.message, code: error.code }, { status: 400 });
     }
     console.error("Error adding channel:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

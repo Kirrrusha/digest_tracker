@@ -5,9 +5,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 
-type ActionResult<T = void> =
-  | { success: true; data: T }
-  | { success: false; error: string };
+type ActionResult<T = void> = { success: true; data: T } | { success: false; error: string };
 
 /**
  * Получение настроек пользователя
@@ -74,9 +72,7 @@ export async function updateTopics(topics: string[]): Promise<ActionResult> {
 /**
  * Обновление интервала саммари
  */
-export async function updateSummaryInterval(
-  interval: string
-): Promise<ActionResult> {
+export async function updateSummaryInterval(interval: string): Promise<ActionResult> {
   try {
     const session = await auth();
     if (!session?.user?.id) {

@@ -31,8 +31,8 @@ export async function POST() {
     rpName,
     rpID,
     userID: user.id,
-    userName: user.email,
-    userDisplayName: user.name || user.email,
+    userName: user.email || user.id,
+    userDisplayName: user.name || user.email || user.id,
     attestationType: "none",
     excludeCredentials: existingAuthenticators,
     authenticatorSelection: {

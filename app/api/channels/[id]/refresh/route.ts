@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -11,17 +11,11 @@ type RouteContext = {
 /**
  * POST /api/channels/[id]/refresh - Обновление постов канала
  */
-export async function POST(
-  request: NextRequest,
-  context: RouteContext
-) {
+export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id: channelId } = await context.params;
@@ -35,10 +29,7 @@ export async function POST(
     });
 
     if (!channel) {
-      return NextResponse.json(
-        { error: "Channel not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Channel not found" }, { status: 404 });
     }
 
     const result = await fetchAndSaveChannelPosts(channelId);
@@ -51,15 +42,9 @@ export async function POST(
     });
   } catch (error) {
     if (error instanceof ParseError) {
-      return NextResponse.json(
-        { error: error.message, code: error.code },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: error.message, code: error.code }, { status: 400 });
     }
     console.error("Error refreshing channel:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

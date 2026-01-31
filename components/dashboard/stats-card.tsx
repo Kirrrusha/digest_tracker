@@ -1,7 +1,7 @@
-import { LucideIcon } from "lucide-react";
+import { type LucideIcon } from "lucide-react";
 
-import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface StatsCardProps {
   title: string;
@@ -34,19 +34,13 @@ export function StatsCard({
           <div className="flex items-baseline gap-2">
             <p className="text-2xl font-bold">{value}</p>
             {trend && (
-              <span
-                className={cn(
-                  "text-sm",
-                  trend.isPositive ? "text-green-500" : "text-red-500"
-                )}
-              >
-                {trend.isPositive ? "+" : "-"}{Math.abs(trend.value)}%
+              <span className={cn("text-sm", trend.isPositive ? "text-green-500" : "text-red-500")}>
+                {trend.isPositive ? "+" : "-"}
+                {Math.abs(trend.value)}%
               </span>
             )}
           </div>
-          {description && (
-            <p className="text-xs text-muted-foreground mt-1">{description}</p>
-          )}
+          {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
         </div>
       </CardContent>
     </Card>

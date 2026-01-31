@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildPostSummaryPrompt,
+  buildSummaryPrompt,
+  buildTitlePrompt,
+  buildTopicExtractionPrompt,
   SUMMARY_SYSTEM_PROMPT,
   SUMMARY_SYSTEM_PROMPT_EN,
-  buildSummaryPrompt,
-  buildTopicExtractionPrompt,
-  buildTitlePrompt,
-  buildPostSummaryPrompt,
 } from "@/lib/ai/prompts";
 
 describe("SUMMARY_SYSTEM_PROMPT", () => {
@@ -38,6 +38,7 @@ describe("SUMMARY_SYSTEM_PROMPT_EN", () => {
 describe("buildSummaryPrompt", () => {
   const mockPosts = [
     {
+      id: "1",
       title: "React 19 Release",
       content: "React 19 brings exciting new features for developers.",
       channelName: "Frontend News",
@@ -45,6 +46,7 @@ describe("buildSummaryPrompt", () => {
       publishedAt: new Date("2024-01-15"),
     },
     {
+      id: "2",
       title: "TypeScript 5.4",
       content: "New TypeScript version released with improved type inference.",
       channelName: "TS News",

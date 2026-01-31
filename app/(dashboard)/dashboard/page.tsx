@@ -1,18 +1,14 @@
 import { Suspense } from "react";
-import { Rss, FileText, Clock, TrendingUp } from "lucide-react";
+import { Clock, FileText, Rss, TrendingUp } from "lucide-react";
 
 import { auth } from "@/lib/auth";
+import { getCachedRecentPosts, getCachedTodaySummary, getCachedUserStats } from "@/lib/cache";
 import { Header } from "@/components/dashboard/header";
+import { RecentPosts } from "@/components/dashboard/recent-posts";
 import { StatsCard } from "@/components/dashboard/stats-card";
 import { TodaySummary } from "@/components/dashboard/today-summary";
-import { RecentPosts } from "@/components/dashboard/recent-posts";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import {
-  getCachedUserStats,
-  getCachedTodaySummary,
-  getCachedRecentPosts,
-} from "@/lib/cache";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function StatsCardSkeleton() {
   return (
@@ -78,16 +74,8 @@ async function StatsSection({ userId }: { userId: string }) {
         icon={Rss}
         description="Telegram и RSS"
       />
-      <StatsCard
-        title="Всего постов"
-        value={stats.postsCount}
-        icon={FileText}
-      />
-      <StatsCard
-        title="Постов сегодня"
-        value={stats.todayPostsCount}
-        icon={Clock}
-      />
+      <StatsCard title="Всего постов" value={stats.postsCount} icon={FileText} />
+      <StatsCard title="Постов сегодня" value={stats.todayPostsCount} icon={Clock} />
       <StatsCard
         title="Саммари"
         value={stats.summariesCount}

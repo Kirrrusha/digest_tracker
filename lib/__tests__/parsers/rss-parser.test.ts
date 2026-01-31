@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { rssParser, isValidRSSUrl } from "@/lib/parsers/rss-parser";
+import { isValidRSSUrl, rssParser } from "@/lib/parsers/rss-parser";
 
 describe("RSSParser", () => {
   describe("isValidSource", () => {

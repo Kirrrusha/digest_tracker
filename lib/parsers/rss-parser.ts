@@ -1,13 +1,14 @@
 import Parser from "rss-parser";
 
-import type {
-  ChannelInfo,
-  ContentParser,
-  ParsedPost,
-  ParseOptions,
-  ParseResult,
+import {
+  ParseError,
+  ParseErrorCode,
+  type ChannelInfo,
+  type ContentParser,
+  type ParsedPost,
+  type ParseOptions,
+  type ParseResult,
 } from "./types";
-import { ParseError, ParseErrorCode } from "./types";
 
 /**
  * Кастомные поля RSS
@@ -120,11 +121,7 @@ export class RSSParser implements ContentParser {
   private parseItem(item: Parser.Item & CustomItem): ParsedPost {
     // Получаем контент (пробуем разные поля)
     const content =
-      item["content:encoded"] ||
-      item.content ||
-      item.contentSnippet ||
-      item.summary ||
-      "";
+      item["content:encoded"] || item.content || item.contentSnippet || item.summary || "";
 
     // Очищаем HTML теги для получения чистого текста
     const cleanContent = this.stripHtml(content);
@@ -138,7 +135,7 @@ export class RSSParser implements ContentParser {
       title: item.title || null,
       content: cleanContent,
       url: item.link || null,
-      author: item.creator || item.author || null,
+      author: item.creator || null,
       publishedAt: item.pubDate ? new Date(item.pubDate) : new Date(),
       media: imageUrl
         ? [
@@ -204,11 +201,7 @@ export class RSSParser implements ContentParser {
 
     // Определяем тип ошибки
     if (message.includes("ENOTFOUND") || message.includes("ETIMEDOUT")) {
-      return new ParseError(
-        `Не удалось подключиться к ${url}`,
-        url,
-        ParseErrorCode.NETWORK_ERROR
-      );
+      return new ParseError(`Не удалось подключиться к ${url}`, url, ParseErrorCode.NETWORK_ERROR);
     }
 
     if (message.includes("404") || message.includes("Not Found")) {
@@ -216,22 +209,18 @@ export class RSSParser implements ContentParser {
     }
 
     if (message.includes("403") || message.includes("Forbidden")) {
-      return new ParseError(`Доступ к RSS фиду запрещен: ${url}`, url, ParseErrorCode.ACCESS_DENIED);
-    }
-
-    if (message.includes("429") || message.includes("Too Many")) {
       return new ParseError(
-        `Слишком много запросов к ${url}`,
+        `Доступ к RSS фиду запрещен: ${url}`,
         url,
-        ParseErrorCode.RATE_LIMITED
+        ParseErrorCode.ACCESS_DENIED
       );
     }
 
-    return new ParseError(
-      `Ошибка парсинга RSS: ${message}`,
-      url,
-      ParseErrorCode.PARSE_FAILED
-    );
+    if (message.includes("429") || message.includes("Too Many")) {
+      return new ParseError(`Слишком много запросов к ${url}`, url, ParseErrorCode.RATE_LIMITED);
+    }
+
+    return new ParseError(`Ошибка парсинга RSS: ${message}`, url, ParseErrorCode.PARSE_FAILED);
   }
 }
 
@@ -243,10 +232,7 @@ export const rssParser = new RSSParser();
 /**
  * Быстрый парсинг RSS фида
  */
-export async function parseRSSFeed(
-  url: string,
-  options?: ParseOptions
-): Promise<ParsedPost[]> {
+export async function parseRSSFeed(url: string, options?: ParseOptions): Promise<ParsedPost[]> {
   const result = await rssParser.fetchPosts(url, options);
   return result.posts;
 }

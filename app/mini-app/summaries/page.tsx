@@ -190,9 +190,7 @@ export default function SummariesPage() {
                   </span>
                 ))}
                 {summary.topics.length > 3 && (
-                  <span className="topic-more tg-hint">
-                    +{summary.topics.length - 3}
-                  </span>
+                  <span className="topic-more tg-hint">+{summary.topics.length - 3}</span>
                 )}
               </div>
             </Link>

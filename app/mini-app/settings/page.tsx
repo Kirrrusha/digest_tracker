@@ -128,7 +128,7 @@ export default function SettingsPage() {
       hapticNotification("success");
       webApp?.showAlert("Настройки сохранены!");
       setHasChanges(false);
-    } catch (error) {
+    } catch {
       hapticNotification("error");
       webApp?.showAlert("Ошибка сохранения");
     }
@@ -184,9 +184,7 @@ export default function SettingsPage() {
             <span className="profile-name">
               {user?.first_name} {user?.last_name || ""}
             </span>
-            {user?.username && (
-              <span className="profile-username tg-hint">@{user.username}</span>
-            )}
+            {user?.username && <span className="profile-username tg-hint">@{user.username}</span>}
           </div>
         </div>
       </section>
@@ -239,9 +237,7 @@ export default function SettingsPage() {
             <span className="setting-label">О новых саммари</span>
             <button
               className={`toggle ${settings.notifyOnNewSummary ? "on" : ""}`}
-              onClick={() =>
-                updateSetting("notifyOnNewSummary", !settings.notifyOnNewSummary)
-              }
+              onClick={() => updateSetting("notifyOnNewSummary", !settings.notifyOnNewSummary)}
               disabled={!settings.telegramNotifications}
             >
               <span className="toggle-thumb" />
@@ -263,9 +259,7 @@ export default function SettingsPage() {
       {/* Topics */}
       <section className="section">
         <h2 className="section-title">Интересующие темы</h2>
-        <p className="section-hint tg-hint">
-          Выберите темы для персонализации саммари
-        </p>
+        <p className="section-hint tg-hint">Выберите темы для персонализации саммари</p>
         <div className="topics-grid">
           {AVAILABLE_TOPICS.map((topic) => (
             <button

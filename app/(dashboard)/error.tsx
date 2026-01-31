@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { AlertTriangle, RefreshCw, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { AlertTriangle, ArrowLeft, RefreshCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,8 +46,7 @@ export default function DashboardError({ error, reset }: ErrorPageProps) {
           </Button>
           <Button variant="ghost" asChild>
             <Link href="/dashboard">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              К дашборду
+              <ArrowLeft className="mr-2 h-4 w-4" />К дашборду
             </Link>
           </Button>
         </CardFooter>

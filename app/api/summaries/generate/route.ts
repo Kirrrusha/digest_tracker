@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 import { generateDailySummary, generateWeeklySummary } from "@/lib/ai/summarizer";
 import { getUserFromTelegramData } from "@/lib/telegram/auth";
@@ -50,8 +50,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("Error generating summary:", error);
 
-    const errorMessage =
-      error instanceof Error ? error.message : "Failed to generate summary";
+    const errorMessage = error instanceof Error ? error.message : "Failed to generate summary";
 
     return NextResponse.json(
       {

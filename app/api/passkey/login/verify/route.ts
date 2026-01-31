@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 import { verifyAuthenticationResponse } from "@simplewebauthn/server";
 

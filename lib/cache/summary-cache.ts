@@ -122,7 +122,7 @@ export const getCachedSummaryById = unstable_cache(
             url: true,
             publishedAt: true,
             channel: {
-              select: { name: true, type: true },
+              select: { name: true, sourceType: true },
             },
           },
           orderBy: { publishedAt: "desc" },

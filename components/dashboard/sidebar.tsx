@@ -1,17 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Home,
-  Rss,
-  FileText,
-  Settings,
-  LogOut,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
-import { useState } from "react";
+import { ChevronLeft, ChevronRight, FileText, Home, LogOut, Rss, Settings } from "lucide-react";
 import { signOut } from "next-auth/react";
 
 import { cn } from "@/lib/utils";
@@ -64,9 +56,7 @@ export function Sidebar() {
                   href={item.href}
                   className={cn(
                     "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted",
+                    isActive ? "bg-primary text-primary-foreground" : "hover:bg-muted",
                     collapsed && "justify-center"
                   )}
                   title={collapsed ? item.label : undefined}
@@ -83,10 +73,7 @@ export function Sidebar() {
       <div className="p-2 border-t">
         <Button
           variant="ghost"
-          className={cn(
-            "w-full justify-start gap-3",
-            collapsed && "justify-center"
-          )}
+          className={cn("w-full justify-start gap-3", collapsed && "justify-center")}
           onClick={() => signOut({ callbackUrl: "/login" })}
           title={collapsed ? "Выйти" : undefined}
         >

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Loader2, Plus, Check, AlertCircle } from "lucide-react";
+import { AlertCircle, Check, Loader2, Plus } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,7 +16,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { addChannel, validateChannelUrl } from "@/app/actions/channels";
 
 interface ChannelPreview {
@@ -66,7 +66,13 @@ export function AddChannelDialog() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) resetState(); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o);
+        if (!o) resetState();
+      }}
+    >
       <DialogTrigger asChild>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
@@ -76,9 +82,7 @@ export function AddChannelDialog() {
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Добавить канал</DialogTitle>
-          <DialogDescription>
-            Введите URL Telegram канала или RSS фида
-          </DialogDescription>
+          <DialogDescription>Введите URL Telegram канала или RSS фида</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -97,11 +101,7 @@ export function AddChannelDialog() {
                 onClick={handleValidate}
                 disabled={!url.trim() || isValidating}
               >
-                {isValidating ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  "Проверить"
-                )}
+                {isValidating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Проверить"}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">

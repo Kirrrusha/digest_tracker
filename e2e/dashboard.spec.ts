@@ -1,4 +1,4 @@
-import { test, expect } from "./fixtures/auth.fixture";
+import { expect, test } from "./fixtures/auth.fixture";
 
 test.describe("Dashboard", () => {
   test.describe("When authenticated", () => {
@@ -6,9 +6,9 @@ test.describe("Dashboard", () => {
       // If we're on dashboard, check the structure
       if (authenticatedPage.url().includes("/dashboard")) {
         // Check for sidebar navigation
-        const sidebar = authenticatedPage.locator("[data-testid=sidebar]").or(
-          authenticatedPage.locator("nav").first()
-        );
+        const sidebar = authenticatedPage
+          .locator("[data-testid=sidebar]")
+          .or(authenticatedPage.locator("nav").first());
         await expect(sidebar).toBeVisible();
 
         // Check for main content area

@@ -1,20 +1,14 @@
 "use client";
 
-import { format } from "date-fns";
-import { ru } from "date-fns/locale";
-import { Sparkles, Loader2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import { format } from "date-fns";
+import { ru } from "date-fns/locale";
+import { Loader2, Sparkles } from "lucide-react";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { generateDailySummaryAction } from "@/app/actions/summaries";
 
 interface TodaySummaryProps {
@@ -46,7 +40,7 @@ export function TodaySummary({ summary, postsCount }: TodaySummaryProps) {
           createdAt: result.data.createdAt,
         });
       } else if (!result.success) {
-        setError(result.error);
+        setError(result.error || "Произошла ошибка");
       }
     });
   };
@@ -72,9 +66,7 @@ export function TodaySummary({ summary, postsCount }: TodaySummaryProps) {
                 </Badge>
               ))}
             </div>
-            <p className="text-muted-foreground line-clamp-4">
-              {localSummary.content}
-            </p>
+            <p className="text-muted-foreground line-clamp-4">{localSummary.content}</p>
             <Link href={`/dashboard/summaries/${localSummary.id}`}>
               <Button variant="outline" size="sm">
                 Читать полностью
@@ -85,12 +77,8 @@ export function TodaySummary({ summary, postsCount }: TodaySummaryProps) {
           <div className="text-center py-6">
             {postsCount > 0 ? (
               <>
-                <p className="text-muted-foreground mb-4">
-                  {postsCount} постов готовы к анализу
-                </p>
-                {error && (
-                  <p className="text-destructive text-sm mb-4">{error}</p>
-                )}
+                <p className="text-muted-foreground mb-4">{postsCount} постов готовы к анализу</p>
+                {error && <p className="text-destructive text-sm mb-4">{error}</p>}
                 <Button onClick={handleGenerate} disabled={isPending}>
                   {isPending ? (
                     <>

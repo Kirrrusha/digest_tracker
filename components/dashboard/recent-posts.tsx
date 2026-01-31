@@ -1,17 +1,11 @@
+import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { ru } from "date-fns/locale";
 import { ExternalLink } from "lucide-react";
-import Link from "next/link";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface Post {
   id: string;
@@ -80,12 +74,8 @@ export function RecentPosts({ posts }: RecentPostsProps) {
                     })}
                   </span>
                 </div>
-                {post.title && (
-                  <h4 className="font-medium mb-1 line-clamp-1">{post.title}</h4>
-                )}
-                <p className="text-sm text-muted-foreground line-clamp-2">
-                  {post.content}
-                </p>
+                {post.title && <h4 className="font-medium mb-1 line-clamp-1">{post.title}</h4>}
+                <p className="text-sm text-muted-foreground line-clamp-2">{post.content}</p>
               </div>
               {post.url && (
                 <a

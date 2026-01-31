@@ -1,4 +1,7 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+// We need to import after mocking
+import { generateSummaryFromPosts, type PostForSummary } from "@/lib/ai/summarizer";
 
 // Mock OpenAI module
 vi.mock("openai", () => ({
@@ -27,12 +30,6 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
-// We need to import after mocking
-import {
-  generateSummaryFromPosts,
-  type PostForSummary,
-} from "@/lib/ai/summarizer";
-
 describe("summarizer", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -58,9 +55,7 @@ describe("summarizer", () => {
 describe("extractHighlights (internal logic)", () => {
   // These patterns are tested through their expected behavior
   it("should match highlight patterns for Russian text", () => {
-    const patterns = [
-      /(?:ключев(?:ой|ые|ых)|важн(?:ый|ые|ых)|главн(?:ый|ые|ых))[\s:]+([^\n]+)/gi,
-    ];
+    const patterns = [/(?:ключев(?:ой|ые|ых)|важн(?:ый|ые|ых)|главн(?:ый|ые|ых))[\s:]+([^\n]+)/gi];
 
     const testCases = [
       { input: "ключевой момент: важная информация", shouldMatch: true },

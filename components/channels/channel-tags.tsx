@@ -1,16 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Loader2, X, Plus, Tag } from "lucide-react";
+import { Loader2, Plus, Tag, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { updateChannelTags } from "@/app/actions/channels";
 
 const SUGGESTED_TAGS = [
@@ -173,12 +169,7 @@ export function ChannelTags({ channelId, tags: initialTags, compact = false }: C
           }}
           className="h-8"
         />
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => addTag(newTag)}
-          disabled={!newTag}
-        >
+        <Button variant="outline" size="sm" onClick={() => addTag(newTag)} disabled={!newTag}>
           <Plus className="h-4 w-4" />
         </Button>
       </div>

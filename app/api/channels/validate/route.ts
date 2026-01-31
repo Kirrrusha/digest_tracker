@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 import { auth } from "@/lib/auth";
-import { validateAndGetSourceInfo, ParseError } from "@/lib/parsers";
+import { ParseError, validateAndGetSourceInfo } from "@/lib/parsers";
 
 /**
  * POST /api/channels/validate - Валидация URL канала
@@ -10,20 +10,14 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
     const { url } = body;
 
     if (!url || typeof url !== "string") {
-      return NextResponse.json(
-        { error: "URL is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "URL is required" }, { status: 400 });
     }
 
     const { type, info } = await validateAndGetSourceInfo(url);
@@ -49,9 +43,6 @@ export async function POST(request: NextRequest) {
       );
     }
     console.error("Error validating channel URL:", error);
-    return NextResponse.json(
-      { valid: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ valid: false, error: "Internal server error" }, { status: 500 });
   }
 }

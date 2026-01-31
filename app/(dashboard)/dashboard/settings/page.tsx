@@ -3,11 +3,11 @@ import { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Header } from "@/components/dashboard/header";
+import { NotificationSettings } from "@/components/settings/notification-settings";
 import { SettingsForm } from "@/components/settings/settings-form";
 import { TopicsManagement } from "@/components/settings/topics-management";
-import { NotificationSettings } from "@/components/settings/notification-settings";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 async function getPreferences(userId: string) {
   const [preferences, user, telegramAccount] = await Promise.all([
@@ -66,10 +66,7 @@ async function SettingsContent({ userId }: { userId: string }) {
     <div className="space-y-6">
       <SettingsForm user={user} preferences={preferences} />
       <TopicsManagement topics={preferences.topics} />
-      <NotificationSettings
-        settings={preferences}
-        hasTelegramAccount={hasTelegramAccount}
-      />
+      <NotificationSettings settings={preferences} hasTelegramAccount={hasTelegramAccount} />
     </div>
   );
 }

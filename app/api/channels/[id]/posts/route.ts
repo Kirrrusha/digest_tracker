@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -10,17 +10,11 @@ type RouteContext = {
 /**
  * GET /api/channels/[id]/posts - Получение постов канала
  */
-export async function GET(
-  request: NextRequest,
-  context: RouteContext
-) {
+export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id: channelId } = await context.params;
@@ -40,10 +34,7 @@ export async function GET(
     });
 
     if (!channel) {
-      return NextResponse.json(
-        { error: "Channel not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Channel not found" }, { status: 404 });
     }
 
     const [posts, total] = await Promise.all([
@@ -79,9 +70,6 @@ export async function GET(
     });
   } catch (error) {
     console.error("Error getting channel posts:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

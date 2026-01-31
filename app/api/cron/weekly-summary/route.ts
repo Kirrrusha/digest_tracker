@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { db } from "@/lib/db";
 import { generateWeeklySummary } from "@/lib/ai/summarizer";
+import { db } from "@/lib/db";
 
 /**
  * GET /api/cron/weekly-summary
@@ -97,9 +97,6 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error("Cron weekly-summary error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

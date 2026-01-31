@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getAllMetrics, getSummaryStats, getRecentRequests } from "@/lib/metrics";
+import { getAllMetrics, getRecentRequests, getSummaryStats } from "@/lib/metrics";
 
 /**
  * GET /api/metrics - Получение метрик приложения
@@ -14,10 +14,7 @@ export async function GET(request: Request) {
   const expectedKey = process.env.METRICS_API_KEY;
 
   if (!isDevMode && apiKey !== expectedKey) {
-    return NextResponse.json(
-      { error: "Unauthorized" },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const url = new URL(request.url);

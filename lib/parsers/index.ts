@@ -8,25 +8,19 @@ import {
   telegramParser,
   TelegramParser,
 } from "./telegram-parser";
-import type {
-  ChannelInfo,
-  ContentParser,
-  ParsedPost,
-  ParseOptions,
-  ParseResult,
-  SourceType,
+import {
+  ParseError,
+  ParseErrorCode,
+  type ChannelInfo,
+  type ContentParser,
+  type ParsedPost,
+  type ParseOptions,
+  type ParseResult,
+  type SourceType,
 } from "./types";
-import { ParseError, ParseErrorCode } from "./types";
 
 // Re-export types
-export type {
-  ChannelInfo,
-  ContentParser,
-  ParsedPost,
-  ParseOptions,
-  ParseResult,
-  SourceType,
-};
+export type { ChannelInfo, ContentParser, ParsedPost, ParseOptions, ParseResult, SourceType };
 export { ParseError, ParseErrorCode };
 
 // Re-export parsers
@@ -102,11 +96,7 @@ class ParserFactory {
   async getChannelInfo(url: string): Promise<ChannelInfo> {
     const parser = this.getParserForUrl(url);
     if (!parser) {
-      throw new ParseError(
-        "Неподдерживаемый тип источника",
-        url,
-        ParseErrorCode.INVALID_URL
-      );
+      throw new ParseError("Неподдерживаемый тип источника", url, ParseErrorCode.INVALID_URL);
     }
     return parser.getChannelInfo(url);
   }
@@ -117,11 +107,7 @@ class ParserFactory {
   async fetchPosts(url: string, options?: ParseOptions): Promise<ParseResult> {
     const parser = this.getParserForUrl(url);
     if (!parser) {
-      throw new ParseError(
-        "Неподдерживаемый тип источника",
-        url,
-        ParseErrorCode.INVALID_URL
-      );
+      throw new ParseError("Неподдерживаемый тип источника", url, ParseErrorCode.INVALID_URL);
     }
     return parser.fetchPosts(url, options);
   }
@@ -197,7 +183,7 @@ export async function fetchAndSaveChannelPosts(
         },
       });
       added++;
-    } catch (error) {
+    } catch {
       // Пропускаем дубликаты
       skipped++;
     }
@@ -231,8 +217,7 @@ export async function fetchAllUserChannels(
       const result = await fetchAndSaveChannelPosts(channel.id, options);
       total += result.added;
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Unknown error";
+      const message = error instanceof Error ? error.message : "Unknown error";
       errors.push(`${channel.name}: ${message}`);
     }
   }

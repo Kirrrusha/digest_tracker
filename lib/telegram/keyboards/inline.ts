@@ -3,10 +3,7 @@ import { InlineKeyboard } from "grammy";
 /**
  * Inline клавиатура для управления каналом
  */
-export function channelControlKeyboard(
-  channelId: string,
-  isActive: boolean
-): InlineKeyboard {
+export function channelControlKeyboard(channelId: string, isActive: boolean): InlineKeyboard {
   const toggleText = isActive ? "⏸ Приостановить" : "▶️ Возобновить";
 
   return new InlineKeyboard()

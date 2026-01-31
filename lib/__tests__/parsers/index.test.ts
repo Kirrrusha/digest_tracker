@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parserFactory, ParseError, ParseErrorCode } from "@/lib/parsers";
+import { ParseError, ParseErrorCode, parserFactory } from "@/lib/parsers";
 
 describe("ParserFactory", () => {
   describe("getParser", () => {

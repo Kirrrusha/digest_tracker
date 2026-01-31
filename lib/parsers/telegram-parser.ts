@@ -1,12 +1,13 @@
-import type {
-  ChannelInfo,
-  ContentParser,
-  ParsedPost,
-  ParseOptions,
-  ParseResult,
-  PostMedia,
+import {
+  ParseError,
+  ParseErrorCode,
+  type ChannelInfo,
+  type ContentParser,
+  type ParsedPost,
+  type ParseOptions,
+  type ParseResult,
+  type PostMedia,
 } from "./types";
-import { ParseError, ParseErrorCode } from "./types";
 
 /**
  * Парсер публичных Telegram каналов
@@ -63,8 +64,7 @@ export class TelegramParser implements ContentParser {
       // Получаем HTML страницы канала
       const response = await fetch(`${this.baseUrl}/s/${username}`, {
         headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         },
       });
 
@@ -110,8 +110,7 @@ export class TelegramParser implements ContentParser {
       // Получаем HTML страницы канала
       const response = await fetch(`${this.baseUrl}/s/${username}`, {
         headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         },
       });
 
@@ -170,29 +169,21 @@ export class TelegramParser implements ContentParser {
   /**
    * Парсинг информации о канале из HTML
    */
-  private parseChannelInfo(html: string, username: string, url: string): ChannelInfo {
+  private parseChannelInfo(html: string, username: string, _url: string): ChannelInfo {
     // Извлекаем название канала
-    const titleMatch = html.match(
-      /<meta property="og:title" content="([^"]+)"/
-    );
+    const titleMatch = html.match(/<meta property="og:title" content="([^"]+)"/);
     const name = titleMatch ? this.decodeHtml(titleMatch[1]) : `@${username}`;
 
     // Извлекаем описание
-    const descMatch = html.match(
-      /<meta property="og:description" content="([^"]+)"/
-    );
+    const descMatch = html.match(/<meta property="og:description" content="([^"]+)"/);
     const description = descMatch ? this.decodeHtml(descMatch[1]) : null;
 
     // Извлекаем изображение
-    const imageMatch = html.match(
-      /<meta property="og:image" content="([^"]+)"/
-    );
+    const imageMatch = html.match(/<meta property="og:image" content="([^"]+)"/);
     const imageUrl = imageMatch ? imageMatch[1] : null;
 
     // Извлекаем количество подписчиков
-    const subsMatch = html.match(
-      /<div class="tgme_page_extra">([^<]+)<\/div>/
-    );
+    const subsMatch = html.match(/<div class="tgme_page_extra">([^<]+)<\/div>/);
     let subscribersCount: number | undefined;
     if (subsMatch) {
       const subsText = subsMatch[1];
@@ -234,8 +225,7 @@ export class TelegramParser implements ContentParser {
 
     // Альтернативный парсинг если основной не сработал
     if (posts.length === 0) {
-      const simpleRegex =
-        /<div class="tgme_widget_message_text[^"]*"[^>]*>([\s\S]*?)<\/div>/g;
+      const simpleRegex = /<div class="tgme_widget_message_text[^"]*"[^>]*>([\s\S]*?)<\/div>/g;
       let simpleMatch;
       let index = 0;
 
@@ -260,11 +250,7 @@ export class TelegramParser implements ContentParser {
   /**
    * Парсинг одного сообщения
    */
-  private parseMessage(
-    html: string,
-    postId: string,
-    username: string
-  ): ParsedPost | null {
+  private parseMessage(html: string, postId: string, username: string): ParsedPost | null {
     // Извлекаем текст сообщения
     const textMatch = html.match(
       /<div class="tgme_widget_message_text[^"]*"[^>]*>([\s\S]*?)<\/div>/
@@ -281,9 +267,7 @@ export class TelegramParser implements ContentParser {
     const media = this.extractMedia(html);
 
     // Извлекаем автора (для forwarded сообщений)
-    const authorMatch = html.match(
-      /class="tgme_widget_message_owner_name[^"]*"[^>]*>([^<]+)</
-    );
+    const authorMatch = html.match(/class="tgme_widget_message_owner_name[^"]*"[^>]*>([^<]+)</);
     const author = authorMatch ? this.decodeHtml(authorMatch[1]) : `@${username}`;
 
     return {
@@ -304,9 +288,7 @@ export class TelegramParser implements ContentParser {
     const media: PostMedia[] = [];
 
     // Изображения
-    const imageMatches = html.matchAll(
-      /background-image:url\('([^']+)'\)/g
-    );
+    const imageMatches = html.matchAll(/background-image:url\('([^']+)'\)/g);
     for (const match of imageMatches) {
       media.push({
         type: "image",
@@ -315,9 +297,7 @@ export class TelegramParser implements ContentParser {
     }
 
     // Видео превью
-    const videoMatch = html.match(
-      /<video[^>]+poster="([^"]+)"/
-    );
+    const videoMatch = html.match(/<video[^>]+poster="([^"]+)"/);
     if (videoMatch) {
       media.push({
         type: "video",

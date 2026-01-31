@@ -1,10 +1,10 @@
+import Link from "next/link";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
-import Link from "next/link";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface SummaryCardProps {
   summary: {
@@ -51,9 +51,7 @@ export function SummaryCard({ summary }: SummaryCardProps) {
             </Badge>
           )}
         </div>
-        <p className="text-sm text-muted-foreground line-clamp-3">
-          {summary.content}
-        </p>
+        <p className="text-sm text-muted-foreground line-clamp-3">{summary.content}</p>
         <Link href={`/dashboard/summaries/${summary.id}`}>
           <Button variant="ghost" size="sm">
             Читать полностью

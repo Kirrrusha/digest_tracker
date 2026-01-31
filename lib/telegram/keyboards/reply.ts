@@ -95,9 +95,7 @@ export function confirmKeyboard(
   confirmCallback: string,
   cancelCallback: string = "cancel"
 ): InlineKeyboard {
-  return new InlineKeyboard()
-    .text("✅ Да", confirmCallback)
-    .text("❌ Нет", cancelCallback);
+  return new InlineKeyboard().text("✅ Да", confirmCallback).text("❌ Нет", cancelCallback);
 }
 
 /**

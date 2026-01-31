@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 test.describe("Authentication", () => {
   test.describe("Sign In Page", () => {
@@ -76,9 +76,7 @@ test.describe("Authentication", () => {
       await expect(emailInput).toBeVisible();
 
       // Check for password input
-      const passwordInput = page
-        .getByPlaceholder(/пароль|password/i)
-        .first();
+      const passwordInput = page.getByPlaceholder(/пароль|password/i).first();
       await expect(passwordInput).toBeVisible();
 
       // Check for submit button
@@ -100,36 +98,28 @@ test.describe("Authentication", () => {
   });
 
   test.describe("Protected Routes", () => {
-    test("should redirect to auth when accessing dashboard without login", async ({
-      page,
-    }) => {
+    test("should redirect to auth when accessing dashboard without login", async ({ page }) => {
       await page.goto("/dashboard");
 
       // Should redirect to sign in page
       await expect(page).toHaveURL(/signin|auth/);
     });
 
-    test("should redirect to auth when accessing channels without login", async ({
-      page,
-    }) => {
+    test("should redirect to auth when accessing channels without login", async ({ page }) => {
       await page.goto("/dashboard/channels");
 
       // Should redirect to sign in page
       await expect(page).toHaveURL(/signin|auth/);
     });
 
-    test("should redirect to auth when accessing summaries without login", async ({
-      page,
-    }) => {
+    test("should redirect to auth when accessing summaries without login", async ({ page }) => {
       await page.goto("/dashboard/summaries");
 
       // Should redirect to sign in page
       await expect(page).toHaveURL(/signin|auth/);
     });
 
-    test("should redirect to auth when accessing settings without login", async ({
-      page,
-    }) => {
+    test("should redirect to auth when accessing settings without login", async ({ page }) => {
       await page.goto("/dashboard/settings");
 
       // Should redirect to sign in page

@@ -2,13 +2,13 @@ import { Suspense } from "react";
 import { Rss } from "lucide-react";
 
 import { auth } from "@/lib/auth";
-import { Header } from "@/components/dashboard/header";
+import { getCachedUserChannels } from "@/lib/cache";
 import { AddChannelDialog } from "@/components/channels/add-channel-dialog";
 import { ChannelCard } from "@/components/channels/channel-card";
+import { Header } from "@/components/dashboard/header";
 import { EmptyState } from "@/components/empty/empty-state";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { getCachedUserChannels } from "@/lib/cache";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function ChannelSkeleton() {
   return (
@@ -64,9 +64,7 @@ export default async function ChannelsPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-lg font-semibold">Мои каналы</h2>
-            <p className="text-sm text-muted-foreground">
-              Управление источниками контента
-            </p>
+            <p className="text-sm text-muted-foreground">Управление источниками контента</p>
           </div>
           <AddChannelDialog />
         </div>

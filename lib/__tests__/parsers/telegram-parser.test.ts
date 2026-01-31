@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  telegramParser,
-  isValidTelegramUrl,
   extractTelegramUsername,
+  isValidTelegramUrl,
+  telegramParser,
 } from "@/lib/parsers/telegram-parser";
 
 describe("TelegramParser", () => {

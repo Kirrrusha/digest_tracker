@@ -1,5 +1,8 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
-import { NextResponse } from "next/server";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { checkRedisConnection } from "@/lib/cache/redis";
+import { db } from "@/lib/db";
+import { GET } from "@/app/api/health/route";
 
 // Mock dependencies
 vi.mock("@/lib/db", () => ({
@@ -20,10 +23,6 @@ vi.mock("@/lib/logger", () => ({
     error: vi.fn(),
   },
 }));
-
-import { GET } from "@/app/api/health/route";
-import { db } from "@/lib/db";
-import { checkRedisConnection } from "@/lib/cache/redis";
 
 describe("GET /api/health", () => {
   beforeEach(() => {

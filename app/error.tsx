@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { AlertTriangle, RefreshCw, Home } from "lucide-react";
 import Link from "next/link";
+import { AlertTriangle, Home, RefreshCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,9 +36,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
             Произошла непредвиденная ошибка. Мы уже работаем над её устранением.
           </p>
           {error.digest && (
-            <p className="text-xs text-muted-foreground font-mono">
-              Код ошибки: {error.digest}
-            </p>
+            <p className="text-xs text-muted-foreground font-mono">Код ошибки: {error.digest}</p>
           )}
         </CardContent>
         <CardFooter className="flex justify-center gap-4">

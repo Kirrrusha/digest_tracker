@@ -126,9 +126,7 @@ export default function ChannelsPage() {
     // TODO: API call to add channel
     const newChannel: Channel = {
       id: Date.now().toString(),
-      name: newChannelUrl.includes("t.me")
-        ? `@${newChannelUrl.split("/").pop()}`
-        : "New Channel",
+      name: newChannelUrl.includes("t.me") ? `@${newChannelUrl.split("/").pop()}` : "New Channel",
       type: newChannelUrl.includes("t.me") ? "telegram" : "rss",
       sourceUrl: newChannelUrl,
       isActive: true,
@@ -214,14 +212,10 @@ export default function ChannelsPage() {
           channels.map((channel) => (
             <div key={channel.id} className="channel-item tg-card">
               <div className="channel-info">
-                <div className="channel-icon">
-                  {channel.type === "telegram" ? "📢" : "📡"}
-                </div>
+                <div className="channel-icon">{channel.type === "telegram" ? "📢" : "📡"}</div>
                 <div className="channel-details">
                   <span className="channel-name">{channel.name}</span>
-                  <span className="channel-meta tg-hint">
-                    {channel.postsCount} постов
-                  </span>
+                  <span className="channel-meta tg-hint">{channel.postsCount} постов</span>
                 </div>
               </div>
               <div className="channel-actions">
@@ -231,10 +225,7 @@ export default function ChannelsPage() {
                 >
                   {channel.isActive ? "✅" : "⏸"}
                 </button>
-                <button
-                  className="delete-btn"
-                  onClick={() => handleDeleteChannel(channel.id)}
-                >
+                <button className="delete-btn" onClick={() => handleDeleteChannel(channel.id)}>
                   🗑
                 </button>
               </div>

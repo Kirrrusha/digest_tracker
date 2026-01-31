@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   extractTopicsFromContent,
   extractTopicsFromPosts,
-  normalizeTopic,
   getRelatedTopics,
   isKnownTopic,
+  normalizeTopic,
 } from "@/lib/ai/topic-extractor";
 
 describe("extractTopicsFromContent", () => {
@@ -73,9 +73,7 @@ describe("extractTopicsFromPosts", () => {
   });
 
   it("should handle null titles", () => {
-    const posts = [
-      { title: null, content: "Docker is great for containerization" },
-    ];
+    const posts = [{ title: null, content: "Docker is great for containerization" }];
     const topics = extractTopicsFromPosts(posts);
     expect(topics).toContain("Docker");
   });

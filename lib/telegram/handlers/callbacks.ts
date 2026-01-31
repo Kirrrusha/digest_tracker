@@ -1,5 +1,4 @@
-import type { Bot, Context } from "grammy";
-import { InlineKeyboard } from "grammy";
+import { InlineKeyboard, type Bot, type Context } from "grammy";
 
 import { db } from "@/lib/db";
 
@@ -176,7 +175,8 @@ async function handleGenerateSummary(ctx: Context): Promise<void> {
 
   if (!ctx.from) return;
 
-  const telegramId = ctx.from.id.toString();
+  // TODO: Use telegramId when implementing actual summary generation
+  // const _telegramId = ctx.from.id.toString();
 
   try {
     await ctx.editMessageText("🔄 Генерирую саммари...\n\nЭто может занять некоторое время.");
@@ -387,14 +387,10 @@ async function handleBackToSettings(ctx: Context): Promise<void> {
       .row()
       .text(`📅 Интервал: ${prefs.summaryInterval}`, "show_interval_options");
 
-    await ctx.editMessageText(
-      `⚙️ *Настройки*\n\n` +
-        `Нажми на параметр, чтобы изменить его:`,
-      {
-        parse_mode: "Markdown",
-        reply_markup: keyboard,
-      }
-    );
+    await ctx.editMessageText(`⚙️ *Настройки*\n\n` + `Нажми на параметр, чтобы изменить его:`, {
+      parse_mode: "Markdown",
+      reply_markup: keyboard,
+    });
   } catch (error) {
     console.error("Error in back to settings:", error);
   }

@@ -48,7 +48,7 @@ export class DevDigestBot {
     await this.initialize();
 
     if (process.env.NODE_ENV === "development") {
-      console.log("Starting bot in polling mode...");
+      console.warn("Starting bot in polling mode...");
       await this.bot.start();
     }
   }

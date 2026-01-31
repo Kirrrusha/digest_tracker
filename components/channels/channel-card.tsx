@@ -1,27 +1,15 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { ru } from "date-fns/locale";
-import {
-  MoreVertical,
-  RefreshCw,
-  Trash2,
-  ExternalLink,
-  Power,
-  PowerOff,
-} from "lucide-react";
-import Link from "next/link";
+import { ExternalLink, MoreVertical, Power, PowerOff, RefreshCw, Trash2 } from "lucide-react";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,12 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  deleteChannel,
-  refreshChannel,
-  toggleChannel,
-} from "@/app/actions/channels";
-import { cn } from "@/lib/utils";
+import { deleteChannel, refreshChannel, toggleChannel } from "@/app/actions/channels";
 
 import { ChannelTags } from "./channel-tags";
 
@@ -112,9 +95,7 @@ export function ChannelCard({ channel }: ChannelCardProps) {
             )}
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <CardTitle className="text-base truncate">
-                  {localChannel.name}
-                </CardTitle>
+                <CardTitle className="text-base truncate">{localChannel.name}</CardTitle>
                 <Badge variant="outline" className="text-xs shrink-0">
                   {localChannel.sourceType === "telegram" ? "TG" : "RSS"}
                 </Badge>
@@ -134,9 +115,7 @@ export function ChannelCard({ channel }: ChannelCardProps) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={handleRefresh} disabled={isRefreshing}>
-                <RefreshCw
-                  className={cn("mr-2 h-4 w-4", isRefreshing && "animate-spin")}
-                />
+                <RefreshCw className={cn("mr-2 h-4 w-4", isRefreshing && "animate-spin")} />
                 Обновить
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleToggle} disabled={isToggling}>
@@ -153,11 +132,7 @@ export function ChannelCard({ channel }: ChannelCardProps) {
                 )}
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <a
-                  href={localChannel.sourceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
+                <a href={localChannel.sourceUrl} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="mr-2 h-4 w-4" />
                   Открыть источник
                 </a>
@@ -177,9 +152,7 @@ export function ChannelCard({ channel }: ChannelCardProps) {
       <CardContent className="space-y-3">
         <div className="flex items-center justify-between text-sm">
           <div className="flex items-center gap-4">
-            <span className="text-muted-foreground">
-              {localChannel.postsCount} постов
-            </span>
+            <span className="text-muted-foreground">{localChannel.postsCount} постов</span>
             {localChannel.lastPostAt && (
               <span className="text-muted-foreground">
                 Обновлено{" "}
@@ -191,11 +164,7 @@ export function ChannelCard({ channel }: ChannelCardProps) {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <ChannelTags
-              channelId={channel.id}
-              tags={channel.tags || []}
-              compact
-            />
+            <ChannelTags channelId={channel.id} tags={channel.tags || []} compact />
             <Link href={`/dashboard/channels/${channel.id}`}>
               <Button variant="ghost" size="sm">
                 Посты

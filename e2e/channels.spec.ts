@@ -1,4 +1,4 @@
-import { test, expect } from "./fixtures/auth.fixture";
+import { expect, test } from "./fixtures/auth.fixture";
 
 test.describe("Channels Management", () => {
   test.describe("Channels List", () => {
@@ -8,9 +8,9 @@ test.describe("Channels Management", () => {
       // If authenticated, should see channels page content
       if (authenticatedPage.url().includes("/channels")) {
         // Check for page title
-        const heading = authenticatedPage.getByRole("heading", { level: 1 }).or(
-          authenticatedPage.getByText(/(Каналы|Channels)/i)
-        );
+        const heading = authenticatedPage
+          .getByRole("heading", { level: 1 })
+          .or(authenticatedPage.getByText(/(Каналы|Channels)/i));
         await expect(heading.first()).toBeVisible();
       }
     });
@@ -40,18 +40,16 @@ test.describe("Channels Management", () => {
           await addButton.click();
 
           // Check for dialog/modal
-          const dialog = authenticatedPage.getByRole("dialog").or(
-            authenticatedPage.locator("[data-state=open]")
-          );
+          const dialog = authenticatedPage
+            .getByRole("dialog")
+            .or(authenticatedPage.locator("[data-state=open]"));
 
           await expect(dialog.first()).toBeVisible();
         }
       }
     });
 
-    test("should have URL input in add channel form", async ({
-      authenticatedPage,
-    }) => {
+    test("should have URL input in add channel form", async ({ authenticatedPage }) => {
       await authenticatedPage.goto("/dashboard/channels");
 
       if (authenticatedPage.url().includes("/channels")) {
@@ -63,14 +61,16 @@ test.describe("Channels Management", () => {
           await addButton.click();
 
           // Wait for dialog to be visible
-          await authenticatedPage.waitForSelector("[role=dialog], [data-state=open]", {
-            timeout: 5000,
-          }).catch(() => {});
+          await authenticatedPage
+            .waitForSelector("[role=dialog], [data-state=open]", {
+              timeout: 5000,
+            })
+            .catch(() => {});
 
           // Check for URL input
-          const urlInput = authenticatedPage.getByPlaceholder(/url|ссылк/i).or(
-            authenticatedPage.locator("input[type=url], input[type=text]").first()
-          );
+          const urlInput = authenticatedPage
+            .getByPlaceholder(/url|ссылк/i)
+            .or(authenticatedPage.locator("input[type=url], input[type=text]").first());
 
           await expect(urlInput.first()).toBeVisible();
         }
@@ -88,15 +88,14 @@ test.describe("Channels Management", () => {
         if ((await addButton.count()) > 0) {
           await addButton.click();
 
-          await authenticatedPage.waitForSelector(
-            "[role=dialog], [data-state=open]",
-            { timeout: 5000 }
-          ).catch(() => {});
+          await authenticatedPage
+            .waitForSelector("[role=dialog], [data-state=open]", { timeout: 5000 })
+            .catch(() => {});
 
           // Try to enter an invalid URL
-          const urlInput = authenticatedPage.getByPlaceholder(/url|ссылк/i).or(
-            authenticatedPage.locator("input[type=url], input[type=text]").first()
-          );
+          const urlInput = authenticatedPage
+            .getByPlaceholder(/url|ссылк/i)
+            .or(authenticatedPage.locator("input[type=url], input[type=text]").first());
 
           if ((await urlInput.count()) > 0) {
             await urlInput.first().fill("invalid-url");
@@ -114,9 +113,9 @@ test.describe("Channels Management", () => {
             await authenticatedPage.waitForTimeout(1000);
 
             // Form should still be open (not submitted successfully)
-            const dialog = authenticatedPage.getByRole("dialog").or(
-              authenticatedPage.locator("[data-state=open]")
-            );
+            const dialog = authenticatedPage
+              .getByRole("dialog")
+              .or(authenticatedPage.locator("[data-state=open]"));
 
             await expect(dialog.first()).toBeVisible();
           }
@@ -126,9 +125,7 @@ test.describe("Channels Management", () => {
   });
 
   test.describe("Channel Card", () => {
-    test("should display channel cards with expected elements", async ({
-      authenticatedPage,
-    }) => {
+    test("should display channel cards with expected elements", async ({ authenticatedPage }) => {
       await authenticatedPage.goto("/dashboard/channels");
 
       if (authenticatedPage.url().includes("/channels")) {
@@ -154,18 +151,14 @@ test.describe("Channels Management", () => {
       }
     });
 
-    test("should have action menu on channel card", async ({
-      authenticatedPage,
-    }) => {
+    test("should have action menu on channel card", async ({ authenticatedPage }) => {
       await authenticatedPage.goto("/dashboard/channels");
 
       if (authenticatedPage.url().includes("/channels")) {
         await authenticatedPage.waitForLoadState("networkidle");
 
         // Find channel card with menu button
-        const menuButton = authenticatedPage.locator(
-          "[data-testid=channel-menu], button:has(svg)"
-        );
+        const menuButton = authenticatedPage.locator("[data-testid=channel-menu], button:has(svg)");
 
         const count = await menuButton.count();
         if (count > 0) {
@@ -173,9 +166,11 @@ test.describe("Channels Management", () => {
           await menuButton.first().click();
 
           // Wait for dropdown menu
-          await authenticatedPage.waitForSelector("[role=menu], [data-state=open]", {
-            timeout: 3000,
-          }).catch(() => {});
+          await authenticatedPage
+            .waitForSelector("[role=menu], [data-state=open]", {
+              timeout: 3000,
+            })
+            .catch(() => {});
 
           // Check for menu items
           const menuItems = authenticatedPage.getByRole("menuitem");

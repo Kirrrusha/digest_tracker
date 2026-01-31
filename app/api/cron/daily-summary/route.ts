@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { db } from "@/lib/db";
 import { generateDailySummary } from "@/lib/ai/summarizer";
+import { db } from "@/lib/db";
 
 /**
  * GET /api/cron/daily-summary
@@ -107,7 +107,9 @@ export async function GET(request: Request) {
     }
 
     const successCount = results.filter((r) => r.success && !r.error?.includes("Already")).length;
-    const skippedCount = results.filter((r) => r.error?.includes("Already") || r.error?.includes("No posts")).length;
+    const skippedCount = results.filter(
+      (r) => r.error?.includes("Already") || r.error?.includes("No posts")
+    ).length;
     const errorCount = results.filter((r) => !r.success && !r.error?.includes("No posts")).length;
 
     return NextResponse.json({
@@ -121,9 +123,6 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error("Cron daily-summary error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

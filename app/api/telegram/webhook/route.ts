@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 import { validateWebhookRequest } from "@/lib/telegram/auth";
 import { initializeBot } from "@/lib/telegram/bot";

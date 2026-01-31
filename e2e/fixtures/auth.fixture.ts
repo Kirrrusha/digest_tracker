@@ -1,4 +1,4 @@
-import { test as base, expect, Page } from "@playwright/test";
+import { test as base, expect, type Page } from "@playwright/test";
 
 /**
  * Test fixture with authentication
@@ -45,6 +45,7 @@ export async function loginUser(page: Page, email: string, password: string) {
  * Extended test with authenticated page fixture
  */
 export const test = base.extend<AuthFixtures>({
+   
   authenticatedPage: async ({ page }, use) => {
     // Login before test
     await loginUser(page, testUser.email, testUser.password);
@@ -59,6 +60,7 @@ export const test = base.extend<AuthFixtures>({
       );
     }
 
+    // eslint-disable-next-line react-hooks/rules-of-hooks -- 'use' is a Playwright fixture parameter, not a React hook
     await use(page);
   },
 });

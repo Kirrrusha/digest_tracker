@@ -64,7 +64,7 @@ function createLogEntry(
     level,
     message,
     ...(context && Object.keys(context).length > 0 && { context }),
-    ...(error && { error: formatError(error) }),
+    ...(error ? { error: formatError(error) } : {}),
   };
 }
 
@@ -73,24 +73,24 @@ function output(entry: LogEntry): void {
 
   if (isProduction) {
     // JSON формат для production (парсится системами логирования)
+    // eslint-disable-next-line no-console
     console.log(JSON.stringify(entry));
   } else {
     // Человекочитаемый формат для development
     const color = {
       debug: "\x1b[36m", // cyan
-      info: "\x1b[32m",  // green
-      warn: "\x1b[33m",  // yellow
+      info: "\x1b[32m", // green
+      warn: "\x1b[33m", // yellow
       error: "\x1b[31m", // red
     }[entry.level];
     const reset = "\x1b[0m";
 
-    const contextStr = entry.context
-      ? ` ${JSON.stringify(entry.context)}`
-      : "";
+    const contextStr = entry.context ? ` ${JSON.stringify(entry.context)}` : "";
     const errorStr = entry.error
       ? `\n  Error: ${entry.error.message}${entry.error.stack ? `\n${entry.error.stack}` : ""}`
       : "";
 
+    // eslint-disable-next-line no-console
     console.log(
       `${color}[${entry.level.toUpperCase()}]${reset} ${entry.timestamp} ${entry.message}${contextStr}${errorStr}`
     );

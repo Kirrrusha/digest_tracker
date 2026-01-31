@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { db } from "@/lib/db";
 import { checkRedisConnection } from "@/lib/cache/redis";
+import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
 
 interface ServiceStatus {
@@ -32,10 +32,7 @@ export async function GET() {
   const version = process.env.npm_package_version || "1.0.0";
 
   // Проверяем все сервисы параллельно
-  const [dbStatus, redisStatus] = await Promise.all([
-    checkDatabase(),
-    checkRedis(),
-  ]);
+  const [dbStatus, redisStatus] = await Promise.all([checkDatabase(), checkRedis()]);
 
   const services = {
     database: dbStatus,
@@ -43,12 +40,8 @@ export async function GET() {
   };
 
   // Определяем общий статус
-  const allHealthy = Object.values(services).every(
-    (s) => s.status === "healthy"
-  );
-  const allUnhealthy = Object.values(services).every(
-    (s) => s.status === "unhealthy"
-  );
+  const allHealthy = Object.values(services).every((s) => s.status === "healthy");
+  const allUnhealthy = Object.values(services).every((s) => s.status === "unhealthy");
 
   let status: HealthResponse["status"];
   if (allHealthy) {

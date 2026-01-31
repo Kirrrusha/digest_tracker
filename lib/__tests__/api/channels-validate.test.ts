@@ -1,5 +1,9 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
-import { NextRequest } from "next/server";
+import { type NextRequest } from "next/server";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { auth } from "@/lib/auth";
+import { ParseError, ParseErrorCode, validateAndGetSourceInfo } from "@/lib/parsers";
+import { POST } from "@/app/api/channels/validate/route";
 
 // Mock dependencies
 vi.mock("@/lib/auth", () => ({
@@ -9,23 +13,29 @@ vi.mock("@/lib/auth", () => ({
 vi.mock("@/lib/parsers", () => ({
   validateAndGetSourceInfo: vi.fn(),
   ParseError: class ParseError extends Error {
+    source: string;
     code: string;
-    constructor(message: string, code: string) {
+    constructor(message: string, source: string, code: string) {
       super(message);
+      this.source = source;
       this.code = code;
       this.name = "ParseError";
     }
   },
 }));
 
-import { POST } from "@/app/api/channels/validate/route";
-import { auth } from "@/lib/auth";
-import { validateAndGetSourceInfo, ParseError } from "@/lib/parsers";
-
 function createMockRequest(body: unknown): NextRequest {
   return {
     json: async () => body,
   } as NextRequest;
+}
+
+// Helper to create mock session
+function mockSession(userId: string, email: string) {
+  return {
+    user: { id: userId, email },
+    expires: new Date(Date.now() + 86400000).toISOString(),
+  };
 }
 
 describe("POST /api/channels/validate", () => {
@@ -34,7 +44,7 @@ describe("POST /api/channels/validate", () => {
   });
 
   it("should return 401 when user is not authenticated", async () => {
-    vi.mocked(auth).mockResolvedValue(null);
+    vi.mocked(auth).mockResolvedValue(null as never);
 
     const request = createMockRequest({ url: "https://t.me/example" });
     const response = await POST(request);
@@ -45,10 +55,7 @@ describe("POST /api/channels/validate", () => {
   });
 
   it("should return 400 when URL is missing", async () => {
-    vi.mocked(auth).mockResolvedValue({
-      user: { id: "user-1", email: "test@example.com" },
-      expires: new Date().toISOString(),
-    });
+    vi.mocked(auth).mockResolvedValue(mockSession("user-1", "test@example.com") as never);
 
     const request = createMockRequest({});
     const response = await POST(request);
@@ -59,10 +66,7 @@ describe("POST /api/channels/validate", () => {
   });
 
   it("should return 400 when URL is not a string", async () => {
-    vi.mocked(auth).mockResolvedValue({
-      user: { id: "user-1", email: "test@example.com" },
-      expires: new Date().toISOString(),
-    });
+    vi.mocked(auth).mockResolvedValue(mockSession("user-1", "test@example.com") as never);
 
     const request = createMockRequest({ url: 12345 });
     const response = await POST(request);
@@ -73,10 +77,7 @@ describe("POST /api/channels/validate", () => {
   });
 
   it("should return valid channel info for Telegram channel", async () => {
-    vi.mocked(auth).mockResolvedValue({
-      user: { id: "user-1", email: "test@example.com" },
-      expires: new Date().toISOString(),
-    });
+    vi.mocked(auth).mockResolvedValue(mockSession("user-1", "test@example.com") as never);
 
     vi.mocked(validateAndGetSourceInfo).mockResolvedValue({
       type: "telegram",
@@ -103,10 +104,7 @@ describe("POST /api/channels/validate", () => {
   });
 
   it("should return valid channel info for RSS feed", async () => {
-    vi.mocked(auth).mockResolvedValue({
-      user: { id: "user-1", email: "test@example.com" },
-      expires: new Date().toISOString(),
-    });
+    vi.mocked(auth).mockResolvedValue(mockSession("user-1", "test@example.com") as never);
 
     vi.mocked(validateAndGetSourceInfo).mockResolvedValue({
       type: "rss",
@@ -130,12 +128,13 @@ describe("POST /api/channels/validate", () => {
   });
 
   it("should return 400 with ParseError details for invalid channel", async () => {
-    vi.mocked(auth).mockResolvedValue({
-      user: { id: "user-1", email: "test@example.com" },
-      expires: new Date().toISOString(),
-    });
+    vi.mocked(auth).mockResolvedValue(mockSession("user-1", "test@example.com") as never);
 
-    const parseError = new ParseError("Channel not found", "CHANNEL_NOT_FOUND");
+    const parseError = new ParseError(
+      "Channel not found",
+      "telegram",
+      ParseErrorCode.SOURCE_NOT_FOUND
+    );
     vi.mocked(validateAndGetSourceInfo).mockRejectedValue(parseError);
 
     const request = createMockRequest({ url: "https://t.me/nonexistent" });
@@ -149,14 +148,9 @@ describe("POST /api/channels/validate", () => {
   });
 
   it("should return 500 for unexpected errors", async () => {
-    vi.mocked(auth).mockResolvedValue({
-      user: { id: "user-1", email: "test@example.com" },
-      expires: new Date().toISOString(),
-    });
+    vi.mocked(auth).mockResolvedValue(mockSession("user-1", "test@example.com") as never);
 
-    vi.mocked(validateAndGetSourceInfo).mockRejectedValue(
-      new Error("Network error")
-    );
+    vi.mocked(validateAndGetSourceInfo).mockRejectedValue(new Error("Network error"));
 
     const request = createMockRequest({ url: "https://t.me/example" });
     const response = await POST(request);

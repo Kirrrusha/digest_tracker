@@ -1,5 +1,4 @@
-import type { Bot, Context } from "grammy";
-import { InlineKeyboard } from "grammy";
+import { InlineKeyboard, type Bot, type Context } from "grammy";
 
 import { db } from "@/lib/db";
 
@@ -131,7 +130,7 @@ async function handleSubscribe(ctx: Context): Promise<void> {
       data: {
         userId: user.id,
         name: extractChannelName(channelUrl),
-        type: "telegram",
+        sourceType: "telegram",
         sourceUrl: channelUrl,
         telegramId: extractTelegramId(channelUrl),
         isActive: true,

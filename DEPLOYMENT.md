@@ -47,6 +47,7 @@ nano .env
 ```
 
 **Обязательные переменные:**
+
 - `NEXTAUTH_URL` - URL вашего сайта (https://your-domain.com)
 - `NEXTAUTH_SECRET` - случайная строка (openssl rand -base64 32)
 - `POSTGRES_PASSWORD` - пароль для PostgreSQL

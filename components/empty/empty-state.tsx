@@ -18,6 +18,7 @@ interface EmptyStateProps {
     onClick: () => void;
   };
   className?: string;
+  children?: React.ReactNode;
 }
 
 export function EmptyState({
@@ -27,6 +28,7 @@ export function EmptyState({
   action,
   secondaryAction,
   className,
+  children,
 }: EmptyStateProps) {
   return (
     <div
@@ -42,18 +44,22 @@ export function EmptyState({
       <h3 className="text-2xl font-semibold mb-2">{title}</h3>
       <p className="text-neutral-600 dark:text-neutral-400 mb-6 max-w-md">{description}</p>
 
-      <div className="flex gap-3">
-        {action && (
-          <Button size="lg" onClick={action.onClick}>
-            {action.label}
-          </Button>
-        )}
-        {secondaryAction && (
-          <Button variant="outline" size="lg" onClick={secondaryAction.onClick}>
-            {secondaryAction.label}
-          </Button>
-        )}
-      </div>
+      {children ? (
+        children
+      ) : (
+        <div className="flex gap-3">
+          {action && (
+            <Button size="lg" onClick={action.onClick}>
+              {action.label}
+            </Button>
+          )}
+          {secondaryAction && (
+            <Button variant="outline" size="lg" onClick={secondaryAction.onClick}>
+              {secondaryAction.label}
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

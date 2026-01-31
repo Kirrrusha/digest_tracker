@@ -27,7 +27,7 @@ function getRedisClient(): Redis | null {
     });
 
     redisClient.on("connect", () => {
-      console.log("[Redis] Connected");
+      console.warn("[Redis] Connected");
     });
   }
 
@@ -101,11 +101,7 @@ export async function invalidateCachePattern(pattern: string): Promise<void> {
 /**
  * Установка значения в кэш
  */
-export async function setCache<T>(
-  key: string,
-  value: T,
-  ttl: number = 3600
-): Promise<void> {
+export async function setCache<T>(key: string, value: T, ttl: number = 3600): Promise<void> {
   const redis = getRedisClient();
   if (!redis) return;
 

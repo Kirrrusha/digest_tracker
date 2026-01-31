@@ -108,9 +108,7 @@ export default function MiniAppPage() {
           {user?.photo_url ? (
             <img src={user.photo_url} alt="" className="avatar" />
           ) : (
-            <div className="avatar-placeholder">
-              {user?.first_name?.charAt(0) || "U"}
-            </div>
+            <div className="avatar-placeholder">{user?.first_name?.charAt(0) || "U"}</div>
           )}
           <div>
             <h1 className="greeting">Привет, {user?.first_name || "Пользователь"}!</h1>
@@ -137,7 +135,10 @@ export default function MiniAppPage() {
       {data?.lastSummary && (
         <section className="section">
           <h2 className="section-title">Последнее саммари</h2>
-          <Link href={`/mini-app/summaries/${data.lastSummary.id}`} className="summary-card tg-card">
+          <Link
+            href={`/mini-app/summaries/${data.lastSummary.id}`}
+            className="summary-card tg-card"
+          >
             <div className="summary-header">
               <span className="summary-icon">📋</span>
               <span className="summary-title">{data.lastSummary.title}</span>

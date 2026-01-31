@@ -28,11 +28,7 @@ const MAX_RECENT_REQUESTS = 100;
 /**
  * Запись метрики операции
  */
-export function recordMetric(
-  name: string,
-  duration: number,
-  isError: boolean = false
-): void {
+export function recordMetric(name: string, duration: number, isError: boolean = false): void {
   const existing = metrics.get(name) || {
     count: 0,
     totalDuration: 0,
@@ -166,10 +162,7 @@ export function resetMetrics(): void {
 /**
  * Wrapper для измерения времени выполнения и записи метрики
  */
-export async function withMetrics<T>(
-  name: string,
-  fn: () => Promise<T>
-): Promise<T> {
+export async function withMetrics<T>(name: string, fn: () => Promise<T>): Promise<T> {
   const start = performance.now();
   let isError = false;
 

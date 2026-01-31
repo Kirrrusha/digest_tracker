@@ -1,15 +1,11 @@
 "use server";
 
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 
 import { auth } from "@/lib/auth";
+import { CACHE_KEYS, invalidateCache } from "@/lib/cache";
 import { db } from "@/lib/db";
-import {
-  fetchAndSaveChannelPosts,
-  validateAndGetSourceInfo,
-  ParseError,
-} from "@/lib/parsers";
-import { invalidateCache, CACHE_KEYS } from "@/lib/cache";
+import { fetchAndSaveChannelPosts, ParseError, validateAndGetSourceInfo } from "@/lib/parsers";
 
 /**
  * Результат действия
@@ -21,9 +17,7 @@ type ActionResult<T = void> =
 /**
  * Добавление нового канала
  */
-export async function addChannel(
-  url: string
-): Promise<ActionResult<{ id: string; name: string }>> {
+export async function addChannel(url: string): Promise<ActionResult<{ id: string; name: string }>> {
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -75,7 +69,6 @@ export async function addChannel(
       invalidateCache(CACHE_KEYS.userChannels(session.user.id)),
       invalidateCache(CACHE_KEYS.userStats(session.user.id)),
     ]);
-    revalidateTag("posts");
     revalidatePath("/channels");
     revalidatePath("/dashboard");
 
@@ -102,9 +95,7 @@ export async function addChannel(
 /**
  * Удаление канала
  */
-export async function deleteChannel(
-  channelId: string
-): Promise<ActionResult> {
+export async function deleteChannel(channelId: string): Promise<ActionResult> {
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -134,7 +125,6 @@ export async function deleteChannel(
       invalidateCache(CACHE_KEYS.userStats(session.user.id)),
       invalidateCache(CACHE_KEYS.channelPosts(channelId)),
     ]);
-    revalidateTag("posts");
     revalidatePath("/channels");
     revalidatePath("/dashboard");
 
@@ -148,10 +138,7 @@ export async function deleteChannel(
 /**
  * Переключение активности канала
  */
-export async function toggleChannel(
-  channelId: string,
-  isActive: boolean
-): Promise<ActionResult> {
+export async function toggleChannel(channelId: string, isActive: boolean): Promise<ActionResult> {
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -221,7 +208,6 @@ export async function refreshChannel(
       invalidateCache(CACHE_KEYS.userStats(session.user.id)),
       invalidateCache(CACHE_KEYS.channelPosts(channelId)),
     ]);
-    revalidateTag("posts");
     revalidatePath("/channels");
     revalidatePath(`/channels/${channelId}`);
 
@@ -266,8 +252,7 @@ export async function refreshAllChannels(): Promise<
         const result = await fetchAndSaveChannelPosts(channel.id);
         total += result.added;
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "Unknown error";
+        const message = error instanceof Error ? error.message : "Unknown error";
         errors.push(`${channel.name}: ${message}`);
       }
     }
@@ -277,7 +262,6 @@ export async function refreshAllChannels(): Promise<
       invalidateCache(CACHE_KEYS.userChannels(session.user.id)),
       invalidateCache(CACHE_KEYS.userStats(session.user.id)),
     ]);
-    revalidateTag("posts");
     revalidatePath("/channels");
     revalidatePath("/dashboard");
 
@@ -450,9 +434,7 @@ export async function getChannelWithPosts(
 /**
  * Валидация URL перед добавлением
  */
-export async function validateChannelUrl(
-  url: string
-): Promise<
+export async function validateChannelUrl(url: string): Promise<
   ActionResult<{
     type: string;
     name: string;
@@ -492,10 +474,7 @@ export async function validateChannelUrl(
 /**
  * Обновление тегов канала
  */
-export async function updateChannelTags(
-  channelId: string,
-  tags: string[]
-): Promise<ActionResult> {
+export async function updateChannelTags(channelId: string, tags: string[]): Promise<ActionResult> {
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -521,7 +500,6 @@ export async function updateChannelTags(
 
     // Инвалидируем кэш
     await invalidateCache(CACHE_KEYS.userChannels(session.user.id));
-    revalidateTag("posts");
     revalidatePath("/channels");
     revalidatePath(`/channels/${channelId}`);
 

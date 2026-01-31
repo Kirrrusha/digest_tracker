@@ -1,8 +1,8 @@
 import cron from "node-cron";
 
+import { generateDailySummary, generateWeeklySummary } from "@/lib/ai/summarizer";
 import { db } from "@/lib/db";
 import { fetchAndSaveChannelPosts } from "@/lib/parsers";
-import { generateDailySummary, generateWeeklySummary } from "@/lib/ai/summarizer";
 
 let isInitialized = false;
 
@@ -10,7 +10,7 @@ let isInitialized = false;
  * Фетчинг постов для всех активных каналов
  */
 async function fetchAllPosts() {
-  console.log("[CRON] Starting fetch-posts job...");
+  console.warn("[CRON] Starting fetch-posts job...");
 
   try {
     const channels = await db.channel.findMany({
@@ -25,14 +25,14 @@ async function fetchAllPosts() {
       try {
         const result = await fetchAndSaveChannelPosts(channel.id);
         totalAdded += result.added;
-        console.log(`[CRON] ${channel.name}: +${result.added} posts`);
+        console.warn(`[CRON] ${channel.name}: +${result.added} posts`);
       } catch (error) {
         errors++;
         console.error(`[CRON] Error fetching ${channel.name}:`, error);
       }
     }
 
-    console.log(
+    console.warn(
       `[CRON] fetch-posts completed: ${channels.length} channels, ${totalAdded} new posts, ${errors} errors`
     );
   } catch (error) {
@@ -44,7 +44,7 @@ async function fetchAllPosts() {
  * Генерация дневных саммари для всех пользователей
  */
 async function generateDailySummaries() {
-  console.log("[CRON] Starting daily-summary job...");
+  console.warn("[CRON] Starting daily-summary job...");
 
   try {
     const users = await db.user.findMany({
@@ -86,15 +86,13 @@ async function generateDailySummaries() {
 
         await generateDailySummary(user.id);
         generated++;
-        console.log(`[CRON] Generated daily summary for ${user.email}`);
+        console.warn(`[CRON] Generated daily summary for ${user.email}`);
       } catch (error) {
         console.error(`[CRON] Error generating summary for ${user.email}:`, error);
       }
     }
 
-    console.log(
-      `[CRON] daily-summary completed: ${generated} generated, ${skipped} skipped`
-    );
+    console.warn(`[CRON] daily-summary completed: ${generated} generated, ${skipped} skipped`);
   } catch (error) {
     console.error("[CRON] daily-summary failed:", error);
   }
@@ -104,7 +102,7 @@ async function generateDailySummaries() {
  * Генерация недельных саммари для всех пользователей
  */
 async function generateWeeklySummaries() {
-  console.log("[CRON] Starting weekly-summary job...");
+  console.warn("[CRON] Starting weekly-summary job...");
 
   try {
     const users = await db.user.findMany({
@@ -137,15 +135,13 @@ async function generateWeeklySummaries() {
 
         await generateWeeklySummary(user.id);
         generated++;
-        console.log(`[CRON] Generated weekly summary for ${user.email}`);
+        console.warn(`[CRON] Generated weekly summary for ${user.email}`);
       } catch (error) {
         console.error(`[CRON] Error generating weekly summary for ${user.email}:`, error);
       }
     }
 
-    console.log(
-      `[CRON] weekly-summary completed: ${generated} generated, ${skipped} skipped`
-    );
+    console.warn(`[CRON] weekly-summary completed: ${generated} generated, ${skipped} skipped`);
   } catch (error) {
     console.error("[CRON] weekly-summary failed:", error);
   }
@@ -156,17 +152,17 @@ async function generateWeeklySummaries() {
  */
 export function initCronJobs() {
   if (isInitialized) {
-    console.log("[CRON] Already initialized, skipping...");
+    console.warn("[CRON] Already initialized, skipping...");
     return;
   }
 
   // Проверяем, включены ли cron задачи
   if (process.env.ENABLE_CRON !== "true") {
-    console.log("[CRON] Cron jobs disabled (ENABLE_CRON !== true)");
+    console.warn("[CRON] Cron jobs disabled (ENABLE_CRON !== true)");
     return;
   }
 
-  console.log("[CRON] Initializing cron jobs...");
+  console.warn("[CRON] Initializing cron jobs...");
 
   // Фетчинг постов каждые 6 часов (0:00, 6:00, 12:00, 18:00)
   cron.schedule("0 */6 * * *", fetchAllPosts, {
@@ -184,10 +180,10 @@ export function initCronJobs() {
   });
 
   isInitialized = true;
-  console.log("[CRON] Cron jobs initialized:");
-  console.log("  - fetch-posts: every 6 hours");
-  console.log("  - daily-summary: daily at 20:00");
-  console.log("  - weekly-summary: Sunday at 20:00");
+  console.warn("[CRON] Cron jobs initialized:");
+  console.warn("  - fetch-posts: every 6 hours");
+  console.warn("  - daily-summary: daily at 20:00");
+  console.warn("  - weekly-summary: Sunday at 20:00");
 }
 
 /**

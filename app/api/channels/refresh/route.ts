@@ -11,10 +11,7 @@ export async function POST() {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const channels = await db.channel.findMany({
@@ -48,8 +45,7 @@ export async function POST() {
           skipped: result.skipped,
         });
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "Unknown error";
+        const message = error instanceof Error ? error.message : "Unknown error";
         errors.push(`${channel.name}: ${message}`);
         results.push({
           channelId: channel.id,
@@ -71,9 +67,6 @@ export async function POST() {
     });
   } catch (error) {
     console.error("Error refreshing all channels:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

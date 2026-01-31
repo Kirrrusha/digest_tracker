@@ -1,11 +1,11 @@
 "use server";
 
-import { revalidateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 
-import { auth } from "@/lib/auth";
 import { generateDailySummary, generateWeeklySummary } from "@/lib/ai/summarizer";
+import { auth } from "@/lib/auth";
+import { CACHE_KEYS, invalidateCache } from "@/lib/cache";
 import { db } from "@/lib/db";
-import { invalidateCache, CACHE_KEYS } from "@/lib/cache";
 
 /**
  * Результат действия
@@ -61,8 +61,7 @@ export async function generateDailySummaryAction(): Promise<
       invalidateCache(CACHE_KEYS.todaySummary(userId)),
       invalidateCache(CACHE_KEYS.userSummaries(userId)),
     ]);
-    revalidateTag("summary");
-    revalidateTag("summaries");
+    revalidatePath("/dashboard/summaries");
 
     return {
       success: true,
@@ -115,8 +114,7 @@ export async function createDailySummary(
       invalidateCache(CACHE_KEYS.todaySummary(userId)),
       invalidateCache(CACHE_KEYS.userSummaries(userId)),
     ]);
-    revalidateTag("summary");
-    revalidateTag("summaries");
+    revalidatePath("/dashboard/summaries");
 
     return {
       success: true,
@@ -148,8 +146,7 @@ export async function createWeeklySummary(
       invalidateCache(CACHE_KEYS.userStats(userId)),
       invalidateCache(CACHE_KEYS.userSummaries(userId)),
     ]);
-    revalidateTag("summary");
-    revalidateTag("summaries");
+    revalidatePath("/dashboard/summaries");
 
     return {
       success: true,
@@ -293,8 +290,7 @@ export async function deleteSummary(
       invalidateCache(CACHE_KEYS.userSummaries(userId)),
       invalidateCache(CACHE_KEYS.summary(summaryId)),
     ]);
-    revalidateTag("summary");
-    revalidateTag("summaries");
+    revalidatePath("/dashboard/summaries");
 
     return { success: true };
   } catch (error) {
@@ -345,8 +341,7 @@ export async function regenerateSummary(
       invalidateCache(CACHE_KEYS.userSummaries(userId)),
       invalidateCache(CACHE_KEYS.summary(summaryId)),
     ]);
-    revalidateTag("summary");
-    revalidateTag("summaries");
+    revalidatePath("/dashboard/summaries");
 
     return {
       success: true,

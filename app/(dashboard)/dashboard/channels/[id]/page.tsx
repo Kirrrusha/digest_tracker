@@ -1,14 +1,14 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { ru } from "date-fns/locale";
 import { ArrowLeft, ExternalLink } from "lucide-react";
-import Link from "next/link";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Header } from "@/components/dashboard/header";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface PageProps {
@@ -16,11 +16,7 @@ interface PageProps {
   searchParams: Promise<{ page?: string }>;
 }
 
-async function getChannelWithPosts(
-  channelId: string,
-  userId: string,
-  page: number
-) {
+async function getChannelWithPosts(channelId: string, userId: string, page: number) {
   const limit = 20;
   const skip = (page - 1) * limit;
 
@@ -54,10 +50,7 @@ async function getChannelWithPosts(
   };
 }
 
-export default async function ChannelDetailPage({
-  params,
-  searchParams,
-}: PageProps) {
+export default async function ChannelDetailPage({ params, searchParams }: PageProps) {
   const session = await auth();
   const userId = session!.user!.id!;
 
@@ -105,9 +98,7 @@ export default async function ChannelDetailPage({
                 <Badge variant="outline">
                   {channel.sourceType === "telegram" ? "Telegram" : "RSS"}
                 </Badge>
-                {!channel.isActive && (
-                  <Badge variant="secondary">Отключен</Badge>
-                )}
+                {!channel.isActive && <Badge variant="secondary">Отключен</Badge>}
               </div>
               {channel.description && (
                 <p className="text-muted-foreground">{channel.description}</p>
@@ -126,17 +117,13 @@ export default async function ChannelDetailPage({
         </div>
 
         <div className="mb-4 flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Всего постов: {pagination.total}
-          </p>
+          <p className="text-sm text-muted-foreground">Всего постов: {pagination.total}</p>
         </div>
 
         {posts.length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center">
-              <p className="text-muted-foreground">
-                Нет постов. Попробуйте обновить канал.
-              </p>
+              <p className="text-muted-foreground">Нет постов. Попробуйте обновить канал.</p>
             </CardContent>
           </Card>
         ) : (
@@ -146,9 +133,7 @@ export default async function ChannelDetailPage({
                 <CardContent className="py-4">
                   <div className="flex justify-between items-start gap-4">
                     <div className="flex-1 min-w-0">
-                      {post.title && (
-                        <h3 className="font-medium mb-1">{post.title}</h3>
-                      )}
+                      {post.title && <h3 className="font-medium mb-1">{post.title}</h3>}
                       <p className="text-muted-foreground whitespace-pre-wrap">
                         {post.content.length > 500
                           ? `${post.content.slice(0, 500)}...`

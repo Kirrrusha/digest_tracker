@@ -1,13 +1,14 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { FileText } from "lucide-react";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Header } from "@/components/dashboard/header";
-import { SummaryCard } from "@/components/summaries/summary-card";
 import { EmptyState } from "@/components/empty/empty-state";
-import { Skeleton } from "@/components/ui/skeleton";
+import { SummaryCard } from "@/components/summaries/summary-card";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface PageProps {
   searchParams: Promise<{
@@ -17,12 +18,7 @@ interface PageProps {
   }>;
 }
 
-async function getSummaries(
-  userId: string,
-  page: number,
-  period?: string,
-  topic?: string
-) {
+async function getSummaries(userId: string, page: number, period?: string, topic?: string) {
   const limit = 12;
   const skip = (page - 1) * limit;
 
@@ -158,23 +154,23 @@ async function SummariesList({
       {pagination.totalPages > 1 && (
         <div className="flex justify-center gap-2 mt-6">
           {page > 1 && (
-            <a
+            <Link
               href={`/dashboard/summaries?page=${page - 1}${period ? `&period=${period}` : ""}${topic ? `&topic=${topic}` : ""}`}
               className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
             >
               Назад
-            </a>
+            </Link>
           )}
           <span className="flex items-center px-4 text-sm text-muted-foreground">
             Страница {page} из {pagination.totalPages}
           </span>
           {page < pagination.totalPages && (
-            <a
+            <Link
               href={`/dashboard/summaries?page=${page + 1}${period ? `&period=${period}` : ""}${topic ? `&topic=${topic}` : ""}`}
               className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
             >
               Далее
-            </a>
+            </Link>
           )}
         </div>
       )}
@@ -194,18 +190,16 @@ async function TopicsFilter({ userId, currentTopic }: { userId: string; currentT
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
-        <a
+        <Link
           href="/dashboard/summaries"
           className={`inline-flex items-center justify-center rounded-full text-sm font-medium transition-colors px-3 py-1 ${
-            !currentTopic
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted hover:bg-muted/80"
+            !currentTopic ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80"
           }`}
         >
           Все
-        </a>
+        </Link>
         {userTopics.length > 0 && (
-          <a
+          <Link
             href="/dashboard/summaries?topic=_my"
             className={`inline-flex items-center justify-center rounded-full text-sm font-medium transition-colors px-3 py-1 ${
               currentTopic === "_my"
@@ -214,10 +208,10 @@ async function TopicsFilter({ userId, currentTopic }: { userId: string; currentT
             }`}
           >
             Мои темы
-          </a>
+          </Link>
         )}
         {userTopicsWithCount.map(({ topic, count }) => (
-          <a
+          <Link
             key={topic}
             href={`/dashboard/summaries?topic=${encodeURIComponent(topic)}`}
             className={`inline-flex items-center justify-center rounded-full text-sm font-medium transition-colors px-3 py-1 ${
@@ -228,10 +222,10 @@ async function TopicsFilter({ userId, currentTopic }: { userId: string; currentT
           >
             {topic}
             <span className="ml-1 text-xs opacity-70">({count})</span>
-          </a>
+          </Link>
         ))}
         {otherTopics.map(({ topic, count }) => (
-          <a
+          <Link
             key={topic}
             href={`/dashboard/summaries?topic=${encodeURIComponent(topic)}`}
             className={`inline-flex items-center justify-center rounded-full text-sm font-medium transition-colors px-3 py-1 ${
@@ -242,7 +236,7 @@ async function TopicsFilter({ userId, currentTopic }: { userId: string; currentT
           >
             {topic}
             <span className="ml-1 text-xs opacity-70">({count})</span>
-          </a>
+          </Link>
         ))}
       </div>
     </div>
@@ -267,17 +261,15 @@ export default async function SummariesPage({ searchParams }: PageProps) {
 
           <div className="flex flex-wrap gap-4 mb-4">
             <div className="flex gap-2">
-              <a
+              <Link
                 href="/dashboard/summaries"
                 className={`inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors px-3 py-1.5 ${
-                  !period
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted hover:bg-muted/80"
+                  !period ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80"
                 }`}
               >
                 Все
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/dashboard/summaries?period=daily"
                 className={`inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors px-3 py-1.5 ${
                   period === "daily"
@@ -286,8 +278,8 @@ export default async function SummariesPage({ searchParams }: PageProps) {
                 }`}
               >
                 Дневные
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/dashboard/summaries?period=weekly"
                 className={`inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors px-3 py-1.5 ${
                   period === "weekly"
@@ -296,7 +288,7 @@ export default async function SummariesPage({ searchParams }: PageProps) {
                 }`}
               >
                 Недельные
-              </a>
+              </Link>
             </div>
           </div>
 

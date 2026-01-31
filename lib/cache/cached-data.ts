@@ -1,8 +1,9 @@
 import { unstable_cache } from "next/cache";
-import { startOfDay, endOfDay, subDays } from "date-fns";
+import { endOfDay, startOfDay, subDays } from "date-fns";
 
 import { db } from "@/lib/db";
-import { getCachedData, CACHE_KEYS, CACHE_TTL } from "./redis";
+
+import { CACHE_KEYS, CACHE_TTL, getCachedData } from "./redis";
 
 /**
  * Кэшированная статистика пользователя
@@ -12,21 +13,20 @@ export async function getCachedUserStats(userId: string) {
     CACHE_KEYS.userStats(userId),
     async () => {
       const today = new Date();
-      const [channelsCount, postsCount, summariesCount, todayPostsCount] =
-        await Promise.all([
-          db.channel.count({ where: { userId, isActive: true } }),
-          db.post.count({ where: { channel: { userId } } }),
-          db.summary.count({ where: { userId } }),
-          db.post.count({
-            where: {
-              channel: { userId },
-              publishedAt: {
-                gte: startOfDay(today),
-                lte: endOfDay(today),
-              },
+      const [channelsCount, postsCount, summariesCount, todayPostsCount] = await Promise.all([
+        db.channel.count({ where: { userId, isActive: true } }),
+        db.post.count({ where: { channel: { userId } } }),
+        db.summary.count({ where: { userId } }),
+        db.post.count({
+          where: {
+            channel: { userId },
+            publishedAt: {
+              gte: startOfDay(today),
+              lte: endOfDay(today),
             },
-          }),
-        ]);
+          },
+        }),
+      ]);
 
       return { channelsCount, postsCount, summariesCount, todayPostsCount };
     },

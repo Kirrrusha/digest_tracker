@@ -2,7 +2,7 @@ import OpenAI from "openai";
 
 import { db } from "@/lib/db";
 
-import { SUMMARY_SYSTEM_PROMPT, buildSummaryPrompt } from "./prompts";
+import { buildSummaryPrompt, SUMMARY_SYSTEM_PROMPT } from "./prompts";
 import { extractTopicsFromContent } from "./topic-extractor";
 
 /**
@@ -56,12 +56,7 @@ export async function generateSummaryFromPosts(
   posts: PostForSummary[],
   options: GenerateOptions = {}
 ): Promise<SummaryResult> {
-  const {
-    model = DEFAULT_MODEL,
-    temperature = 0.3,
-    maxTokens = 4000,
-    language = "ru",
-  } = options;
+  const { model = DEFAULT_MODEL, temperature = 0.3, maxTokens = 4000, language = "ru" } = options;
 
   if (posts.length === 0) {
     throw new Error("No posts provided for summary generation");
@@ -158,6 +153,7 @@ export async function generateDailySummary(
   content: string;
   topics: string[];
   period: string;
+  createdAt: Date;
 }> {
   const today = new Date();
   const startOfDay = new Date(today.setHours(0, 0, 0, 0));
@@ -245,6 +241,7 @@ export async function generateWeeklySummary(
   content: string;
   topics: string[];
   period: string;
+  createdAt: Date;
 }> {
   const today = new Date();
   const weekNumber = getWeekNumber(today);

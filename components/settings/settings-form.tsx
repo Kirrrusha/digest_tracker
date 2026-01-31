@@ -1,22 +1,13 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Loader2, Check, User, Calendar, Globe } from "lucide-react";
+import { Calendar, Check, Globe, Loader2, User } from "lucide-react";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  updateSummaryInterval,
-  updateLanguage,
-} from "@/app/actions/preferences";
+import { updateLanguage, updateSummaryInterval } from "@/app/actions/preferences";
 
 interface SettingsFormProps {
   user: {
@@ -84,9 +75,7 @@ export function SettingsForm({ user, preferences }: SettingsFormProps) {
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             )}
           </CardTitle>
-          <CardDescription>
-            Как часто генерировать автоматические саммари
-          </CardDescription>
+          <CardDescription>Как часто генерировать автоматические саммари</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-2">

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -10,17 +10,11 @@ type RouteContext = {
 /**
  * GET /api/channels/[id] - Получение информации о канале
  */
-export async function GET(
-  request: NextRequest,
-  context: RouteContext
-) {
+export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await context.params;
@@ -43,10 +37,7 @@ export async function GET(
     });
 
     if (!channel) {
-      return NextResponse.json(
-        { error: "Channel not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Channel not found" }, { status: 404 });
     }
 
     return NextResponse.json({
@@ -64,27 +55,18 @@ export async function GET(
     });
   } catch (error) {
     console.error("Error getting channel:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
 /**
  * PATCH /api/channels/[id] - Обновление канала
  */
-export async function PATCH(
-  request: NextRequest,
-  context: RouteContext
-) {
+export async function PATCH(request: NextRequest, context: RouteContext) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await context.params;
@@ -100,10 +82,7 @@ export async function PATCH(
     });
 
     if (!channel) {
-      return NextResponse.json(
-        { error: "Channel not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Channel not found" }, { status: 404 });
     }
 
     const updateData: { name?: string; isActive?: boolean } = {};
@@ -131,27 +110,18 @@ export async function PATCH(
     });
   } catch (error) {
     console.error("Error updating channel:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
 /**
  * DELETE /api/channels/[id] - Удаление канала
  */
-export async function DELETE(
-  request: NextRequest,
-  context: RouteContext
-) {
+export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await context.params;
@@ -165,10 +135,7 @@ export async function DELETE(
     });
 
     if (!channel) {
-      return NextResponse.json(
-        { error: "Channel not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Channel not found" }, { status: 404 });
     }
 
     // Удаляем канал (посты удалятся каскадно)
@@ -179,9 +146,6 @@ export async function DELETE(
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     console.error("Error deleting channel:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

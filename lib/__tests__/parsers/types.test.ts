@@ -17,11 +17,7 @@ describe("ParseError", () => {
   });
 
   it("should be instanceof Error", () => {
-    const error = new ParseError(
-      "Test",
-      "https://example.com",
-      ParseErrorCode.NETWORK_ERROR
-    );
+    const error = new ParseError("Test", "https://example.com", ParseErrorCode.NETWORK_ERROR);
 
     expect(error).toBeInstanceOf(Error);
     expect(error).toBeInstanceOf(ParseError);

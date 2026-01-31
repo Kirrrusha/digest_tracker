@@ -1,16 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Loader2, Bell, BellOff, Mail, MessageSquare, Clock } from "lucide-react";
+import { Bell, BellOff, Clock, Loader2, Mail, MessageSquare } from "lucide-react";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -33,15 +26,9 @@ export function NotificationSettings({
 }: NotificationSettingsProps) {
   const [enabled, setEnabled] = useState(settings.notificationsEnabled);
   const [time, setTime] = useState(settings.notificationTime || "20:00");
-  const [telegramEnabled, setTelegramEnabled] = useState(
-    settings.telegramNotifications ?? true
-  );
-  const [notifyOnSummary, setNotifyOnSummary] = useState(
-    settings.notifyOnNewSummary ?? true
-  );
-  const [notifyOnPosts, setNotifyOnPosts] = useState(
-    settings.notifyOnNewPosts ?? false
-  );
+  const [telegramEnabled, setTelegramEnabled] = useState(settings.telegramNotifications ?? true);
+  const [notifyOnSummary, setNotifyOnSummary] = useState(settings.notifyOnNewSummary ?? true);
+  const [notifyOnPosts, setNotifyOnPosts] = useState(settings.notifyOnNewPosts ?? false);
   const [isPending, startTransition] = useTransition();
 
   const updateSettings = (updates: Partial<typeof settings>) => {
@@ -71,9 +58,7 @@ export function NotificationSettings({
         <CardTitle className="flex items-center gap-2">
           <Bell className="h-5 w-5" />
           Уведомления
-          {isPending && (
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          )}
+          {isPending && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
         </CardTitle>
         <CardDescription>
           Настройте когда и как получать уведомления о новых саммари
@@ -136,16 +121,10 @@ export function NotificationSettings({
                     <Label htmlFor="email-notifications" className="text-sm">
                       Email
                     </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Получать уведомления на почту
-                    </p>
+                    <p className="text-xs text-muted-foreground">Получать уведомления на почту</p>
                   </div>
                 </div>
-                <Switch
-                  id="email-notifications"
-                  checked={false}
-                  disabled
-                />
+                <Switch id="email-notifications" checked={false} disabled />
               </div>
 
               {/* Telegram */}
@@ -181,9 +160,7 @@ export function NotificationSettings({
                   <Label htmlFor="notify-summary" className="text-sm">
                     Новые саммари
                   </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Когда сгенерирован новый дайджест
-                  </p>
+                  <p className="text-xs text-muted-foreground">Когда сгенерирован новый дайджест</p>
                 </div>
                 <Switch
                   id="notify-summary"

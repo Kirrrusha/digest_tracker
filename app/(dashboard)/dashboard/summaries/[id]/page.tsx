@@ -1,14 +1,14 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 import { ArrowLeft, Calendar, Tag } from "lucide-react";
-import Link from "next/link";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Header } from "@/components/dashboard/header";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
@@ -101,34 +101,23 @@ export default async function SummaryDetailPage({ params }: PageProps) {
         {summary.posts.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">
-                Источники ({summary.posts.length})
-              </CardTitle>
+              <CardTitle className="text-lg">Источники ({summary.posts.length})</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {summary.posts.map((post) => (
-                  <div
-                    key={post.id}
-                    className="p-3 rounded-lg border bg-muted/30"
-                  >
+                  <div key={post.id} className="p-3 rounded-lg border bg-muted/30">
                     <div className="flex items-center gap-2 mb-1">
                       <Badge variant="outline" className="text-xs">
                         {post.channel.sourceType === "telegram" ? "TG" : "RSS"}
                       </Badge>
-                      <span className="text-sm font-medium">
-                        {post.channel.name}
-                      </span>
+                      <span className="text-sm font-medium">{post.channel.name}</span>
                       <span className="text-xs text-muted-foreground">
                         {format(post.publishedAt, "d MMM, HH:mm", { locale: ru })}
                       </span>
                     </div>
-                    {post.title && (
-                      <p className="text-sm font-medium">{post.title}</p>
-                    )}
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {post.content}
-                    </p>
+                    {post.title && <p className="text-sm font-medium">{post.title}</p>}
+                    <p className="text-sm text-muted-foreground line-clamp-2">{post.content}</p>
                     {post.url && (
                       <a
                         href={post.url}

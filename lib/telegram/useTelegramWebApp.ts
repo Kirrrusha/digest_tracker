@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { startTransition, useCallback, useEffect, useState } from "react";
 
 import type { TelegramWebApp, WebAppUser } from "./types";
 
@@ -54,14 +54,17 @@ export function useTelegramWebApp(): UseTelegramWebAppReturn {
       // Расширяем на весь экран
       tg.expand();
 
-      setWebApp(tg);
-      setUser(tg.initDataUnsafe.user || null);
-      setColorScheme(tg.colorScheme);
-      setInitData(tg.initData);
-      setIsReady(true);
-
       // Применяем тему Telegram
       applyTelegramTheme(tg);
+
+      // Batch state updates to avoid cascading renders
+      startTransition(() => {
+        setWebApp(tg);
+        setUser(tg.initDataUnsafe.user || null);
+        setColorScheme(tg.colorScheme);
+        setInitData(tg.initData);
+        setIsReady(true);
+      });
 
       // Слушаем изменение темы
       tg.onEvent("themeChanged", () => {

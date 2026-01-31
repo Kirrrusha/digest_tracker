@@ -1,9 +1,11 @@
 "use client";
 
+import { useState, useTransition } from "react";
 import { Bell, RefreshCw, User } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { useState, useTransition } from "react";
 
+import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,9 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { refreshAllChannels } from "@/app/actions/channels";
-import { cn } from "@/lib/utils";
 
 interface HeaderProps {
   title?: string;
@@ -42,9 +42,7 @@ export function Header({ title }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-2">
-        {refreshResult && (
-          <span className="text-sm text-muted-foreground">{refreshResult}</span>
-        )}
+        {refreshResult && <span className="text-sm text-muted-foreground">{refreshResult}</span>}
 
         <Button
           variant="ghost"

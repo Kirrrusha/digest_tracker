@@ -1,18 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Loader2, X, Plus, Sparkles, Tag } from "lucide-react";
+import { Loader2, Plus, Sparkles, Tag, X } from "lucide-react";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { updateTopics } from "@/app/actions/preferences";
 
 const SUGGESTED_TOPICS = [
@@ -39,10 +33,10 @@ const SUGGESTED_TOPICS = [
 ];
 
 const TOPIC_CATEGORIES = {
-  "Frontend": ["React", "Vue", "Angular", "Next.js", "Svelte", "CSS", "JavaScript", "TypeScript"],
-  "Backend": ["Node.js", "Python", "Go", "Rust", "Java", "PHP", "Ruby"],
-  "DevOps": ["Docker", "Kubernetes", "AWS", "GCP", "Azure", "Terraform", "CI/CD"],
-  "Data": ["PostgreSQL", "MongoDB", "Redis", "Elasticsearch", "Kafka", "GraphQL"],
+  Frontend: ["React", "Vue", "Angular", "Next.js", "Svelte", "CSS", "JavaScript", "TypeScript"],
+  Backend: ["Node.js", "Python", "Go", "Rust", "Java", "PHP", "Ruby"],
+  DevOps: ["Docker", "Kubernetes", "AWS", "GCP", "Azure", "Terraform", "CI/CD"],
+  Data: ["PostgreSQL", "MongoDB", "Redis", "Elasticsearch", "Kafka", "GraphQL"],
   "AI/ML": ["ChatGPT", "LLM", "Machine Learning", "Deep Learning", "PyTorch", "TensorFlow"],
 };
 
@@ -96,9 +90,7 @@ export function TopicsManagement({ topics: initialTopics }: TopicsManagementProp
         <CardTitle className="flex items-center gap-2">
           <Tag className="h-5 w-5" />
           Интересующие темы
-          {isPending && (
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          )}
+          {isPending && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
         </CardTitle>
         <CardDescription>
           Выберите темы для персонализации саммари и фильтрации контента
@@ -213,9 +205,7 @@ export function TopicsManagement({ topics: initialTopics }: TopicsManagementProp
                         key={topic}
                         variant={topics.includes(topic) ? "secondary" : "outline"}
                         className={`cursor-pointer text-xs ${
-                          topics.includes(topic)
-                            ? "hover:bg-destructive/20"
-                            : "hover:bg-muted"
+                          topics.includes(topic) ? "hover:bg-destructive/20" : "hover:bg-muted"
                         }`}
                         onClick={() =>
                           topics.includes(topic) ? removeTopic(topic) : addTopic(topic)
