@@ -6,16 +6,24 @@ import { buildSummaryPrompt, SUMMARY_SYSTEM_PROMPT } from "./prompts";
 import { extractTopicsFromContent } from "./topic-extractor";
 
 /**
- * Конфигурация OpenAI клиента
+ * Ленивая инициализация OpenAI клиента
  */
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+let openaiClient: OpenAI | null = null;
+
+function getOpenAI(): OpenAI {
+  if (!openaiClient) {
+    openaiClient = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+      baseURL: process.env.OPENAI_BASE_URL,
+    });
+  }
+  return openaiClient;
+}
 
 /**
  * Модель по умолчанию
  */
-const DEFAULT_MODEL = process.env.OPENAI_MODEL || "gpt-4-turbo-preview";
+const getDefaultModel = () => process.env.OPENAI_MODEL || "gpt-4-turbo-preview";
 
 /**
  * Интерфейс поста для суммаризации
@@ -56,7 +64,12 @@ export async function generateSummaryFromPosts(
   posts: PostForSummary[],
   options: GenerateOptions = {}
 ): Promise<SummaryResult> {
-  const { model = DEFAULT_MODEL, temperature = 0.3, maxTokens = 4000, language = "ru" } = options;
+  const {
+    model = getDefaultModel(),
+    temperature = 0.3,
+    maxTokens = 4000,
+    language = "ru",
+  } = options;
 
   if (posts.length === 0) {
     throw new Error("No posts provided for summary generation");
@@ -64,7 +77,7 @@ export async function generateSummaryFromPosts(
 
   const prompt = buildSummaryPrompt(posts, language);
 
-  const response = await openai.chat.completions.create({
+  const response = await getOpenAI().chat.completions.create({
     model,
     messages: [
       { role: "system", content: SUMMARY_SYSTEM_PROMPT },

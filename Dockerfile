@@ -11,7 +11,7 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 # Dependencies
 FROM base AS deps
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # Builder
 FROM base AS builder
@@ -19,7 +19,9 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Generate Prisma client
-RUN pnpm prisma generate
+ENV DATABASE_URL="postgresql://user:pass@localhost:5432/db"
+# Generate Prisma client (prisma generate downloads engines if missing)
+RUN ./node_modules/.bin/prisma generate
 
 # Build application
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -41,10 +43,8 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# Copy Prisma files for migrations
+# Copy Prisma schema for migrations
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
 # Set correct permissions
 RUN chown -R nextjs:nodejs /app

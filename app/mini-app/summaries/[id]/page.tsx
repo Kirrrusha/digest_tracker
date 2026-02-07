@@ -12,12 +12,7 @@ interface SummaryDetail {
   topics: string[];
   period: string;
   createdAt: string;
-  posts: Array<{
-    id: string;
-    title: string;
-    channelName: string;
-    url?: string;
-  }>;
+  posts: Array<{ id: string; title: string; channelName: string; url?: string }>;
 }
 
 export default function SummaryDetailPage() {
@@ -39,20 +34,16 @@ export default function SummaryDetailPage() {
 
   useEffect(() => {
     if (!isReady) return;
-
     fetchSummary();
   }, [isReady, params.id]);
 
   useEffect(() => {
     if (!isReady) return;
-
     showBackButton(() => {
       hapticImpact("light");
       router.push("/mini-app/summaries");
     });
-
     showMainButton("Поделиться", handleShare);
-
     return () => {
       hideBackButton();
       hideMainButton();
@@ -61,7 +52,6 @@ export default function SummaryDetailPage() {
 
   const fetchSummary = async () => {
     try {
-      // TODO: Заменить на реальный API
       setSummary({
         id: params.id as string,
         title: "Саммари за 30 января",
@@ -100,11 +90,7 @@ export default function SummaryDetailPage() {
             channelName: "@typescript_ru",
             url: "https://t.me/typescript_ru/456",
           },
-          {
-            id: "3",
-            title: "Docker Best Practices 2024",
-            channelName: "@devops_weekly",
-          },
+          { id: "3", title: "Docker Best Practices 2024", channelName: "@devops_weekly" },
         ],
       });
     } catch (error) {
@@ -116,7 +102,6 @@ export default function SummaryDetailPage() {
 
   const handleShare = () => {
     hapticImpact("medium");
-    // Share via Telegram
     webApp?.openTelegramLink(
       `https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(summary?.title || "")}`
     );
@@ -130,47 +115,26 @@ export default function SummaryDetailPage() {
 
   if (!isReady || loading) {
     return (
-      <div className="loading-container">
-        <div className="loading-spinner" />
-        <style jsx>{`
-          .loading-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-          }
-          .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid var(--tg-theme-secondary-bg-color);
-            border-top-color: var(--tg-theme-button-color);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-          }
-          @keyframes spin {
-            to {
-              transform: rotate(360deg);
-            }
-          }
-        `}</style>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="loading-spinner w-10 h-10 border-3 border-(--tg-theme-secondary-bg-color) border-t-(--tg-theme-button-color) rounded-full" />
       </div>
     );
   }
 
   if (!summary) {
     return (
-      <div className="error-state">
+      <div className="flex items-center justify-center min-h-screen text-(--tg-theme-hint-color)">
         <p>Саммари не найдено</p>
       </div>
     );
   }
 
   return (
-    <main className="summary-detail safe-area-top safe-area-bottom">
+    <main className="p-4 pb-24">
       {/* Header */}
-      <header className="header">
-        <h1 className="title">{summary.title}</h1>
-        <p className="meta tg-hint">
+      <header className="mb-4">
+        <h1 className="m-0 text-2xl font-bold leading-tight">{summary.title}</h1>
+        <p className="mt-2 text-(--tg-theme-hint-color)">
           {new Date(summary.createdAt).toLocaleDateString("ru-RU", {
             day: "numeric",
             month: "long",
@@ -180,193 +144,70 @@ export default function SummaryDetailPage() {
       </header>
 
       {/* Topics */}
-      <div className="topics">
+      <div className="flex flex-wrap gap-2 mb-5">
         {summary.topics.map((topic) => (
-          <span key={topic} className="topic-tag">
+          <span
+            key={topic}
+            className="py-1.5 px-3 bg-(--tg-theme-button-color) text-(--tg-theme-button-text-color) rounded-2xl text-sm font-medium"
+          >
             {topic}
           </span>
         ))}
       </div>
 
       {/* Content */}
-      <article className="content tg-card">
+      <article className="bg-(--tg-theme-secondary-bg-color) rounded-xl p-4 mb-6 leading-relaxed">
         {summary.content.split("\n").map((line, i) => {
-          if (line.startsWith("## ")) {
+          if (line.startsWith("## "))
             return (
-              <h2 key={i} className="content-h2">
+              <h2 key={i} className="text-lg font-bold mt-5 mb-3 first:mt-0">
                 {line.replace("## ", "")}
               </h2>
             );
-          }
-          if (line.startsWith("### ")) {
+          if (line.startsWith("### "))
             return (
-              <h3 key={i} className="content-h3">
+              <h3 key={i} className="text-base font-semibold mt-4 mb-2">
                 {line.replace("### ", "")}
               </h3>
             );
-          }
-          if (line.startsWith("- ")) {
+          if (line.startsWith("- "))
             return (
-              <li key={i} className="content-li">
+              <li key={i} className="my-1.5 pl-2 list-inside">
                 {line.replace("- ", "")}
               </li>
             );
-          }
-          if (line.trim()) {
+          if (line.trim())
             return (
-              <p key={i} className="content-p">
+              <p key={i} className="my-2">
                 {line}
               </p>
             );
-          }
           return null;
         })}
       </article>
 
       {/* Source Posts */}
-      <section className="sources">
-        <h2 className="section-title">Источники ({summary.posts.length})</h2>
-        <div className="posts-list">
+      <section className="mt-6">
+        <h2 className="text-base font-semibold m-0 mb-3">Источники ({summary.posts.length})</h2>
+        <div className="flex flex-col gap-2">
           {summary.posts.map((post) => (
             <button
               key={post.id}
-              className="post-item tg-card"
+              className="flex flex-col items-start text-left border-none cursor-pointer py-3 px-4 relative bg-(--tg-theme-secondary-bg-color) rounded-xl disabled:cursor-default"
               onClick={() => handleOpenPost(post.url)}
               disabled={!post.url}
             >
-              <span className="post-title">{post.title}</span>
-              <span className="post-channel tg-hint">{post.channelName}</span>
-              {post.url && <span className="post-arrow">→</span>}
+              <span className="font-medium text-sm">{post.title}</span>
+              <span className="text-xs mt-1 text-(--tg-theme-hint-color)">{post.channelName}</span>
+              {post.url && (
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-(--tg-theme-hint-color)">
+                  →
+                </span>
+              )}
             </button>
           ))}
         </div>
       </section>
-
-      <style jsx>{`
-        .summary-detail {
-          padding: 16px;
-          padding-bottom: 100px;
-        }
-
-        .header {
-          margin-bottom: 16px;
-        }
-
-        .title {
-          margin: 0;
-          font-size: 24px;
-          font-weight: 700;
-          line-height: 1.3;
-        }
-
-        .meta {
-          margin: 8px 0 0;
-        }
-
-        .topics {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-          margin-bottom: 20px;
-        }
-
-        .topic-tag {
-          padding: 6px 12px;
-          background: var(--tg-theme-button-color);
-          color: var(--tg-theme-button-text-color);
-          border-radius: 16px;
-          font-size: 13px;
-          font-weight: 500;
-        }
-
-        .content {
-          margin-bottom: 24px;
-          line-height: 1.6;
-        }
-
-        .content-h2 {
-          font-size: 18px;
-          font-weight: 700;
-          margin: 20px 0 12px;
-        }
-
-        .content-h2:first-child {
-          margin-top: 0;
-        }
-
-        .content-h3 {
-          font-size: 16px;
-          font-weight: 600;
-          margin: 16px 0 8px;
-        }
-
-        .content-p {
-          margin: 8px 0;
-        }
-
-        .content-li {
-          margin: 6px 0;
-          padding-left: 8px;
-          list-style-position: inside;
-        }
-
-        .section-title {
-          font-size: 16px;
-          font-weight: 600;
-          margin: 0 0 12px;
-        }
-
-        .posts-list {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .post-item {
-          display: flex;
-          flex-direction: column;
-          align-items: flex-start;
-          text-align: left;
-          border: none;
-          cursor: pointer;
-          padding: 12px 16px;
-          position: relative;
-        }
-
-        .post-item:disabled {
-          cursor: default;
-        }
-
-        .post-title {
-          font-weight: 500;
-          font-size: 14px;
-        }
-
-        .post-channel {
-          font-size: 12px;
-          margin-top: 4px;
-        }
-
-        .post-arrow {
-          position: absolute;
-          right: 16px;
-          top: 50%;
-          transform: translateY(-50%);
-          color: var(--tg-theme-hint-color);
-        }
-
-        .error-state {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          min-height: 100vh;
-          color: var(--tg-theme-hint-color);
-        }
-
-        .sources {
-          margin-top: 24px;
-        }
-      `}</style>
     </main>
   );
 }

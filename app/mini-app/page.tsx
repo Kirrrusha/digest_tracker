@@ -23,17 +23,12 @@ export default function MiniAppPage() {
 
   useEffect(() => {
     if (!isReady) return;
-
-    // Загружаем данные дашборда
     fetchDashboardData();
   }, [isReady]);
 
   useEffect(() => {
     if (!webApp || !isReady) return;
-
-    // Настраиваем MainButton
     showMainButton("Создать саммари", handleGenerateSummary);
-
     return () => {
       hideMainButton();
     };
@@ -41,13 +36,6 @@ export default function MiniAppPage() {
 
   const fetchDashboardData = async () => {
     try {
-      // TODO: Заменить на реальный API вызов
-      // const response = await fetch('/api/mini-app/dashboard', {
-      //   headers: { 'X-Telegram-Init-Data': webApp?.initData || '' }
-      // });
-      // const data = await response.json();
-
-      // Временные данные
       setData({
         channelsCount: 5,
         summariesCount: 12,
@@ -66,84 +54,65 @@ export default function MiniAppPage() {
 
   const handleGenerateSummary = async () => {
     hapticImpact("medium");
-
-    // TODO: Реализовать генерацию саммари
     webApp?.showAlert("Генерация саммари скоро будет доступна!");
   };
 
   if (!isReady || loading) {
     return (
-      <div className="loading-container">
-        <div className="loading-spinner" />
-        <style jsx>{`
-          .loading-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-          }
-          .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid var(--tg-theme-secondary-bg-color);
-            border-top-color: var(--tg-theme-button-color);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-          }
-          @keyframes spin {
-            to {
-              transform: rotate(360deg);
-            }
-          }
-        `}</style>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="loading-spinner w-10 h-10 border-3 border-[var(--tg-theme-secondary-bg-color)] border-t-[var(--tg-theme-button-color)] rounded-full" />
       </div>
     );
   }
 
   return (
-    <main className="dashboard safe-area-top safe-area-bottom">
+    <main className="p-4 pb-24 pt-[env(safe-area-inset-top,0)] pb-[max(env(safe-area-inset-bottom,0),100px)]">
       {/* Header */}
-      <header className="header">
-        <div className="user-info">
+      <header className="mb-6">
+        <div className="flex items-center gap-3">
           {user?.photo_url ? (
-            <img src={user.photo_url} alt="" className="avatar" />
+            <img src={user.photo_url} alt="" className="w-12 h-12 rounded-full object-cover" />
           ) : (
-            <div className="avatar-placeholder">{user?.first_name?.charAt(0) || "U"}</div>
+            <div className="w-12 h-12 rounded-full bg-[var(--tg-theme-button-color)] text-[var(--tg-theme-button-text-color)] flex items-center justify-center text-xl font-semibold">
+              {user?.first_name?.charAt(0) || "U"}
+            </div>
           )}
           <div>
-            <h1 className="greeting">Привет, {user?.first_name || "Пользователь"}!</h1>
-            <p className="tg-hint">Твой персональный дайджест</p>
+            <h1 className="m-0 text-xl font-semibold">
+              Привет, {user?.first_name || "Пользователь"}!
+            </h1>
+            <p className="text-[var(--tg-theme-hint-color)] text-sm">Твой персональный дайджест</p>
           </div>
         </div>
       </header>
 
       {/* Stats */}
-      <section className="stats">
-        <div className="stat-card tg-card">
-          <span className="stat-icon">📢</span>
-          <span className="stat-value">{data?.channelsCount || 0}</span>
-          <span className="stat-label tg-hint">Каналов</span>
+      <section className="grid grid-cols-2 gap-3 mb-6">
+        <div className="flex flex-col items-center p-5 text-center bg-[var(--tg-theme-secondary-bg-color)] rounded-xl">
+          <span className="text-3xl mb-2">📢</span>
+          <span className="text-3xl font-bold">{data?.channelsCount || 0}</span>
+          <span className="text-xs mt-1 text-[var(--tg-theme-hint-color)]">Каналов</span>
         </div>
-        <div className="stat-card tg-card">
-          <span className="stat-icon">📊</span>
-          <span className="stat-value">{data?.summariesCount || 0}</span>
-          <span className="stat-label tg-hint">Саммари</span>
+        <div className="flex flex-col items-center p-5 text-center bg-[var(--tg-theme-secondary-bg-color)] rounded-xl">
+          <span className="text-3xl mb-2">📊</span>
+          <span className="text-3xl font-bold">{data?.summariesCount || 0}</span>
+          <span className="text-xs mt-1 text-[var(--tg-theme-hint-color)]">Саммари</span>
         </div>
       </section>
 
       {/* Last Summary */}
       {data?.lastSummary && (
-        <section className="section">
-          <h2 className="section-title">Последнее саммари</h2>
+        <section className="mb-6">
+          <h2 className="text-base font-semibold m-0 mb-3">Последнее саммари</h2>
           <Link
             href={`/mini-app/summaries/${data.lastSummary.id}`}
-            className="summary-card tg-card"
+            className="flex flex-col gap-2 no-underline text-inherit bg-[var(--tg-theme-secondary-bg-color)] rounded-xl p-4"
           >
-            <div className="summary-header">
-              <span className="summary-icon">📋</span>
-              <span className="summary-title">{data.lastSummary.title}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xl">📋</span>
+              <span className="font-medium">{data.lastSummary.title}</span>
             </div>
-            <span className="summary-date tg-hint">
+            <span className="text-sm text-[var(--tg-theme-hint-color)]">
               {new Date(data.lastSummary.createdAt).toLocaleDateString("ru-RU")}
             </span>
           </Link>
@@ -151,163 +120,32 @@ export default function MiniAppPage() {
       )}
 
       {/* Quick Actions */}
-      <section className="section">
-        <h2 className="section-title">Быстрые действия</h2>
-        <nav className="quick-actions">
-          <Link href="/mini-app/channels" className="action-item tg-card">
-            <span className="action-icon">📢</span>
-            <span className="action-label">Каналы</span>
+      <section className="mb-6">
+        <h2 className="text-base font-semibold m-0 mb-3">Быстрые действия</h2>
+        <nav className="grid grid-cols-3 gap-3">
+          <Link
+            href="/mini-app/channels"
+            className="flex flex-col items-center py-4 px-2 no-underline text-inherit bg-[var(--tg-theme-secondary-bg-color)] rounded-xl transition-transform active:scale-95"
+          >
+            <span className="text-3xl mb-2">📢</span>
+            <span className="text-sm font-medium">Каналы</span>
           </Link>
-          <Link href="/mini-app/summaries" className="action-item tg-card">
-            <span className="action-icon">📊</span>
-            <span className="action-label">Саммари</span>
+          <Link
+            href="/mini-app/summaries"
+            className="flex flex-col items-center py-4 px-2 no-underline text-inherit bg-[var(--tg-theme-secondary-bg-color)] rounded-xl transition-transform active:scale-95"
+          >
+            <span className="text-3xl mb-2">📊</span>
+            <span className="text-sm font-medium">Саммари</span>
           </Link>
-          <Link href="/mini-app/settings" className="action-item tg-card">
-            <span className="action-icon">⚙️</span>
-            <span className="action-label">Настройки</span>
+          <Link
+            href="/mini-app/settings"
+            className="flex flex-col items-center py-4 px-2 no-underline text-inherit bg-[var(--tg-theme-secondary-bg-color)] rounded-xl transition-transform active:scale-95"
+          >
+            <span className="text-3xl mb-2">⚙️</span>
+            <span className="text-sm font-medium">Настройки</span>
           </Link>
         </nav>
       </section>
-
-      <style jsx>{`
-        .dashboard {
-          padding: 16px;
-          padding-bottom: 100px; /* Space for MainButton */
-        }
-
-        .header {
-          margin-bottom: 24px;
-        }
-
-        .user-info {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .avatar,
-        .avatar-placeholder {
-          width: 48px;
-          height: 48px;
-          border-radius: 50%;
-        }
-
-        .avatar {
-          object-fit: cover;
-        }
-
-        .avatar-placeholder {
-          background: var(--tg-theme-button-color);
-          color: var(--tg-theme-button-text-color);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 20px;
-          font-weight: 600;
-        }
-
-        .greeting {
-          margin: 0;
-          font-size: 20px;
-          font-weight: 600;
-        }
-
-        .stats {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px;
-          margin-bottom: 24px;
-        }
-
-        .stat-card {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          padding: 20px;
-          text-align: center;
-        }
-
-        .stat-icon {
-          font-size: 28px;
-          margin-bottom: 8px;
-        }
-
-        .stat-value {
-          font-size: 32px;
-          font-weight: 700;
-        }
-
-        .stat-label {
-          font-size: 12px;
-          margin-top: 4px;
-        }
-
-        .section {
-          margin-bottom: 24px;
-        }
-
-        .section-title {
-          font-size: 16px;
-          font-weight: 600;
-          margin: 0 0 12px 0;
-        }
-
-        .summary-card {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          text-decoration: none;
-          color: inherit;
-        }
-
-        .summary-header {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .summary-icon {
-          font-size: 20px;
-        }
-
-        .summary-title {
-          font-weight: 500;
-        }
-
-        .summary-date {
-          font-size: 13px;
-        }
-
-        .quick-actions {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 12px;
-        }
-
-        .action-item {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          padding: 16px 8px;
-          text-decoration: none;
-          color: inherit;
-          transition: transform 0.1s;
-        }
-
-        .action-item:active {
-          transform: scale(0.95);
-        }
-
-        .action-icon {
-          font-size: 28px;
-          margin-bottom: 8px;
-        }
-
-        .action-label {
-          font-size: 13px;
-          font-weight: 500;
-        }
-      `}</style>
     </main>
   );
 }

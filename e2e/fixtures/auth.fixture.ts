@@ -45,7 +45,6 @@ export async function loginUser(page: Page, email: string, password: string) {
  * Extended test with authenticated page fixture
  */
 export const test = base.extend<AuthFixtures>({
-   
   authenticatedPage: async ({ page }, use) => {
     // Login before test
     await loginUser(page, testUser.email, testUser.password);
@@ -55,9 +54,7 @@ export const test = base.extend<AuthFixtures>({
 
     if (!isDashboard) {
       // Skip tests that require authentication if login failed
-      console.warn(
-        "Authentication failed - test will be skipped or may fail"
-      );
+      console.warn("Authentication failed - test will be skipped or may fail");
     }
 
     // eslint-disable-next-line react-hooks/rules-of-hooks -- 'use' is a Playwright fixture parameter, not a React hook

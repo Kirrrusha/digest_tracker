@@ -33,23 +33,16 @@ export default function SummariesPage() {
 
   useEffect(() => {
     if (!isReady) return;
-
     fetchSummaries();
   }, [isReady]);
 
   useEffect(() => {
     if (!isReady) return;
-
     showBackButton(() => {
       hapticImpact("light");
       router.push("/mini-app");
     });
-
-    showMainButton("Создать саммари", () => {
-      hapticImpact("medium");
-      // TODO: Генерация саммари
-    });
-
+    showMainButton("Создать саммари", () => hapticImpact("medium"));
     return () => {
       hideBackButton();
       hideMainButton();
@@ -58,7 +51,6 @@ export default function SummariesPage() {
 
   const fetchSummaries = async () => {
     try {
-      // TODO: Заменить на реальный API
       setSummaries([
         {
           id: "1",
@@ -97,49 +89,27 @@ export default function SummariesPage() {
     setFilter(newFilter);
   };
 
-  const filteredSummaries = summaries.filter((s) => {
-    if (filter === "all") return true;
-    return s.period.startsWith(filter);
-  });
+  const filteredSummaries = summaries.filter(
+    (s) => filter === "all" || s.period.startsWith(filter)
+  );
 
   if (!isReady || loading) {
     return (
-      <div className="loading-container">
-        <div className="loading-spinner" />
-        <style jsx>{`
-          .loading-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-          }
-          .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid var(--tg-theme-secondary-bg-color);
-            border-top-color: var(--tg-theme-button-color);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-          }
-          @keyframes spin {
-            to {
-              transform: rotate(360deg);
-            }
-          }
-        `}</style>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="loading-spinner w-10 h-10 border-3 border-(--tg-theme-secondary-bg-color) border-t-(--tg-theme-button-color) rounded-full" />
       </div>
     );
   }
 
   return (
-    <main className="summaries-page safe-area-top safe-area-bottom">
-      <header className="header">
-        <h1 className="title">Мои саммари</h1>
-        <p className="tg-hint">{summaries.length} записей</p>
+    <main className="p-4 pb-24">
+      <header className="mb-4">
+        <h1 className="m-0 text-2xl font-bold">Мои саммари</h1>
+        <p className="text-sm text-(--tg-theme-hint-color)">{summaries.length} записей</p>
       </header>
 
       {/* Filter */}
-      <div className="filter-tabs">
+      <div className="flex gap-2 mb-5 overflow-x-auto">
         {[
           { key: "all", label: "Все" },
           { key: "daily", label: "Дневные" },
@@ -147,7 +117,11 @@ export default function SummariesPage() {
         ].map((tab) => (
           <button
             key={tab.key}
-            className={`filter-tab ${filter === tab.key ? "active" : ""}`}
+            className={`py-2 px-4 border-none rounded-full text-sm font-medium cursor-pointer whitespace-nowrap transition-all ${
+              filter === tab.key
+                ? "bg-(--tg-theme-button-color) text-(--tg-theme-button-text-color)"
+                : "bg-(--tg-theme-secondary-bg-color) text-(--tg-theme-text-color)"
+            }`}
             onClick={() => handleFilterChange(tab.key as typeof filter)}
           >
             {tab.label}
@@ -156,170 +130,54 @@ export default function SummariesPage() {
       </div>
 
       {/* Summaries List */}
-      <section className="summaries-list">
+      <section className="flex flex-col gap-3">
         {filteredSummaries.length === 0 ? (
-          <div className="empty-state">
-            <span className="empty-icon">📊</span>
-            <p className="empty-text">Нет саммари</p>
-            <p className="tg-hint">Нажми кнопку ниже чтобы создать первое</p>
+          <div className="text-center py-10 px-5">
+            <span className="text-5xl block mb-4">📊</span>
+            <p className="m-0 mb-2 text-base font-medium">Нет саммари</p>
+            <p className="text-sm text-(--tg-theme-hint-color)">
+              Нажми кнопку ниже чтобы создать первое
+            </p>
           </div>
         ) : (
           filteredSummaries.map((summary) => (
             <Link
               key={summary.id}
               href={`/mini-app/summaries/${summary.id}`}
-              className="summary-item tg-card"
+              className="flex flex-col gap-3 no-underline text-inherit bg-(--tg-theme-secondary-bg-color) rounded-xl p-4 transition-transform active:scale-[0.98]"
               onClick={() => hapticImpact("light")}
             >
-              <div className="summary-header">
-                <span className="summary-icon">
+              <div className="flex gap-3">
+                <span className="text-2xl">
                   {summary.period.startsWith("weekly") ? "📅" : "📋"}
                 </span>
-                <div className="summary-info">
-                  <span className="summary-title">{summary.title}</span>
-                  <span className="summary-meta tg-hint">
+                <div className="flex flex-col">
+                  <span className="font-medium text-[15px]">{summary.title}</span>
+                  <span className="text-sm text-(--tg-theme-hint-color) mt-0.5">
                     {summary.postsCount} постов •{" "}
                     {new Date(summary.createdAt).toLocaleDateString("ru-RU")}
                   </span>
                 </div>
               </div>
-              <div className="summary-topics">
+              <div className="flex flex-wrap gap-1.5">
                 {summary.topics.slice(0, 3).map((topic) => (
-                  <span key={topic} className="topic-tag">
+                  <span
+                    key={topic}
+                    className="py-1 px-2.5 bg-(--tg-theme-button-color) text-(--tg-theme-button-text-color) rounded-xl text-xs font-medium"
+                  >
                     {topic}
                   </span>
                 ))}
                 {summary.topics.length > 3 && (
-                  <span className="topic-more tg-hint">+{summary.topics.length - 3}</span>
+                  <span className="py-1 px-2.5 text-xs text-(--tg-theme-hint-color)">
+                    +{summary.topics.length - 3}
+                  </span>
                 )}
               </div>
             </Link>
           ))
         )}
       </section>
-
-      <style jsx>{`
-        .summaries-page {
-          padding: 16px;
-          padding-bottom: 100px;
-        }
-
-        .header {
-          margin-bottom: 16px;
-        }
-
-        .title {
-          margin: 0;
-          font-size: 24px;
-          font-weight: 700;
-        }
-
-        .filter-tabs {
-          display: flex;
-          gap: 8px;
-          margin-bottom: 20px;
-          overflow-x: auto;
-          -webkit-overflow-scrolling: touch;
-        }
-
-        .filter-tab {
-          padding: 8px 16px;
-          border: none;
-          border-radius: 20px;
-          background: var(--tg-theme-secondary-bg-color);
-          color: var(--tg-theme-text-color);
-          font-size: 14px;
-          font-weight: 500;
-          cursor: pointer;
-          white-space: nowrap;
-          transition: all 0.2s;
-        }
-
-        .filter-tab.active {
-          background: var(--tg-theme-button-color);
-          color: var(--tg-theme-button-text-color);
-        }
-
-        .summaries-list {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .summary-item {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          text-decoration: none;
-          color: inherit;
-          transition: transform 0.1s;
-        }
-
-        .summary-item:active {
-          transform: scale(0.98);
-        }
-
-        .summary-header {
-          display: flex;
-          gap: 12px;
-        }
-
-        .summary-icon {
-          font-size: 24px;
-        }
-
-        .summary-info {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .summary-title {
-          font-weight: 500;
-          font-size: 15px;
-        }
-
-        .summary-meta {
-          font-size: 13px;
-          margin-top: 2px;
-        }
-
-        .summary-topics {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 6px;
-        }
-
-        .topic-tag {
-          padding: 4px 10px;
-          background: var(--tg-theme-button-color);
-          color: var(--tg-theme-button-text-color);
-          border-radius: 12px;
-          font-size: 12px;
-          font-weight: 500;
-        }
-
-        .topic-more {
-          padding: 4px 10px;
-          font-size: 12px;
-        }
-
-        .empty-state {
-          text-align: center;
-          padding: 40px 20px;
-        }
-
-        .empty-icon {
-          font-size: 48px;
-          display: block;
-          margin-bottom: 16px;
-        }
-
-        .empty-text {
-          margin: 0 0 8px;
-          font-size: 16px;
-          font-weight: 500;
-        }
-      `}</style>
     </main>
   );
 }
