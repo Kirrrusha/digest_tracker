@@ -1,0 +1,23 @@
+# Development Dockerfile with hot reload
+FROM node:20-alpine
+
+RUN apk add --no-cache libc6-compat git
+WORKDIR /app
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# Copy package files
+COPY package.json pnpm-lock.yaml ./
+
+# Install dependencies
+RUN git init && pnpm install --frozen-lockfile
+
+# Copy prisma schema and generate client
+COPY prisma ./prisma
+RUN pnpm prisma generate
+
+EXPOSE 3000
+
+# Generate Prisma client for container platform, then run dev server
+CMD ["sh", "-c", "pnpm prisma generate && pnpm dev"]

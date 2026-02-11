@@ -32,6 +32,8 @@ async function getSummaries(userId: string, page: number, period?: string, topic
     where.period = { startsWith: "daily-" };
   } else if (period === "weekly") {
     where.period = { startsWith: "weekly-" };
+  } else if (period === "monthly") {
+    where.period = { startsWith: "monthly-" };
   }
 
   // Обработка фильтра "Мои темы"
@@ -217,7 +219,7 @@ async function TopicsFilter({ userId, currentTopic }: { userId: string; currentT
             className={`inline-flex items-center justify-center rounded-full text-sm font-medium transition-colors px-3 py-1 ${
               currentTopic === topic
                 ? "bg-primary text-primary-foreground"
-                : "bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50"
+                : "bg-blue-500/20 text-blue-600 dark:text-blue-400 hover:bg-blue-500/30"
             }`}
           >
             {topic}
@@ -257,7 +259,8 @@ export default async function SummariesPage({ searchParams }: PageProps) {
       <Header title="Саммари" />
       <div className="flex-1 p-6">
         <div className="mb-6">
-          <h2 className="text-lg font-semibold mb-2">История саммари</h2>
+          <h2 className="text-lg font-semibold mb-2">Саммари</h2>
+          <p className="text-sm text-muted-foreground mb-4">Автоматически сгенерированные сводки</p>
 
           <div className="flex flex-wrap gap-4 mb-4">
             <div className="flex gap-2">
@@ -277,7 +280,7 @@ export default async function SummariesPage({ searchParams }: PageProps) {
                     : "bg-muted hover:bg-muted/80"
                 }`}
               >
-                Дневные
+                День
               </Link>
               <Link
                 href="/dashboard/summaries?period=weekly"
@@ -287,7 +290,17 @@ export default async function SummariesPage({ searchParams }: PageProps) {
                     : "bg-muted hover:bg-muted/80"
                 }`}
               >
-                Недельные
+                Неделя
+              </Link>
+              <Link
+                href="/dashboard/summaries?period=monthly"
+                className={`inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors px-3 py-1.5 ${
+                  period === "monthly"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted hover:bg-muted/80"
+                }`}
+              >
+                Месяц
               </Link>
             </div>
           </div>

@@ -3,11 +3,13 @@ import { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Header } from "@/components/dashboard/header";
+import { ApiSettings } from "@/components/settings/api-settings";
 import { NotificationSettings } from "@/components/settings/notification-settings";
-import { SettingsForm } from "@/components/settings/settings-form";
-import { TopicsManagement } from "@/components/settings/topics-management";
+import { PreferencesSettings } from "@/components/settings/preferences-settings";
+import { ProfileSettings } from "@/components/settings/profile-settings";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 async function getPreferences(userId: string) {
   const [preferences, user, telegramAccount] = await Promise.all([
@@ -43,6 +45,7 @@ async function getPreferences(userId: string) {
 function SettingsSkeleton() {
   return (
     <div className="space-y-6">
+      <Skeleton className="h-9 w-full max-w-md" />
       {[1, 2, 3].map((i) => (
         <Card key={i}>
           <CardHeader>
@@ -63,11 +66,26 @@ async function SettingsContent({ userId }: { userId: string }) {
   const { user, preferences, hasTelegramAccount } = await getPreferences(userId);
 
   return (
-    <div className="space-y-6">
-      <SettingsForm user={user} preferences={preferences} />
-      <TopicsManagement topics={preferences.topics} />
-      <NotificationSettings settings={preferences} hasTelegramAccount={hasTelegramAccount} />
-    </div>
+    <Tabs defaultValue="profile" className="w-full">
+      <TabsList className="mb-6 flex h-auto flex-wrap gap-1">
+        <TabsTrigger value="profile">Профиль</TabsTrigger>
+        <TabsTrigger value="preferences">Предпочтения</TabsTrigger>
+        <TabsTrigger value="notifications">Уведомления</TabsTrigger>
+        <TabsTrigger value="api">API</TabsTrigger>
+      </TabsList>
+      <TabsContent value="profile">
+        <ProfileSettings user={user} />
+      </TabsContent>
+      <TabsContent value="preferences">
+        <PreferencesSettings preferences={preferences} />
+      </TabsContent>
+      <TabsContent value="notifications">
+        <NotificationSettings settings={preferences} hasTelegramAccount={hasTelegramAccount} />
+      </TabsContent>
+      <TabsContent value="api">
+        <ApiSettings />
+      </TabsContent>
+    </Tabs>
   );
 }
 
@@ -79,6 +97,7 @@ export default async function SettingsPage() {
     <div className="flex flex-col h-full">
       <Header title="Настройки" />
       <div className="flex-1 p-6 max-w-2xl">
+        <p className="text-sm text-muted-foreground mb-6">Управляйте вашими предпочтениями</p>
         <Suspense fallback={<SettingsSkeleton />}>
           <SettingsContent userId={userId} />
         </Suspense>

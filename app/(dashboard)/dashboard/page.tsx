@@ -1,28 +1,16 @@
 import { Suspense } from "react";
-import { Clock, FileText, Rss, TrendingUp } from "lucide-react";
+import Link from "next/link";
+import { Bookmark, ExternalLink } from "lucide-react";
 
 import { auth } from "@/lib/auth";
 import { getCachedRecentPosts, getCachedTodaySummary, getCachedUserStats } from "@/lib/cache";
 import { Header } from "@/components/dashboard/header";
-import { RecentPosts } from "@/components/dashboard/recent-posts";
-import { StatsCard } from "@/components/dashboard/stats-card";
 import { TodaySummary } from "@/components/dashboard/today-summary";
+import { TopicStatsGrid } from "@/components/dashboard/topic-stats-card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-
-function StatsCardSkeleton() {
-  return (
-    <Card className="py-4">
-      <CardContent className="flex items-center gap-4">
-        <Skeleton className="h-12 w-12 rounded-full" />
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-6 w-16" />
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
 function SummarySkeleton() {
   return (
@@ -43,45 +31,43 @@ function SummarySkeleton() {
   );
 }
 
-function PostsSkeleton() {
+function TopicStatsSkeleton() {
   return (
-    <Card>
-      <CardHeader>
-        <Skeleton className="h-6 w-40" />
-        <Skeleton className="h-4 w-56" />
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="p-4 rounded-lg border">
-            <Skeleton className="h-4 w-32 mb-2" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-3/4 mt-1" />
-          </div>
+    <div className="space-y-4">
+      <Skeleton className="h-6 w-40" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map((i) => (
+          <Skeleton key={i} className="h-32 rounded-xl" />
         ))}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
-async function StatsSection({ userId }: { userId: string }) {
-  const stats = await getCachedUserStats(userId);
-
+function PostsSkeleton() {
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <StatsCard
-        title="Активных каналов"
-        value={stats.channelsCount}
-        icon={Rss}
-        description="Telegram и RSS"
-      />
-      <StatsCard title="Всего постов" value={stats.postsCount} icon={FileText} />
-      <StatsCard title="Постов сегодня" value={stats.todayPostsCount} icon={Clock} />
-      <StatsCard
-        title="Саммари"
-        value={stats.summariesCount}
-        icon={TrendingUp}
-        description="Сгенерировано"
-      />
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-6 w-40" />
+        <Skeleton className="h-4 w-24" />
+      </div>
+      {[1, 2, 3, 4, 5].map((i) => (
+        <Card key={i}>
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <Skeleton className="w-10 h-10 rounded-lg" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-5 w-full" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-5 w-16" />
+                  <Skeleton className="h-5 w-16" />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 }
@@ -95,9 +81,136 @@ async function SummarySection({ userId }: { userId: string }) {
   return <TodaySummary summary={summary} postsCount={stats.todayPostsCount} />;
 }
 
+async function TopicStatsSection({ userId }: { userId: string }) {
+  // TODO: Replace with real topic stats from database
+  const topics = [
+    { name: "React", count: 24, trend: 5, color: "blue" as const },
+    { name: "Node.js", count: 18, trend: 3, color: "green" as const },
+    { name: "TypeScript", count: 31, trend: -2, color: "purple" as const },
+    { name: "DevOps", count: 12, trend: 8, color: "orange" as const },
+  ];
+
+  return <TopicStatsGrid topics={topics} />;
+}
+
+interface Post {
+  id: string;
+  title: string | null;
+  url: string | null;
+  publishedAt: Date;
+  channel: {
+    id: string;
+    name: string;
+    sourceType: string;
+    tags: string[];
+  };
+}
+
+function PostItem({ post }: { post: Post }) {
+  const tags = post.channel.tags?.length
+    ? post.channel.tags
+    : post.channel.name.toLowerCase().includes("react")
+      ? ["React"]
+      : post.channel.name.toLowerCase().includes("typescript")
+        ? ["TypeScript"]
+        : post.channel.name.toLowerCase().includes("node")
+          ? ["Node.js"]
+          : ["Updates"];
+
+  const timeAgo = getTimeAgo(post.publishedAt);
+
+  return (
+    <Card className="hover:bg-muted/50 transition-colors">
+      <CardContent className="p-4">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-muted-foreground flex-shrink-0">
+            {post.channel.name.charAt(0).toUpperCase()}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-muted-foreground mb-1">{post.channel.name}</p>
+            {post.url ? (
+              <a
+                href={post.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-sm hover:underline line-clamp-2"
+              >
+                {post.title ?? "Без заголовка"}
+              </a>
+            ) : (
+              <span className="font-medium text-sm line-clamp-2">
+                {post.title ?? "Без заголовка"}
+              </span>
+            )}
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-xs text-muted-foreground">{timeAgo}</span>
+              <span className="text-muted-foreground">·</span>
+              <div className="flex gap-1">
+                {tags.map((tag) => (
+                  <Badge key={tag} variant="secondary" className="text-xs">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </div>
+          <Button variant="ghost" size="icon" className="flex-shrink-0">
+            <Bookmark size={16} />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function getTimeAgo(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - new Date(date).getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMins < 60) return `${diffMins} мин. назад`;
+  if (diffHours < 24) return `${diffHours} ч. назад`;
+  if (diffDays === 1) return "вчера";
+  return `${diffDays} дн. назад`;
+}
+
 async function PostsSection({ userId }: { userId: string }) {
   const posts = await getCachedRecentPosts(userId, 5);
-  return <RecentPosts posts={posts} />;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Последние посты</h2>
+        <Link
+          href="/dashboard/channels"
+          className="text-sm text-primary hover:underline flex items-center gap-1"
+        >
+          Показать всё
+          <ExternalLink size={14} />
+        </Link>
+      </div>
+      {posts.length > 0 ? (
+        <div className="space-y-3">
+          {posts.map((post) => (
+            <PostItem key={post.id} post={post} />
+          ))}
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="p-8 text-center text-muted-foreground">
+            <p>Нет постов. Добавьте каналы для отслеживания.</p>
+            <Link href="/dashboard/channels">
+              <Button variant="outline" className="mt-4">
+                Добавить каналы
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
 }
 
 export default async function DashboardPage() {
@@ -106,29 +219,22 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <Header title="Главная" />
-      <div className="flex-1 p-6 space-y-6">
-        <Suspense
-          fallback={
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              {[1, 2, 3, 4].map((i) => (
-                <StatsCardSkeleton key={i} />
-              ))}
-            </div>
-          }
-        >
-          <StatsSection userId={userId} />
+      <Header title="Последняя сводка" />
+      <div className="flex-1 p-6 space-y-6 overflow-auto">
+        {/* Summary Section */}
+        <Suspense fallback={<SummarySkeleton />}>
+          <SummarySection userId={userId} />
         </Suspense>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Suspense fallback={<SummarySkeleton />}>
-            <SummarySection userId={userId} />
-          </Suspense>
+        {/* Topic Stats Section */}
+        <Suspense fallback={<TopicStatsSkeleton />}>
+          <TopicStatsSection userId={userId} />
+        </Suspense>
 
-          <Suspense fallback={<PostsSkeleton />}>
-            <PostsSection userId={userId} />
-          </Suspense>
-        </div>
+        {/* Recent Posts Section */}
+        <Suspense fallback={<PostsSkeleton />}>
+          <PostsSection userId={userId} />
+        </Suspense>
       </div>
     </div>
   );

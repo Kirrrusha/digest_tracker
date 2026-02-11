@@ -4,8 +4,8 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile
-    container_name: devdigest_app
+      dockerfile: Dockerfile.dev
+    container_name: devdigest_app_dev
     restart: unless-stopped
     ports:
       - "3000:3000"
@@ -18,22 +18,20 @@ services:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_WEBHOOK_SECRET=${TELEGRAM_WEBHOOK_SECRET}
       - REDIS_URL=redis://redis:6379
-      - ENABLE_CRON=true
-      - NODE_ENV=production
+      - NODE_ENV=development
       - WEBAUTHN_RP_ID=localhost
       - WEBAUTHN_ORIGIN=http://localhost:3000
       - AUTH_TRUST_HOST=true
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+      - /app/lib/generated/prisma
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
   postgres:
     image: postgres:16-alpine
@@ -48,7 +46,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U devdigest"]
+      test: ["CMD-SHELL", "pg_isready -U devdigest -d devdigest_db"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -67,22 +65,6 @@ services:
       interval: 10s
       timeout: 3s
       retries: 5
-
-  # Опционально: pgAdmin для управления БД через веб-интерфейс
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: devdigest_pgadmin
-    restart: unless-stopped
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@devdigest.local
-      PGADMIN_DEFAULT_PASSWORD: admin
-      PGADMIN_LISTEN_PORT: 80
-    ports:
-      - "5050:80"
-    depends_on:
-      - postgres
-    profiles:
-      - admin  # Запускать только при необходимости: docker-compose --profile admin up
 
 volumes:
   postgres_data:

@@ -5,10 +5,13 @@ import { auth } from "@/lib/auth";
 import { getCachedUserChannels } from "@/lib/cache";
 import { AddChannelDialog } from "@/components/channels/add-channel-dialog";
 import { ChannelCard } from "@/components/channels/channel-card";
+import { ChannelFilters } from "@/components/channels/channel-filters";
 import { Header } from "@/components/dashboard/header";
 import { EmptyState } from "@/components/empty/empty-state";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+
+type ChannelFilterType = "all" | "telegram" | "rss";
 
 function ChannelSkeleton() {
   return (
@@ -29,57 +32,106 @@ function ChannelSkeleton() {
   );
 }
 
-async function ChannelsList({ userId }: { userId: string }) {
-  const channels = await getCachedUserChannels(userId);
+function filterChannels(
+  channels: Awaited<ReturnType<typeof getCachedUserChannels>>,
+  source: ChannelFilterType | undefined,
+  search: string | undefined
+) {
+  let filtered = channels;
 
-  if (channels.length === 0) {
+  if (source && source !== "all") {
+    filtered = filtered.filter((c) => c.sourceType === source);
+  }
+
+  if (search?.trim()) {
+    const query = search.trim().toLowerCase();
+    filtered = filtered.filter(
+      (c) =>
+        c.name.toLowerCase().includes(query) ||
+        (c.description?.toLowerCase().includes(query) ?? false) ||
+        c.sourceUrl.toLowerCase().includes(query)
+    );
+  }
+
+  return filtered;
+}
+
+function ChannelsList({
+  channels,
+  source,
+  search,
+}: {
+  channels: Awaited<ReturnType<typeof getCachedUserChannels>>;
+  source?: ChannelFilterType;
+  search?: string;
+}) {
+  const filtered = filterChannels(channels, source, search);
+
+  if (filtered.length === 0) {
     return (
       <EmptyState
         icon={Rss}
-        title="Нет каналов"
-        description="Добавьте Telegram каналы или RSS фиды для агрегации контента"
+        title={channels.length === 0 ? "Нет каналов" : "Ничего не найдено"}
+        description={
+          channels.length === 0
+            ? "Добавьте Telegram каналы или RSS фиды для агрегации контента"
+            : "Попробуйте изменить фильтры или поисковый запрос"
+        }
       >
-        <AddChannelDialog />
+        {channels.length === 0 && <AddChannelDialog />}
       </EmptyState>
     );
   }
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {channels.map((channel) => (
+      {filtered.map((channel) => (
         <ChannelCard key={channel.id} channel={channel} />
       ))}
     </div>
   );
 }
 
-export default async function ChannelsPage() {
+interface PageProps {
+  searchParams: Promise<{
+    source?: string;
+    search?: string;
+  }>;
+}
+
+export default async function ChannelsPage({ searchParams }: PageProps) {
   const session = await auth();
   const userId = session!.user!.id!;
+
+  const params = await searchParams;
+  const source = (
+    params.source === "telegram" || params.source === "rss" ? params.source : "all"
+  ) as ChannelFilterType;
+  const search = params.search;
+
+  const channels = await getCachedUserChannels(userId);
 
   return (
     <div className="flex flex-col h-full">
       <Header title="Каналы" />
       <div className="flex-1 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-lg font-semibold">Мои каналы</h2>
-            <p className="text-sm text-muted-foreground">Управление источниками контента</p>
+        <div className="flex flex-col gap-4 mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">Мои каналы</h2>
+              <p className="text-sm text-muted-foreground">
+                {channels.length} {channels.length === 1 ? "канал" : "каналов"}
+              </p>
+            </div>
+            <AddChannelDialog />
           </div>
-          <AddChannelDialog />
+
+          <Suspense fallback={<Skeleton className="h-10 w-full max-w-xs" />}>
+            <ChannelFilters activeFilter={source} searchQuery={search ?? ""} />
+          </Suspense>
         </div>
 
-        <Suspense
-          fallback={
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <ChannelSkeleton key={i} />
-              ))}
-            </div>
-          }
-        >
-          <ChannelsList userId={userId} />
-        </Suspense>
+        <ChannelsList channels={channels} source={source} search={search} />
       </div>
     </div>
   );
