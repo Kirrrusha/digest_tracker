@@ -22,6 +22,10 @@ export function registerCallbackHandlers(bot: Bot): void {
   bot.callbackQuery(/^set_language_(.+)$/, handleSetLanguage);
   bot.callbackQuery(/^set_interval_(.+)$/, handleSetInterval);
 
+  // Подписка через пересланное сообщение
+  bot.callbackQuery(/^sub_fwd_(.+)$/, handleSubscribeForward);
+  bot.callbackQuery("cancel_fwd", handleCancelForward);
+
   // Общие
   bot.callbackQuery("cancel", handleCancel);
   bot.callbackQuery("back_to_settings", handleBackToSettings);
@@ -394,6 +398,98 @@ async function handleBackToSettings(ctx: Context): Promise<void> {
   } catch (error) {
     console.error("Error in back to settings:", error);
   }
+}
+
+/**
+ * Подписка на канал через пересланное сообщение
+ */
+async function handleSubscribeForward(ctx: Context): Promise<void> {
+  await ctx.answerCallbackQuery();
+
+  if (!ctx.from || !ctx.match) return;
+
+  const chatId = (ctx.match as RegExpMatchArray)[1];
+  const telegramId = ctx.from.id.toString();
+
+  try {
+    const user = await db.user.findFirst({
+      where: { telegramAccount: { telegramId } },
+    });
+
+    if (!user) {
+      await ctx.editMessageText("❌ Пользователь не найден.");
+      return;
+    }
+
+    // Проверяем дубликат
+    const existing = await db.channel.findFirst({
+      where: { userId: user.id, telegramId: chatId },
+    });
+
+    if (existing) {
+      await ctx.editMessageText("⚠️ Этот канал уже в твоём списке.");
+      return;
+    }
+
+    // Извлекаем название и username из текста сообщения
+    const messageText = ctx.callbackQuery?.message?.text || "";
+    const { title, username } = parseForwardMessage(messageText, chatId);
+    const sourceUrl = username ? `https://t.me/${username}` : `tg://channel/${chatId}`;
+
+    await db.channel.create({
+      data: {
+        userId: user.id,
+        name: title,
+        sourceType: "telegram_bot",
+        sourceUrl,
+        telegramId: chatId,
+        isActive: true,
+      },
+    });
+
+    await ctx.editMessageText(
+      `✅ Канал *${escapeMarkdown(title)}* добавлен\\!\n\n` +
+        `Для real\\-time обновлений — добавь бота в канал как участника\\.`,
+      { parse_mode: "MarkdownV2" }
+    );
+  } catch (error) {
+    console.error("Error subscribing to forward:", error);
+    await ctx.editMessageText("❌ Не удалось добавить канал.");
+  }
+}
+
+/**
+ * Отмена подписки через пересланное сообщение
+ */
+async function handleCancelForward(ctx: Context): Promise<void> {
+  await ctx.answerCallbackQuery("Отменено");
+  await ctx.deleteMessage();
+}
+
+/**
+ * Извлечение названия и username канала из текста сообщения с предложением подписки
+ */
+function parseForwardMessage(
+  text: string,
+  fallbackChatId: string
+): { title: string; username: string | null } {
+  // Текст без Markdown: "📢 Найден канал: Title (@username)\n\nДобавить..."
+  const firstLine = text.split("\n")[0] || "";
+  const afterPrefix = firstLine.replace(/^📢\s*Найден канал:\s*/, "");
+
+  const usernameMatch = afterPrefix.match(/\(@(\w+)\)/);
+  const username = usernameMatch ? usernameMatch[1] : null;
+
+  const title = afterPrefix.replace(/\s*\(@\w+\)\s*$/, "").trim();
+
+  return {
+    title: title || `Channel ${fallbackChatId}`,
+    username,
+  };
+}
+
+function escapeMarkdown(text: string): string {
+  return text.replace(/[_*[\]()~`>#+\-=|{}.!]/g, "\\$&");
 }
 
 /**

@@ -3,7 +3,9 @@ import { Bot, InlineKeyboard, webhookCallback } from "grammy";
 import { db } from "@/lib/db";
 
 import { registerCallbackHandlers } from "./handlers/callbacks";
+import { registerChannelPostHandlers } from "./handlers/channel-posts";
 import { registerCommands } from "./handlers/commands";
+import { registerForwardHandlers } from "./handlers/forwards";
 import type { SummaryInfo } from "./types";
 
 /**
@@ -32,6 +34,8 @@ export class DevDigestBot {
     // Регистрируем обработчики
     registerCommands(this.bot);
     registerCallbackHandlers(this.bot);
+    registerForwardHandlers(this.bot);
+    registerChannelPostHandlers(this.bot);
 
     // Обработка ошибок
     this.bot.catch((err) => {

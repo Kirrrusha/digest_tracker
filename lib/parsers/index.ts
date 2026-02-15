@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 
 import { isValidRSSUrl, parseRSSFeed, rssParser, RSSParser } from "./rss-parser";
+import { telegramBotParser, TelegramBotParser } from "./telegram-bot-parser";
 import {
   extractTelegramUsername,
   isValidTelegramUrl,
@@ -25,6 +26,7 @@ export { ParseError, ParseErrorCode };
 
 // Re-export parsers
 export { rssParser, RSSParser, parseRSSFeed, isValidRSSUrl };
+export { telegramBotParser, TelegramBotParser };
 export {
   telegramParser,
   TelegramParser,
@@ -42,6 +44,7 @@ class ParserFactory {
   constructor() {
     this.register(rssParser);
     this.register(telegramParser);
+    this.register(telegramBotParser);
   }
 
   /**
@@ -206,7 +209,12 @@ export async function fetchAllUserChannels(
   options?: ParseOptions
 ): Promise<{ total: number; errors: string[] }> {
   const channels = await db.channel.findMany({
-    where: { userId, isActive: true },
+    where: {
+      userId,
+      isActive: true,
+      // telegram_bot каналы push-based — пропускаем в cron
+      sourceType: { not: "telegram_bot" },
+    },
   });
 
   let total = 0;
