@@ -1,7 +1,7 @@
 /**
  * Типы источников контента
  */
-export type SourceType = "telegram" | "rss";
+export type SourceType = "telegram" | "rss" | "telegram_bot" | "telegram_mtproto";
 
 /**
  * Распарсенный пост из любого источника

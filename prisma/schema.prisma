@@ -24,6 +24,7 @@ model User {
   summaries       Summary[]
   authenticators  Authenticator[]
   telegramAccount TelegramAccount?
+  mtprotoSession  MTProtoSession?
 
   @@map("users")
 }
@@ -94,11 +95,13 @@ model Channel {
   id          String   @id @default(cuid())
   userId      String
   name        String
-  sourceType  String   // telegram, rss
+  sourceType  String   // telegram, rss, telegram_bot, telegram_mtproto
   sourceUrl   String   // URL канала или RSS
   description String?
   imageUrl    String?
   telegramId  String?  // ID Telegram канала
+  accessHash  String?  // MTProto access hash (зашифрован)
+  botAccess   Boolean  @default(false) // Бот добавлен как участник канала
   isActive    Boolean  @default(true)
   tags        String[] // Категории (frontend, backend, etc)
   createdAt   DateTime @default(now())
@@ -110,6 +113,22 @@ model Channel {
   @@index([userId, isActive])
   @@index([sourceType])
   @@map("channels")
+}
+
+// MTProto сессии (для доступа к приватным каналам)
+model MTProtoSession {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  sessionData String   @db.Text // Зашифрованная GramJS StringSession
+  phoneNumber String?           // Зашифрованный номер телефона
+  isActive    Boolean  @default(true)
+  lastUsedAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("mtproto_sessions")
 }
 
 // Посты из каналов
