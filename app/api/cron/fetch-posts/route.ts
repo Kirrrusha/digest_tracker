@@ -68,6 +68,13 @@ export async function GET(request: Request) {
     const successCount = results.filter((r) => r.success).length;
     const errorCount = results.filter((r) => !r.success).length;
 
+    // Деактивируем MTProto сессии, неактивные более 30 дней
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const { count: deactivatedSessions } = await db.mTProtoSession.updateMany({
+      where: { isActive: true, lastUsedAt: { lt: thirtyDaysAgo } },
+      data: { isActive: false },
+    });
+
     return NextResponse.json({
       success: true,
       processed: channels.length,
@@ -76,6 +83,7 @@ export async function GET(request: Request) {
       totalAdded,
       totalSkipped,
       results,
+      deactivatedSessions,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
