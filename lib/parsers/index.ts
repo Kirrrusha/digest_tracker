@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 
 import { isValidRSSUrl, parseRSSFeed, rssParser, RSSParser } from "./rss-parser";
 import { telegramBotParser, TelegramBotParser } from "./telegram-bot-parser";
+import { telegramMTProtoParser, TelegramMTProtoParser } from "./telegram-mtproto-parser";
 import {
   extractTelegramUsername,
   isValidTelegramUrl,
@@ -27,6 +28,7 @@ export { ParseError, ParseErrorCode };
 // Re-export parsers
 export { rssParser, RSSParser, parseRSSFeed, isValidRSSUrl };
 export { telegramBotParser, TelegramBotParser };
+export { telegramMTProtoParser, TelegramMTProtoParser };
 export {
   telegramParser,
   TelegramParser,
@@ -45,6 +47,7 @@ class ParserFactory {
     this.register(rssParser);
     this.register(telegramParser);
     this.register(telegramBotParser);
+    this.register(telegramMTProtoParser);
   }
 
   /**
@@ -82,6 +85,9 @@ class ParserFactory {
     }
     if (rssParser.isValidSource(url)) {
       return "rss";
+    }
+    if (telegramMTProtoParser.isValidSource(url)) {
+      return "telegram_mtproto";
     }
     return null;
   }
