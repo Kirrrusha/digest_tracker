@@ -7,12 +7,13 @@ import { ApiSettings } from "@/components/settings/api-settings";
 import { NotificationSettings } from "@/components/settings/notification-settings";
 import { PreferencesSettings } from "@/components/settings/preferences-settings";
 import { ProfileSettings } from "@/components/settings/profile-settings";
+import { TelegramConnect } from "@/components/settings/telegram-connect";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 async function getPreferences(userId: string) {
-  const [preferences, user, telegramAccount] = await Promise.all([
+  const [preferences, user, telegramAccount, mtprotoSession] = await Promise.all([
     db.userPreferences.findUnique({
       where: { userId },
     }),
@@ -24,11 +25,16 @@ async function getPreferences(userId: string) {
       where: { userId },
       select: { id: true },
     }),
+    db.mTProtoSession.findUnique({
+      where: { userId },
+      select: { isActive: true },
+    }),
   ]);
 
   return {
     user,
     hasTelegramAccount: !!telegramAccount,
+    hasActiveMTProtoSession: !!mtprotoSession?.isActive,
     preferences: {
       topics: preferences?.topics || [],
       summaryInterval: preferences?.summaryInterval || "daily",
@@ -63,7 +69,8 @@ function SettingsSkeleton() {
 }
 
 async function SettingsContent({ userId }: { userId: string }) {
-  const { user, preferences, hasTelegramAccount } = await getPreferences(userId);
+  const { user, preferences, hasTelegramAccount, hasActiveMTProtoSession } =
+    await getPreferences(userId);
 
   return (
     <Tabs defaultValue="profile" className="w-full">
@@ -71,6 +78,7 @@ async function SettingsContent({ userId }: { userId: string }) {
         <TabsTrigger value="profile">Профиль</TabsTrigger>
         <TabsTrigger value="preferences">Предпочтения</TabsTrigger>
         <TabsTrigger value="notifications">Уведомления</TabsTrigger>
+        <TabsTrigger value="telegram">Telegram</TabsTrigger>
         <TabsTrigger value="api">API</TabsTrigger>
       </TabsList>
       <TabsContent value="profile">
@@ -81,6 +89,9 @@ async function SettingsContent({ userId }: { userId: string }) {
       </TabsContent>
       <TabsContent value="notifications">
         <NotificationSettings settings={preferences} hasTelegramAccount={hasTelegramAccount} />
+      </TabsContent>
+      <TabsContent value="telegram">
+        <TelegramConnect hasActiveSession={hasActiveMTProtoSession} />
       </TabsContent>
       <TabsContent value="api">
         <ApiSettings />

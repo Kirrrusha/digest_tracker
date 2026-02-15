@@ -2,6 +2,7 @@ import { Suspense } from "react";
 
 import { auth } from "@/lib/auth";
 import { getCachedUserChannels } from "@/lib/cache";
+import { db } from "@/lib/db";
 import { AddChannelDialog } from "@/components/channels/add-channel-dialog";
 import { ChannelCard } from "@/components/channels/channel-card";
 import { ChannelFilters } from "@/components/channels/channel-filters";
@@ -59,10 +60,12 @@ function ChannelsList({
   channels,
   source,
   search,
+  hasActiveSession,
 }: {
   channels: Awaited<ReturnType<typeof getCachedUserChannels>>;
   source?: ChannelFilterType;
   search?: string;
+  hasActiveSession?: boolean;
 }) {
   const filtered = filterChannels(channels, source, search);
 
@@ -77,7 +80,7 @@ function ChannelsList({
             : "Попробуйте изменить фильтры или поисковый запрос"
         }
       >
-        {channels.length === 0 && <AddChannelDialog />}
+        {channels.length === 0 && <AddChannelDialog hasActiveSession={hasActiveSession} />}
       </EmptyState>
     );
   }
@@ -108,7 +111,11 @@ export default async function ChannelsPage({ searchParams }: PageProps) {
   ) as ChannelFilterType;
   const search = params.search;
 
-  const channels = await getCachedUserChannels(userId);
+  const [channels, mtprotoSession] = await Promise.all([
+    getCachedUserChannels(userId),
+    db.mTProtoSession.findUnique({ where: { userId }, select: { isActive: true } }),
+  ]);
+  const hasActiveSession = !!mtprotoSession?.isActive;
 
   return (
     <div className="flex flex-col h-full">
@@ -122,7 +129,7 @@ export default async function ChannelsPage({ searchParams }: PageProps) {
                 {channels.length} {channels.length === 1 ? "канал" : "каналов"}
               </p>
             </div>
-            <AddChannelDialog />
+            <AddChannelDialog hasActiveSession={hasActiveSession} />
           </div>
 
           <Suspense fallback={<Skeleton className="h-10 w-full max-w-xs" />}>
@@ -130,7 +137,12 @@ export default async function ChannelsPage({ searchParams }: PageProps) {
           </Suspense>
         </div>
 
-        <ChannelsList channels={channels} source={source} search={search} />
+        <ChannelsList
+          channels={channels}
+          source={source}
+          search={search}
+          hasActiveSession={hasActiveSession}
+        />
       </div>
     </div>
   );

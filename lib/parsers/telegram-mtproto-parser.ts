@@ -1,5 +1,5 @@
 import bigInt from "big-integer";
-import { type Api, errors } from "telegram";
+import { errors, type Api } from "telegram";
 
 import { db } from "@/lib/db";
 import { createClientFromEncrypted } from "@/lib/mtproto/client";
