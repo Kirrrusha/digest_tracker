@@ -56,21 +56,27 @@ export async function addChannel(url: string): Promise<ActionResult<{ id: string
       },
     });
 
-    // Сразу загружаем последние посты
-    try {
-      await fetchAndSaveChannelPosts(channel.id, { limit: 20 });
-    } catch {
-      // Не блокируем создание канала если не удалось загрузить посты
-      console.error("Failed to fetch initial posts for channel:", channel.id);
-    }
+    const userId = session.user.id;
 
-    // Инвалидируем кэш
+    // Инвалидируем кэш и возвращаем ответ сразу — модалка закроется без долгого ожидания
     await Promise.all([
-      invalidateCache(CACHE_KEYS.userChannels(session.user.id)),
-      invalidateCache(CACHE_KEYS.userStats(session.user.id)),
+      invalidateCache(CACHE_KEYS.userChannels(userId)),
+      invalidateCache(CACHE_KEYS.userStats(userId)),
     ]);
     revalidatePath("/channels");
     revalidatePath("/dashboard");
+
+    // Загрузка постов в фоне (не блокируем ответ)
+    void fetchAndSaveChannelPosts(channel.id, { limit: 20 })
+      .then(async () => {
+        await Promise.all([
+          invalidateCache(CACHE_KEYS.userChannels(userId)),
+          invalidateCache(CACHE_KEYS.userStats(userId)),
+        ]);
+        revalidatePath("/channels");
+        revalidatePath("/dashboard");
+      })
+      .catch((e) => console.error("Failed to fetch initial posts for channel:", channel.id, e));
 
     return {
       success: true,

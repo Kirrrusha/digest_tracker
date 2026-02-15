@@ -1,12 +1,23 @@
 "use client";
 
-import { type LucideIcon } from "lucide-react";
+import { FileText, Inbox, Rss, type LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
+const emptyStateIcons = {
+  rss: Rss,
+  "file-text": FileText,
+  inbox: Inbox,
+} as const;
+
+export type EmptyStateIconName = keyof typeof emptyStateIcons;
+
 interface EmptyStateProps {
-  icon: LucideIcon;
+  /** Icon component (client components only). Do not pass from Server Components. */
+  icon?: LucideIcon;
+  /** Icon by name (use from Server Components instead of passing icon component). */
+  iconName?: EmptyStateIconName;
   title: string;
   description: string;
   action?: {
@@ -22,7 +33,8 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({
-  icon: Icon,
+  icon,
+  iconName,
   title,
   description,
   action,
@@ -30,6 +42,11 @@ export function EmptyState({
   className,
   children,
 }: EmptyStateProps) {
+  const Icon = iconName ? emptyStateIcons[iconName] : icon;
+  if (!Icon) {
+    throw new Error("EmptyState requires either icon or iconName");
+  }
+
   return (
     <div
       className={cn(

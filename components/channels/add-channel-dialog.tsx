@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import Image from "next/image";
 import { AlertCircle, Check, Loader2, Plus } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +33,13 @@ export function AddChannelDialog() {
   const [error, setError] = useState<string | null>(null);
   const [isValidating, startValidation] = useTransition();
   const [isAdding, startAdd] = useTransition();
+  const errorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (error && errorRef.current) {
+      errorRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [error]);
 
   const resetState = () => {
     setUrl("");
@@ -100,8 +108,16 @@ export function AddChannelDialog() {
                 variant="outline"
                 onClick={handleValidate}
                 disabled={!url.trim() || isValidating}
+                className="min-w-28"
               >
-                {isValidating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Проверить"}
+                {isValidating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin shrink-0" />
+                    Проверка...
+                  </>
+                ) : (
+                  "Проверить"
+                )}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
@@ -110,8 +126,12 @@ export function AddChannelDialog() {
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive">
-              <AlertCircle className="h-4 w-4" />
+            <div
+              ref={errorRef}
+              role="alert"
+              className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive"
+            >
+              <AlertCircle className="h-4 w-4 shrink-0" />
               <p className="text-sm">{error}</p>
             </div>
           )}
@@ -124,10 +144,13 @@ export function AddChannelDialog() {
               </div>
               <div className="flex items-start gap-3">
                 {preview.imageUrl && (
-                  <img
+                  <Image
                     src={preview.imageUrl}
                     alt={preview.name}
+                    width={48}
+                    height={48}
                     className="w-12 h-12 rounded-lg object-cover"
+                    unoptimized
                   />
                 )}
                 <div className="flex-1 min-w-0">
@@ -152,10 +175,10 @@ export function AddChannelDialog() {
           <Button variant="outline" onClick={() => setOpen(false)}>
             Отмена
           </Button>
-          <Button onClick={handleAdd} disabled={!preview || isAdding}>
+          <Button onClick={handleAdd} disabled={!preview || isAdding} className="min-w-28">
             {isAdding ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin shrink-0" />
                 Добавление...
               </>
             ) : (

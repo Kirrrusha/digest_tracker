@@ -3,7 +3,12 @@ import Link from "next/link";
 import { Bookmark, ExternalLink } from "lucide-react";
 
 import { auth } from "@/lib/auth";
-import { getCachedRecentPosts, getCachedTodaySummary, getCachedUserStats } from "@/lib/cache";
+import {
+  getCachedRecentPosts,
+  getCachedTodaySummary,
+  getCachedTopTopics,
+  getCachedUserStats,
+} from "@/lib/cache";
 import { Header } from "@/components/dashboard/header";
 import { TodaySummary } from "@/components/dashboard/today-summary";
 import { TopicStatsGrid } from "@/components/dashboard/topic-stats-card";
@@ -81,14 +86,15 @@ async function SummarySection({ userId }: { userId: string }) {
   return <TodaySummary summary={summary} postsCount={stats.todayPostsCount} />;
 }
 
+const TOPIC_COLORS = ["blue", "green", "purple", "orange"] as const;
+
 async function TopicStatsSection({ userId }: { userId: string }) {
-  // TODO: Replace with real topic stats from database
-  const topics = [
-    { name: "React", count: 24, trend: 5, color: "blue" as const },
-    { name: "Node.js", count: 18, trend: 3, color: "green" as const },
-    { name: "TypeScript", count: 31, trend: -2, color: "purple" as const },
-    { name: "DevOps", count: 12, trend: 8, color: "orange" as const },
-  ];
+  const topTopics = await getCachedTopTopics(userId, 8);
+  const topics = topTopics.map(({ topic, count }, i) => ({
+    name: topic,
+    count,
+    color: TOPIC_COLORS[i % TOPIC_COLORS.length],
+  }));
 
   return <TopicStatsGrid topics={topics} />;
 }
@@ -123,7 +129,7 @@ function PostItem({ post }: { post: Post }) {
     <Card className="hover:bg-muted/50 transition-colors">
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-muted-foreground flex-shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-muted-foreground shrink-0">
             {post.channel.name.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
@@ -154,7 +160,7 @@ function PostItem({ post }: { post: Post }) {
               </div>
             </div>
           </div>
-          <Button variant="ghost" size="icon" className="flex-shrink-0">
+          <Button variant="ghost" size="icon" className="shrink-0">
             <Bookmark size={16} />
           </Button>
         </div>

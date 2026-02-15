@@ -1,6 +1,5 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { FileText } from "lucide-react";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -138,7 +137,7 @@ async function SummariesList({
   if (summaries.length === 0) {
     return (
       <EmptyState
-        icon={FileText}
+        iconName="file-text"
         title="Нет саммари"
         description="Саммари появятся после генерации на главной странице или автоматически по расписанию"
       />

@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import { Rss } from "lucide-react";
 
 import { auth } from "@/lib/auth";
 import { getCachedUserChannels } from "@/lib/cache";
@@ -70,7 +69,7 @@ function ChannelsList({
   if (filtered.length === 0) {
     return (
       <EmptyState
-        icon={Rss}
+        iconName="rss"
         title={channels.length === 0 ? "Нет каналов" : "Ничего не найдено"}
         description={
           channels.length === 0

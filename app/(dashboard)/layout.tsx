@@ -15,7 +15,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <SessionProvider session={session}>
       <div className="flex h-screen bg-background">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <main className="flex-1 min-h-0 overflow-y-auto">{children}</main>
       </div>
     </SessionProvider>
   );
