@@ -5,13 +5,13 @@ RUN apk add --no-cache libc6-compat git
 WORKDIR /app
 
 # Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@10.29.3 --activate
 
 # Copy package files
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml .npmrc ./
 
-# Install dependencies
-RUN git init && pnpm install --frozen-lockfile
+# Install dependencies (skip lifecycle scripts like lefthook that don't apply in Docker)
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # Copy prisma schema and generate client
 COPY prisma ./prisma
