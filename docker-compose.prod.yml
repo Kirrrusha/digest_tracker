@@ -4,7 +4,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: apps/web/Dockerfile
     container_name: devdigest_app
     restart: unless-stopped
     expose:

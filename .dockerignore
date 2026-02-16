@@ -1,12 +1,17 @@
 # Dependencies
 node_modules
+apps/*/node_modules
 .pnpm-store
 
 # Build output
-.next
+apps/web/.next
+apps/web/out
 out
 build
 dist
+
+# Mobile app (not needed for web Docker build)
+apps/mobile
 
 # Development
 .git
@@ -24,6 +29,9 @@ dist
 .env
 .env.local
 .env.*.local
+apps/web/.env
+apps/web/.env.local
+apps/web/.env.*.local
 
 # Logs
 *.log
