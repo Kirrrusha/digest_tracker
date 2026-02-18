@@ -48,7 +48,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
           id: true,
           externalId: true,
           title: true,
-          content: true,
+          contentPreview: true,
           url: true,
           author: true,
           publishedAt: true,

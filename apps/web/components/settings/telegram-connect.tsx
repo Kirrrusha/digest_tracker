@@ -63,7 +63,7 @@ export function TelegramConnect({ hasActiveSession }: TelegramConnectProps) {
       });
       const data = await res.json();
       if (!res.ok) {
-        if (data.needsPassword) {
+        if (data.needs2FA) {
           setStep("password");
           return;
         }

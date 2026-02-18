@@ -94,7 +94,7 @@ export function TelegramChannelBrowser({ onAdded }: TelegramChannelBrowserProps)
   }
 
   return (
-    <div className="space-y-3">
+    <div className="flex w-full flex-col gap-3 overflow-hidden">
       {addResult && (
         <div className="flex items-center gap-2 p-3 rounded-lg border bg-muted/50">
           <Check className="h-4 w-4 text-green-500 shrink-0" />
@@ -123,7 +123,7 @@ export function TelegramChannelBrowser({ onAdded }: TelegramChannelBrowserProps)
         </p>
       ) : (
         <>
-          <div className="h-[280px] overflow-y-auto rounded-md border">
+          <div className="flex-1 min-h-0 max-h-[280px] overflow-y-auto rounded-md border">
             <div className="divide-y">
               {filtered.map((ch) => (
                 <div

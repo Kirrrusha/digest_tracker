@@ -134,11 +134,11 @@ export default async function ChannelDetailPage({ params, searchParams }: PagePr
                   <div className="flex justify-between items-start gap-4">
                     <div className="flex-1 min-w-0">
                       {post.title && <h3 className="font-medium mb-1">{post.title}</h3>}
-                      <p className="text-muted-foreground whitespace-pre-wrap">
-                        {post.content.length > 500
-                          ? `${post.content.slice(0, 500)}...`
-                          : post.content}
-                      </p>
+                      {post.contentPreview && (
+                        <p className="text-muted-foreground whitespace-pre-wrap">
+                          {post.contentPreview}
+                        </p>
+                      )}
                       <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
                         {post.author && <span>{post.author}</span>}
                         <span>

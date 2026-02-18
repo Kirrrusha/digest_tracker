@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   LogOut,
   Moon,
+  Newspaper,
   Rss,
   Settings,
   Sun,
@@ -24,6 +25,7 @@ import { Button } from "@/components/ui/button";
 const navItems = [
   { href: "/dashboard", label: "Главная", icon: Home },
   { href: "/dashboard/channels", label: "Каналы", icon: Rss },
+  { href: "/dashboard/posts", label: "Посты", icon: Newspaper },
   { href: "/dashboard/summaries", label: "Саммари", icon: FileText },
   { href: "/dashboard/settings", label: "Настройки", icon: Settings },
 ];
@@ -32,7 +34,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const { data: session } = useSession();
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
 
   const user = session?.user;
   const userInitials = user?.name
@@ -108,16 +110,28 @@ export function Sidebar() {
       <div className="p-3 border-t border-neutral-800 space-y-3">
         {/* Theme toggle */}
         <button
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
           className={cn(
             "flex items-center gap-3 w-full px-3 py-2 rounded-lg text-neutral-400 hover:bg-neutral-800 hover:text-neutral-100 transition-colors",
             collapsed && "justify-center"
           )}
           title={collapsed ? "Переключить тему" : undefined}
         >
-          {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+          <span className="relative flex size-5 shrink-0">
+            <Sun
+              size={20}
+              className="rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0"
+            />
+            <Moon
+              size={20}
+              className="absolute rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100"
+            />
+          </span>
           {!collapsed && (
-            <span className="text-sm">{theme === "dark" ? "Светлая тема" : "Тёмная тема"}</span>
+            <span className="text-sm">
+              <span className="dark:hidden">Тёмная тема</span>
+              <span className="hidden dark:inline">Светлая тема</span>
+            </span>
           )}
         </button>
 

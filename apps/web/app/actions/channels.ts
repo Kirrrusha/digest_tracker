@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { CACHE_KEYS, invalidateCache } from "@/lib/cache";
 import { db } from "@/lib/db";
+import { markChannelAsRead } from "@/lib/mtproto/service";
 import { fetchAndSaveChannelPosts, ParseError, validateAndGetSourceInfo } from "@/lib/parsers";
 
 /**
@@ -357,7 +358,7 @@ export async function getChannelWithPosts(
       id: string;
       externalId: string;
       title: string | null;
-      content: string;
+      contentPreview: string | null;
       url: string | null;
       author: string | null;
       publishedAt: Date;
@@ -401,7 +402,7 @@ export async function getChannelWithPosts(
           id: true,
           externalId: true,
           title: true,
-          content: true,
+          contentPreview: true,
           url: true,
           author: true,
           publishedAt: true,
@@ -555,5 +556,53 @@ export async function updateChannel(
   } catch (error) {
     console.error("Error updating channel:", error);
     return { success: false, error: "Не удалось обновить канал" };
+  }
+}
+
+/**
+ * Пометить все сообщения канала как прочитанные в Telegram
+ */
+export async function markChannelReadAction(channelId: string): Promise<ActionResult> {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Необходима авторизация" };
+    }
+
+    const channel = await db.channel.findFirst({
+      where: { id: channelId, userId: session.user.id },
+    });
+
+    if (!channel) {
+      return { success: false, error: "Канал не найден" };
+    }
+
+    if (channel.sourceType !== "telegram_mtproto") {
+      return { success: false, error: "Функция доступна только для MTProto каналов" };
+    }
+
+    // Находим последний пост канала
+    const lastPost = await db.post.findFirst({
+      where: { channelId },
+      orderBy: { publishedAt: "desc" },
+      select: { externalId: true },
+    });
+
+    if (!lastPost) {
+      return { success: false, error: "Нет постов для пометки" };
+    }
+
+    const mtprotoMatch = channel.sourceUrl.match(/^mtproto:\/\/([^/]+)\/([^/]+)$/);
+    if (!mtprotoMatch) {
+      return { success: false, error: "Неверный формат URL канала" };
+    }
+
+    const [, mtprotoUserId, mtprotoChannelId] = mtprotoMatch;
+    await markChannelAsRead(mtprotoUserId, mtprotoChannelId, parseInt(lastPost.externalId, 10));
+
+    return { success: true, data: undefined };
+  } catch (error) {
+    console.error("Error marking channel as read:", error);
+    return { success: false, error: "Не удалось пометить как прочитанное" };
   }
 }

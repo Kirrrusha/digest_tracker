@@ -8,26 +8,24 @@ import { ChannelCard } from "@/components/channels/channel-card";
 import { ChannelFilters } from "@/components/channels/channel-filters";
 import { Header } from "@/components/dashboard/header";
 import { EmptyState } from "@/components/empty/empty-state";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type ChannelFilterType = "all" | "telegram" | "rss";
 
 function ChannelSkeleton() {
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-start gap-3">
-          <Skeleton className="h-10 w-10 rounded-lg" />
-          <div className="space-y-2">
-            <Skeleton className="h-5 w-32" />
-            <Skeleton className="h-4 w-48" />
-          </div>
+    <Card className="gap-3">
+      <div className="px-6 flex items-start gap-3">
+        <Skeleton className="h-10 w-10 rounded-lg shrink-0" />
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-4 w-48" />
         </div>
-      </CardHeader>
-      <CardContent>
+      </div>
+      <div className="px-6">
         <Skeleton className="h-4 w-40" />
-      </CardContent>
+      </div>
     </Card>
   );
 }
@@ -40,7 +38,11 @@ function filterChannels(
   let filtered = channels;
 
   if (source && source !== "all") {
-    filtered = filtered.filter((c) => c.sourceType === source);
+    filtered = filtered.filter((c) =>
+      source === "telegram"
+        ? c.sourceType === "telegram" || c.sourceType === "telegram_mtproto"
+        : c.sourceType === source
+    );
   }
 
   if (search?.trim()) {

@@ -20,17 +20,18 @@ interface TodaySummaryProps {
     createdAt: Date;
   } | null;
   postsCount: number;
+  yesterdayPostsCount?: number;
 }
 
-export function TodaySummary({ summary, postsCount }: TodaySummaryProps) {
+export function TodaySummary({ summary, postsCount, yesterdayPostsCount = 0 }: TodaySummaryProps) {
   const [isPending, startTransition] = useTransition();
   const [localSummary, setLocalSummary] = useState(summary);
   const [error, setError] = useState<string | null>(null);
 
-  const handleGenerate = () => {
+  const handleGenerate = (date?: Date) => {
     setError(null);
     startTransition(async () => {
-      const result = await generateDailySummaryAction();
+      const result = await generateDailySummaryAction(date);
       if (result.success && result.data) {
         setLocalSummary({
           id: result.data.id,
@@ -79,7 +80,7 @@ export function TodaySummary({ summary, postsCount }: TodaySummaryProps) {
               <>
                 <p className="text-muted-foreground mb-4">{postsCount} постов готовы к анализу</p>
                 {error && <p className="text-destructive text-sm mb-4">{error}</p>}
-                <Button onClick={handleGenerate} disabled={isPending}>
+                <Button onClick={() => handleGenerate()} disabled={isPending}>
                   {isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -89,6 +90,34 @@ export function TodaySummary({ summary, postsCount }: TodaySummaryProps) {
                     <>
                       <Sparkles className="mr-2 h-4 w-4" />
                       Сгенерировать саммари
+                    </>
+                  )}
+                </Button>
+              </>
+            ) : yesterdayPostsCount > 0 ? (
+              <>
+                <p className="text-muted-foreground mb-2">Нет постов за сегодня.</p>
+                <p className="text-muted-foreground mb-4">
+                  {yesterdayPostsCount} постов за вчера готовы к анализу
+                </p>
+                {error && <p className="text-destructive text-sm mb-4">{error}</p>}
+                <Button
+                  onClick={() => {
+                    const yesterday = new Date();
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    handleGenerate(yesterday);
+                  }}
+                  disabled={isPending}
+                >
+                  {isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Генерация...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Сгенерировать за вчера
                     </>
                   )}
                 </Button>

@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 interface Post {
   id: string;
   title: string | null;
-  content: string;
+  contentPreview: string | null;
   url: string | null;
   publishedAt: Date;
   channel: {
@@ -75,7 +75,7 @@ export function RecentPosts({ posts }: RecentPostsProps) {
                   </span>
                 </div>
                 {post.title && <h4 className="font-medium mb-1 line-clamp-1">{post.title}</h4>}
-                <p className="text-sm text-muted-foreground line-clamp-2">{post.content}</p>
+                <p className="text-sm text-muted-foreground line-clamp-2">{post.contentPreview}</p>
               </div>
               {post.url && (
                 <a

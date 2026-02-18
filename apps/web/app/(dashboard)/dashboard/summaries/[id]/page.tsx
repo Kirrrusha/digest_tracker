@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
-import { ArrowLeft, Calendar, Tag } from "lucide-react";
+import { ArrowLeft, Calendar, ExternalLink, Tag } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -93,7 +94,7 @@ export default async function SummaryDetailPage({ params }: PageProps) {
             <Separator className="my-6" />
 
             <div className="prose prose-sm dark:prose-invert max-w-none">
-              <div className="whitespace-pre-wrap">{summary.content}</div>
+              <ReactMarkdown>{summary.content}</ReactMarkdown>
             </div>
           </CardContent>
         </Card>
@@ -105,31 +106,50 @@ export default async function SummaryDetailPage({ params }: PageProps) {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {summary.posts.map((post) => (
-                  <div key={post.id} className="p-3 rounded-lg border bg-muted/30">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Badge variant="outline" className="text-xs">
-                        {post.channel.sourceType === "telegram" ? "TG" : "RSS"}
-                      </Badge>
-                      <span className="text-sm font-medium">{post.channel.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {format(post.publishedAt, "d MMM, HH:mm", { locale: ru })}
-                      </span>
+                {summary.posts.map((post) => {
+                  const displayTitle =
+                    post.title || post.contentPreview?.split("\n")[0]?.slice(0, 120);
+                  const preview =
+                    !post.title && post.contentPreview
+                      ? post.contentPreview.split("\n").slice(1).join(" ").trim().slice(0, 200)
+                      : post.contentPreview?.slice(0, 200);
+
+                  return (
+                    <div key={post.id} className="p-3 rounded-lg border bg-muted/30">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant="outline" className="text-xs">
+                          {post.channel.sourceType === "telegram" ||
+                          post.channel.sourceType === "telegram_mtproto"
+                            ? "TG"
+                            : "RSS"}
+                        </Badge>
+                        <span className="text-sm font-medium">{post.channel.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {format(post.publishedAt, "d MMM, HH:mm", { locale: ru })}
+                        </span>
+                      </div>
+                      {displayTitle && (
+                        <p className="text-sm font-medium line-clamp-2">{displayTitle}</p>
+                      )}
+                      {preview && (
+                        <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{preview}</p>
+                      )}
+                      <div className="flex items-center gap-3 mt-2">
+                        {post.url && (
+                          <a
+                            href={post.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            Открыть в Telegram
+                          </a>
+                        )}
+                      </div>
                     </div>
-                    {post.title && <p className="text-sm font-medium">{post.title}</p>}
-                    <p className="text-sm text-muted-foreground line-clamp-2">{post.content}</p>
-                    {post.url && (
-                      <a
-                        href={post.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-primary hover:underline"
-                      >
-                        Открыть оригинал
-                      </a>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>

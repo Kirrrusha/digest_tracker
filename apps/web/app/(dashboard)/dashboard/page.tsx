@@ -83,7 +83,13 @@ async function SummarySection({ userId }: { userId: string }) {
     getCachedUserStats(userId),
   ]);
 
-  return <TodaySummary summary={summary} postsCount={stats.todayPostsCount} />;
+  return (
+    <TodaySummary
+      summary={summary}
+      postsCount={stats.todayPostsCount}
+      yesterdayPostsCount={stats.yesterdayPostsCount}
+    />
+  );
 }
 
 const TOPIC_COLORS = ["blue", "green", "purple", "orange"] as const;
@@ -102,6 +108,7 @@ async function TopicStatsSection({ userId }: { userId: string }) {
 interface Post {
   id: string;
   title: string | null;
+  contentPreview: string | null;
   url: string | null;
   publishedAt: Date;
   channel: {
@@ -125,6 +132,13 @@ function PostItem({ post }: { post: Post }) {
 
   const timeAgo = getTimeAgo(post.publishedAt);
 
+  const displayTitle =
+    post.title || post.contentPreview?.split("\n")[0]?.slice(0, 120) || "Без заголовка";
+  const preview =
+    !post.title && post.contentPreview
+      ? post.contentPreview.split("\n").slice(1).join(" ").trim().slice(0, 200)
+      : null;
+
   return (
     <Card className="hover:bg-muted/50 transition-colors">
       <CardContent className="p-4">
@@ -141,12 +155,13 @@ function PostItem({ post }: { post: Post }) {
                 rel="noopener noreferrer"
                 className="font-medium text-sm hover:underline line-clamp-2"
               >
-                {post.title ?? "Без заголовка"}
+                {displayTitle}
               </a>
             ) : (
-              <span className="font-medium text-sm line-clamp-2">
-                {post.title ?? "Без заголовка"}
-              </span>
+              <span className="font-medium text-sm line-clamp-2">{displayTitle}</span>
+            )}
+            {preview && (
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{preview}</p>
             )}
             <div className="flex items-center gap-2 mt-2">
               <span className="text-xs text-muted-foreground">{timeAgo}</span>

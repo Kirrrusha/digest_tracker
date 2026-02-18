@@ -95,7 +95,7 @@ export function AddChannelDialog({ hasActiveSession = false }: AddChannelDialogP
           Добавить канал
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[520px]">
+      <DialogContent className="sm:max-w-[520px] max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Добавить канал</DialogTitle>
           <DialogDescription>
@@ -103,7 +103,7 @@ export function AddChannelDialog({ hasActiveSession = false }: AddChannelDialogP
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="url" className="w-full">
+        <Tabs defaultValue="url" className="w-full flex-1 overflow-hidden flex flex-col">
           <TabsList className="w-full">
             <TabsTrigger value="url" className="flex-1">
               По URL
@@ -209,7 +209,10 @@ export function AddChannelDialog({ hasActiveSession = false }: AddChannelDialogP
             </DialogFooter>
           </TabsContent>
 
-          <TabsContent value="telegram" className="mt-4">
+          <TabsContent
+            value="telegram"
+            className="mt-4 w-full flex-1 overflow-hidden flex flex-col"
+          >
             {hasActiveSession ? (
               <TelegramChannelBrowser onAdded={() => setOpen(false)} />
             ) : (
