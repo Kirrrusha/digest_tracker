@@ -137,7 +137,7 @@ model Post {
   channelId   String
   externalId  String    // ID поста в источнике
   title       String?
-  content     String    @db.Text
+  contentPreview String? @db.VarChar(500)
   url         String?
   author      String?
   publishedAt DateTime
