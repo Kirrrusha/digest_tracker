@@ -16,9 +16,19 @@
     "web:db:generate": "pnpm --filter @devdigest/web db:generate",
     "mobile:start": "pnpm --filter @devdigest/mobile start",
     "mobile:android": "pnpm --filter @devdigest/mobile android",
+    "api:dev": "pnpm --filter @devdigest/api dev",
+    "api:build": "pnpm --filter @devdigest/api build",
+    "api:start": "pnpm --filter @devdigest/api start",
+    "api:test": "pnpm --filter @devdigest/api test",
+    "frontend:dev": "pnpm --filter @devdigest/frontend dev",
+    "frontend:build": "pnpm --filter @devdigest/frontend build",
+    "frontend:preview": "pnpm --filter @devdigest/frontend preview",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,md,mdx,json,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,md,mdx,json,css}\"",
     "prepare": "lefthook install"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["@nestjs/core", "@scarf/scarf", "esbuild", "sharp", "unrs-resolver"]
   },
   "devDependencies": {
     "lefthook": "^1.9.3",

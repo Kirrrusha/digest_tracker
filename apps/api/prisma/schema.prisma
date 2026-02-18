@@ -1,0 +1,170 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Пользователи
+model User {
+  id              String           @id @default(cuid())
+  email           String?          @unique // Опционально для Telegram пользователей
+  name            String?
+  passwordHash    String?          // Опционально для passkey-only и Telegram пользователей
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  channels        Channel[]
+  preferences     UserPreferences?
+  summaries       Summary[]
+  authenticators  Authenticator[]
+  telegramAccount TelegramAccount?
+  mtprotoSession  MTProtoSession?
+
+  @@map("users")
+}
+
+// Telegram аккаунты
+model TelegramAccount {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  telegramId   String   @unique // Telegram User ID
+  username     String?
+  firstName    String?
+  lastName     String?
+  photoUrl     String?
+  languageCode String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([telegramId])
+  @@map("telegram_accounts")
+}
+
+// WebAuthn Authenticators (Passkeys)
+model Authenticator {
+  id                   String   @id @default(cuid())
+  credentialID         String   @unique
+  credentialPublicKey  String   @db.Text
+  counter              BigInt
+  credentialDeviceType String
+  credentialBackedUp   Boolean
+  transports           String?  // comma-separated list
+  userId               String
+  name                 String?  // User-friendly name for the passkey
+  createdAt            DateTime @default(now())
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("authenticators")
+}
+
+// Настройки пользователя
+model UserPreferences {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  topics          String[] // Избранные темы (React, TS, etc)
+  summaryInterval String   @default("daily") // daily, weekly
+  language        String   @default("ru")
+
+  // Общие настройки уведомлений
+  notificationsEnabled Boolean  @default(false)
+  notificationTime     String?  // Время уведомления (HH:mm)
+
+  // Telegram настройки уведомлений
+  telegramNotifications Boolean @default(true)
+  notifyOnNewSummary    Boolean @default(true)
+  notifyOnNewPosts      Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([summaryInterval])
+  @@map("user_preferences")
+}
+
+// Каналы/источники
+model Channel {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  sourceType  String   // telegram, rss, telegram_bot, telegram_mtproto
+  sourceUrl   String   // URL канала или RSS
+  description String?
+  imageUrl    String?
+  telegramId  String?  // ID Telegram канала
+  accessHash  String?  // MTProto access hash (зашифрован)
+  botAccess   Boolean  @default(false) // Бот добавлен как участник канала
+  isActive    Boolean  @default(true)
+  tags        String[] // Категории (frontend, backend, etc)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  posts       Post[]
+
+  @@unique([userId, sourceUrl])
+  @@index([userId, isActive])
+  @@index([sourceType])
+  @@map("channels")
+}
+
+// MTProto сессии (для доступа к приватным каналам)
+model MTProtoSession {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  sessionData String   @db.Text // Зашифрованная GramJS StringSession
+  phoneNumber String?           // Зашифрованный номер телефона
+  isActive    Boolean  @default(true)
+  lastUsedAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("mtproto_sessions")
+}
+
+// Посты из каналов
+model Post {
+  id          String    @id @default(cuid())
+  channelId   String
+  externalId  String    // ID поста в источнике
+  title       String?
+  contentPreview String? @db.VarChar(500)
+  url         String?
+  author      String?
+  publishedAt DateTime
+  createdAt   DateTime  @default(now())
+  channel     Channel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  summaries   Summary[]
+
+  @@unique([channelId, externalId])
+  @@index([channelId])
+  @@index([publishedAt])
+  @@index([channelId, publishedAt])
+  @@map("posts")
+}
+
+// Саммари
+model Summary {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  content   String   @db.Text
+  topics    String[] // Выделенные темы
+  period    String   // daily-2024-01-25
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  posts     Post[]
+
+  @@index([userId, period])
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@map("summaries")
+}
