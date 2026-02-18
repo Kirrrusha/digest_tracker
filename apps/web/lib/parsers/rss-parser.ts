@@ -189,6 +189,19 @@ export class RSSParser implements ContentParser {
     return `rss-${Math.abs(hash).toString(36)}`;
   }
 
+  async fetchSinglePost(sourceUrl: string, externalId: string): Promise<ParsedPost | null> {
+    try {
+      const feed = await parser.parseURL(sourceUrl);
+      const item = (feed.items || []).find(
+        (i) => (i.guid || i.link || this.generateId(i)) === externalId
+      );
+      if (!item) return null;
+      return this.parseItem(item);
+    } catch {
+      return null;
+    }
+  }
+
   /**
    * Обработка ошибок парсинга
    */

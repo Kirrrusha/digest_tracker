@@ -86,6 +86,10 @@ export class TelegramMTProtoParser implements ContentParser {
 
       const messages = await client.getMessages(entity, getMessagesParams);
 
+      // Определяем username канала для генерации ссылок
+      const channelEntity = entity as Api.Channel;
+      const channelUsername = channelEntity.username ?? null;
+
       const posts: ParsedPost[] = [];
       for (const message of messages) {
         if (!message.message && !message.media) continue;
@@ -96,11 +100,16 @@ export class TelegramMTProtoParser implements ContentParser {
         const postDate = new Date(message.date * 1000);
         if (options?.since && postDate <= options.since) continue;
 
+        // Генерируем ссылку на пост в Telegram
+        const postUrl = channelUsername
+          ? `https://t.me/${channelUsername}/${message.id}`
+          : `https://t.me/c/${channelId}/${message.id}`;
+
         posts.push({
           externalId: message.id.toString(),
           title: null,
           content,
-          url: null,
+          url: postUrl,
           author: (message as Api.Message).postAuthor ?? null,
           publishedAt: postDate,
         });
@@ -140,6 +149,53 @@ export class TelegramMTProtoParser implements ContentParser {
         await client.disconnect();
       } catch {
         // ignore disconnect errors
+      }
+    }
+  }
+
+  async fetchSinglePost(sourceUrl: string, externalId: string): Promise<ParsedPost | null> {
+    const parsed = parseMTProtoUrl(sourceUrl);
+    if (!parsed) return null;
+
+    const { userId, channelId } = parsed;
+
+    const session = await db.mTProtoSession.findUnique({ where: { userId } });
+    if (!session || !session.isActive) return null;
+
+    const client = createClientFromEncrypted(session.sessionData);
+
+    try {
+      await client.connect();
+      const entity = await client.getEntity(bigInt(channelId));
+      const messages = await client.getMessages(entity, {
+        ids: [parseInt(externalId, 10)],
+      });
+
+      const message = messages[0];
+      if (!message?.message) return null;
+
+      const channelEntity = entity as Api.Channel;
+      const channelUsername = channelEntity.username ?? null;
+      const postUrl = channelUsername
+        ? `https://t.me/${channelUsername}/${message.id}`
+        : `https://t.me/c/${channelId}/${message.id}`;
+
+      return {
+        externalId: message.id.toString(),
+        title: null,
+        content: message.message,
+        url: postUrl,
+        author: (message as Api.Message).postAuthor ?? null,
+        publishedAt: new Date(message.date * 1000),
+      };
+    } catch (error) {
+      console.error("MTProto fetchSinglePost error:", error);
+      return null;
+    } finally {
+      try {
+        await client.disconnect();
+      } catch {
+        // ignore
       }
     }
   }

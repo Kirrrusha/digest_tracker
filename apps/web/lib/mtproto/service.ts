@@ -1,3 +1,4 @@
+import bigInt from "big-integer";
 import { Api, errors } from "telegram";
 import { type StringSession } from "telegram/sessions";
 
@@ -52,6 +53,8 @@ export async function sendAuthCode(
     throw new Error("Не удалось отправить код. Проверьте номер телефона и попробуйте снова.");
   } finally {
     try {
+      // Даём GramJS завершить обмен данными перед закрытием соединения
+      await new Promise((r) => setTimeout(r, 1000));
       await client.disconnect();
     } catch {
       // ignore disconnect errors
@@ -220,6 +223,44 @@ export async function listUserChannels(userId: string): Promise<MTProtoChannelIn
     }
     console.error("MTProto listUserChannels error:", error);
     throw new Error("Не удалось получить список каналов.");
+  } finally {
+    try {
+      await client.disconnect();
+    } catch {
+      // ignore disconnect errors
+    }
+  }
+}
+
+/**
+ * Помечает сообщения в канале как прочитанные до указанного ID
+ */
+export async function markChannelAsRead(
+  userId: string,
+  channelId: string,
+  maxMessageId: number
+): Promise<void> {
+  const session = await db.mTProtoSession.findUnique({ where: { userId } });
+
+  if (!session || !session.isActive) {
+    return; // Нет активной сессии — пропускаем
+  }
+
+  const client = createClientFromEncrypted(session.sessionData);
+  try {
+    await client.connect();
+
+    const entity = await client.getEntity(bigInt(channelId));
+
+    await client.invoke(
+      new Api.channels.ReadHistory({
+        channel: entity,
+        maxId: maxMessageId,
+      })
+    );
+  } catch (error) {
+    // Best-effort: логируем, но не ломаем основной флоу
+    console.error("MTProto markChannelAsRead error:", error);
   } finally {
     try {
       await client.disconnect();

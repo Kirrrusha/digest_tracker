@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { getCache, setCache } from "@/lib/cache/redis";
 import { sendAuthCode } from "@/lib/mtproto/service";
 
-const RATE_LIMIT_MAX = 3;
+const RATE_LIMIT_MAX = 2;
 const RATE_LIMIT_WINDOW_SEC = 3600; // 1 час
 
 async function checkRateLimit(userId: string): Promise<boolean> {

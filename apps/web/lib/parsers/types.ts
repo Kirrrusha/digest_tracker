@@ -84,6 +84,11 @@ export interface ContentParser {
    * Парсинг одного поста по URL
    */
   fetchPost?(postUrl: string): Promise<ParsedPost | null>;
+
+  /**
+   * Загрузка одного поста по sourceUrl и externalId
+   */
+  fetchSinglePost?(sourceUrl: string, externalId: string): Promise<ParsedPost | null>;
 }
 
 /**

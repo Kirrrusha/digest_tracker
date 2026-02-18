@@ -1,5 +1,6 @@
 import { type Bot, type Context } from "grammy";
 
+import { savePostContent } from "@/lib/cache/post-content";
 import { db } from "@/lib/db";
 
 /**
@@ -47,7 +48,7 @@ async function handleChannelPost(ctx: Context): Promise<void> {
 
     // Сохраняем пост для каждой Channel записи
     for (const channel of channels) {
-      await db.post.upsert({
+      const savedPost = await db.post.upsert({
         where: {
           channelId_externalId: {
             channelId: channel.id,
@@ -58,16 +59,18 @@ async function handleChannelPost(ctx: Context): Promise<void> {
           channelId: channel.id,
           externalId,
           title: null,
-          content,
+          contentPreview: content.slice(0, 500),
           url: postUrl,
           author,
           publishedAt,
         },
         update: {
-          content,
+          contentPreview: content.slice(0, 500),
           author,
         },
       });
+      // Полный контент — в Redis
+      await savePostContent(savedPost.id, content);
     }
   } catch (error) {
     console.error("Error handling channel post:", error);
