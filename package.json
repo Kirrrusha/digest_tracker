@@ -28,7 +28,13 @@
     "prepare": "lefthook install"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["@nestjs/core", "@scarf/scarf", "esbuild", "sharp", "unrs-resolver"]
+    "onlyBuiltDependencies": [
+      "@nestjs/core",
+      "@scarf/scarf",
+      "esbuild",
+      "sharp",
+      "unrs-resolver"
+    ]
   },
   "devDependencies": {
     "lefthook": "^1.9.3",
