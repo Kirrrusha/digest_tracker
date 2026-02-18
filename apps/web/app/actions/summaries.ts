@@ -19,7 +19,7 @@ interface ActionResult<T> {
 /**
  * Генерация дневного саммари (без userId - для Server Action)
  */
-export async function generateDailySummaryAction(): Promise<
+export async function generateDailySummaryAction(date?: Date): Promise<
   ActionResult<{
     id: string;
     title: string;
@@ -36,12 +36,20 @@ export async function generateDailySummaryAction(): Promise<
 
     const userId = session.user.id;
 
+    // Определяем целевую дату
+    const targetDate = date ? new Date(date) : new Date();
+    const startOfTarget = new Date(targetDate);
+    startOfTarget.setHours(0, 0, 0, 0);
+    const endOfTarget = new Date(targetDate);
+    endOfTarget.setHours(23, 59, 59, 999);
+
     // Проверяем наличие постов
     const postsCount = await db.post.count({
       where: {
         channel: { userId },
         publishedAt: {
-          gte: new Date(new Date().setHours(0, 0, 0, 0)),
+          gte: startOfTarget,
+          lte: endOfTarget,
         },
       },
     });
@@ -49,11 +57,11 @@ export async function generateDailySummaryAction(): Promise<
     if (postsCount === 0) {
       return {
         success: false,
-        error: "Нет постов за сегодня для генерации саммари",
+        error: "Нет постов за выбранный день для генерации саммари",
       };
     }
 
-    const summary = await generateDailySummary(userId);
+    const summary = await generateDailySummary(userId, { date: targetDate });
 
     // Инвалидируем кэш
     await Promise.all([
@@ -176,7 +184,7 @@ export async function getSummary(summaryId: string) {
           select: {
             id: true,
             title: true,
-            content: true,
+            contentPreview: true,
             url: true,
             publishedAt: true,
             channel: {

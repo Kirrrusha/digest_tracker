@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 
+import { getPostContent } from "@/lib/cache/post-content";
 import { db } from "@/lib/db";
 
 import { buildSummaryPrompt, SUMMARY_SYSTEM_PROMPT } from "./prompts";
@@ -159,7 +160,7 @@ function extractHighlights(content: string): string[] {
  */
 export async function generateDailySummary(
   userId: string,
-  options: GenerateOptions = {}
+  options: GenerateOptions & { date?: Date } = {}
 ): Promise<{
   id: string;
   title: string;
@@ -168,10 +169,13 @@ export async function generateDailySummary(
   period: string;
   createdAt: Date;
 }> {
-  const today = new Date();
-  const startOfDay = new Date(today.setHours(0, 0, 0, 0));
-  const endOfDay = new Date(today.setHours(23, 59, 59, 999));
-  const period = `daily-${today.toISOString().split("T")[0]}`;
+  const { date, ...genOptions } = options;
+  const targetDate = date ? new Date(date) : new Date();
+  const startOfDay = new Date(targetDate);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(targetDate);
+  endOfDay.setHours(23, 59, 59, 999);
+  const period = `daily-${targetDate.toISOString().split("T")[0]}`;
 
   // Проверяем, есть ли уже саммари за сегодня
   const existingSummary = await db.summary.findFirst({
@@ -204,15 +208,20 @@ export async function generateDailySummary(
     throw new Error("No posts found for today");
   }
 
-  // Преобразуем в формат для суммаризации
-  const postsForSummary: PostForSummary[] = posts.map((post) => ({
-    id: post.id,
-    title: post.title,
-    content: post.content,
-    url: post.url,
-    channelName: post.channel.name,
-    publishedAt: post.publishedAt,
-  }));
+  // Загружаем полный контент из Redis
+  const postsForSummary: PostForSummary[] = await Promise.all(
+    posts.map(async (post) => {
+      const fullContent = await getPostContent(post.id);
+      return {
+        id: post.id,
+        title: post.title,
+        content: fullContent || post.contentPreview || "",
+        url: post.url,
+        channelName: post.channel.name,
+        publishedAt: post.publishedAt,
+      };
+    })
+  );
 
   // Получаем настройки пользователя для языка
   const preferences = await db.userPreferences.findUnique({
@@ -221,7 +230,7 @@ export async function generateDailySummary(
 
   // Генерируем саммари
   const summaryResult = await generateSummaryFromPosts(postsForSummary, {
-    ...options,
+    ...genOptions,
     language: preferences?.language || "ru",
   });
 
@@ -300,14 +309,19 @@ export async function generateWeeklySummary(
     throw new Error("No posts found for this week");
   }
 
-  const postsForSummary: PostForSummary[] = posts.map((post) => ({
-    id: post.id,
-    title: post.title,
-    content: post.content,
-    url: post.url,
-    channelName: post.channel.name,
-    publishedAt: post.publishedAt,
-  }));
+  const postsForSummary: PostForSummary[] = await Promise.all(
+    posts.map(async (post) => {
+      const fullContent = await getPostContent(post.id);
+      return {
+        id: post.id,
+        title: post.title,
+        content: fullContent || post.contentPreview || "",
+        url: post.url,
+        channelName: post.channel.name,
+        publishedAt: post.publishedAt,
+      };
+    })
+  );
 
   const preferences = await db.userPreferences.findUnique({
     where: { userId },
