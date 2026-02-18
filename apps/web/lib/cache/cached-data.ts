@@ -13,22 +13,33 @@ export async function getCachedUserStats(userId: string) {
     CACHE_KEYS.userStats(userId),
     async () => {
       const today = new Date();
-      const [channelsCount, postsCount, summariesCount, todayPostsCount] = await Promise.all([
-        db.channel.count({ where: { userId, isActive: true } }),
-        db.post.count({ where: { channel: { userId } } }),
-        db.summary.count({ where: { userId } }),
-        db.post.count({
-          where: {
-            channel: { userId },
-            publishedAt: {
-              gte: startOfDay(today),
-              lte: endOfDay(today),
+      const yesterday = subDays(today, 1);
+      const [channelsCount, postsCount, summariesCount, todayPostsCount, yesterdayPostsCount] =
+        await Promise.all([
+          db.channel.count({ where: { userId, isActive: true } }),
+          db.post.count({ where: { channel: { userId } } }),
+          db.summary.count({ where: { userId } }),
+          db.post.count({
+            where: {
+              channel: { userId },
+              publishedAt: {
+                gte: startOfDay(today),
+                lte: endOfDay(today),
+              },
             },
-          },
-        }),
-      ]);
+          }),
+          db.post.count({
+            where: {
+              channel: { userId },
+              publishedAt: {
+                gte: startOfDay(yesterday),
+                lte: endOfDay(yesterday),
+              },
+            },
+          }),
+        ]);
 
-      return { channelsCount, postsCount, summariesCount, todayPostsCount };
+      return { channelsCount, postsCount, summariesCount, todayPostsCount, yesterdayPostsCount };
     },
     CACHE_TTL.MEDIUM
   );
@@ -108,7 +119,7 @@ export const getCachedRecentPosts = unstable_cache(
       select: {
         id: true,
         title: true,
-        content: true,
+        contentPreview: true,
         url: true,
         publishedAt: true,
         channel: {
@@ -163,7 +174,7 @@ export async function getFilteredPosts(
     select: {
       id: true,
       title: true,
-      content: true,
+      contentPreview: true,
       url: true,
       publishedAt: true,
       channel: {

@@ -1,4 +1,6 @@
+import { savePostContent } from "@/lib/cache/post-content";
 import { db } from "@/lib/db";
+import { markChannelAsRead } from "@/lib/mtproto/service";
 
 import { isValidRSSUrl, parseRSSFeed, rssParser, RSSParser } from "./rss-parser";
 import { telegramBotParser, TelegramBotParser } from "./telegram-bot-parser";
@@ -165,10 +167,10 @@ export async function fetchAndSaveChannelPosts(
   let added = 0;
   let skipped = 0;
 
-  // Сохраняем посты в БД
+  // Сохраняем посты в БД (превью) и Redis (полный контент)
   for (const post of result.posts) {
     try {
-      await db.post.upsert({
+      const savedPost = await db.post.upsert({
         where: {
           channelId_externalId: {
             channelId,
@@ -179,18 +181,20 @@ export async function fetchAndSaveChannelPosts(
           channelId,
           externalId: post.externalId,
           title: post.title,
-          content: post.content,
+          contentPreview: post.content.slice(0, 500),
           url: post.url,
           author: post.author,
           publishedAt: post.publishedAt,
         },
         update: {
           title: post.title,
-          content: post.content,
+          contentPreview: post.content.slice(0, 500),
           url: post.url,
           author: post.author,
         },
       });
+      // Полный контент — в Redis
+      await savePostContent(savedPost.id, post.content);
       added++;
     } catch {
       // Пропускаем дубликаты
@@ -203,6 +207,20 @@ export async function fetchAndSaveChannelPosts(
     where: { id: channelId },
     data: { updatedAt: new Date() },
   });
+
+  // Помечаем сообщения как прочитанные в Telegram
+  if (channel.sourceType === "telegram_mtproto" && result.posts.length > 0) {
+    try {
+      const mtprotoMatch = channel.sourceUrl.match(/^mtproto:\/\/([^/]+)\/([^/]+)$/);
+      if (mtprotoMatch) {
+        const [, mtprotoUserId, mtprotoChannelId] = mtprotoMatch;
+        const maxMessageId = Math.max(...result.posts.map((p) => parseInt(p.externalId, 10)));
+        await markChannelAsRead(mtprotoUserId, mtprotoChannelId, maxMessageId);
+      }
+    } catch (error) {
+      console.error("Failed to mark channel as read:", error);
+    }
+  }
 
   return { added, skipped };
 }

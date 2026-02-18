@@ -118,7 +118,7 @@ export const getCachedSummaryById = unstable_cache(
           select: {
             id: true,
             title: true,
-            content: true,
+            contentPreview: true,
             url: true,
             publishedAt: true,
             channel: {

@@ -141,6 +141,7 @@ export const CACHE_KEYS = {
   channelPosts: (channelId: string) => `channel:${channelId}:posts`,
   summary: (summaryId: string) => `summary:${summaryId}`,
   todaySummary: (userId: string) => `user:${userId}:today-summary`,
+  postContent: (postId: string) => `post:content:${postId}`,
 } as const;
 
 /**
@@ -151,6 +152,7 @@ export const CACHE_TTL = {
   MEDIUM: 300, // 5 минут
   LONG: 3600, // 1 час
   DAY: 86400, // 24 часа
+  WEEK: 604800, // 7 дней
 } as const;
 
 /**
