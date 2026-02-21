@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { channelsApi, dashboardApi, profileApi, summariesApi } from "../api/endpoints";
+import { channelsApi, dashboardApi, postsApi, profileApi, summariesApi } from "../api/endpoints";
 
 // Dashboard
 export const useDashboardStats = () =>
@@ -48,11 +48,25 @@ export const useToggleChannel = () => {
   });
 };
 
-// Summaries
-export const useSummaries = (period?: string) =>
+// Posts
+export const usePosts = (page = 1, channelId?: string) =>
   useQuery({
-    queryKey: ["summaries", period],
-    queryFn: () => summariesApi.list({ period }),
+    queryKey: ["posts", page, channelId],
+    queryFn: () => postsApi.list({ page, channelId }),
+  });
+
+export const usePost = (id: string) =>
+  useQuery({
+    queryKey: ["posts", id],
+    queryFn: () => postsApi.get(id),
+    enabled: !!id,
+  });
+
+// Summaries
+export const useSummaries = (period?: string, topic?: string) =>
+  useQuery({
+    queryKey: ["summaries", period, topic],
+    queryFn: () => summariesApi.list({ period, topic }),
   });
 
 export const useSummary = (id: string) =>

@@ -16,13 +16,15 @@ export class SummariesController {
   @ApiQuery({ name: "page", required: false, type: Number })
   @ApiQuery({ name: "limit", required: false, type: Number })
   @ApiQuery({ name: "type", required: false, enum: ["daily", "weekly"] })
+  @ApiQuery({ name: "topic", required: false, type: String })
   findAll(
     @Request() req: { user: { userId: string } },
     @Query("page") page = "1",
     @Query("limit") limit = "10",
-    @Query("type") type?: string
+    @Query("type") type?: string,
+    @Query("topic") topic?: string
   ) {
-    return this.summaries.findAll(req.user.userId, +page, +limit, type);
+    return this.summaries.findAll(req.user.userId, +page, +limit, type, topic);
   }
 
   @Get(":id")

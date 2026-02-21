@@ -3,6 +3,7 @@ export interface Channel {
   name: string;
   url: string;
   type: "TELEGRAM" | "RSS";
+  description?: string | null;
   isActive: boolean;
   postsCount?: number;
   lastFetchedAt?: string;
@@ -11,11 +12,30 @@ export interface Channel {
 
 export interface Post {
   id: string;
-  title?: string;
-  content: string;
-  url?: string;
+  title?: string | null;
+  contentPreview?: string | null;
+  url?: string | null;
+  author?: string | null;
   publishedAt: string;
   channelId: string;
+  channelName: string;
+  channelType: string;
+}
+
+export interface PostsListResponse {
+  posts: Post[];
+  total: number;
+  hasMore: boolean;
+}
+
+export interface PostSource {
+  id: string;
+  title: string | null;
+  contentPreview: string | null;
+  url: string | null;
+  publishedAt: string;
+  channelName: string;
+  channelType: string;
 }
 
 export interface Summary {
@@ -27,13 +47,18 @@ export interface Summary {
   createdAt: string;
   dateFrom: string;
   dateTo: string;
+  sources?: PostSource[];
 }
 
 export interface UserPreferences {
   topics: string[];
-  summaryInterval: "DAILY" | "WEEKLY" | "BOTH";
+  summaryInterval: "daily" | "weekly";
   language: string;
   notificationsEnabled: boolean;
+  notificationTime?: string | null;
+  telegramNotifications: boolean;
+  notifyOnNewSummary: boolean;
+  notifyOnNewPosts: boolean;
 }
 
 export interface UserProfile {
@@ -45,9 +70,15 @@ export interface UserProfile {
   preferences?: UserPreferences;
 }
 
+export interface TopTopic {
+  topic: string;
+  count: number;
+}
+
 export interface DashboardStats {
   channelsCount: number;
   postsToday: number;
   summariesToday: number;
-  latestSummary?: Summary;
+  topTopics: TopTopic[];
+  recentPosts: Post[];
 }

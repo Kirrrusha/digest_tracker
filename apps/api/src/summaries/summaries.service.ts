@@ -3,14 +3,35 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 
 import { PrismaService } from "../prisma/prisma.service";
 
+export interface PostSource {
+  id: string;
+  title: string | null;
+  contentPreview: string | null;
+  url: string | null;
+  publishedAt: string;
+  channelName: string;
+  channelType: string;
+}
+
+export interface SummaryWithSources extends Summary {
+  sources: PostSource[];
+}
+
 @Injectable()
 export class SummariesService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(userId: string, page = 1, limit = 10, type?: string): Promise<SummariesResponse> {
+  async findAll(
+    userId: string,
+    page = 1,
+    limit = 10,
+    type?: string,
+    topic?: string
+  ): Promise<SummariesResponse> {
     const where = {
       userId,
       ...(type ? { period: { startsWith: type } } : {}),
+      ...(topic ? { topics: { has: topic } } : {}),
     };
 
     const [total, summaries] = await Promise.all([
@@ -32,13 +53,38 @@ export class SummariesService {
     };
   }
 
-  async findOne(userId: string, id: string): Promise<Summary> {
+  async findOne(userId: string, id: string): Promise<SummaryWithSources> {
     const s = await this.prisma.summary.findFirst({
       where: { id, userId },
-      include: { posts: { select: { id: true } } },
+      include: {
+        posts: {
+          select: {
+            id: true,
+            title: true,
+            contentPreview: true,
+            url: true,
+            publishedAt: true,
+            channel: { select: { name: true, sourceType: true } },
+          },
+        },
+      },
     });
     if (!s) throw new NotFoundException("Саммари не найдено");
-    return this.toDto(s);
+
+    const sources: PostSource[] = s.posts.map((p) => ({
+      id: p.id,
+      title: p.title,
+      contentPreview: p.contentPreview,
+      url: p.url,
+      publishedAt: p.publishedAt.toISOString(),
+      channelName: p.channel.name,
+      channelType: p.channel.sourceType,
+    }));
+
+    return {
+      ...this.toDto({ ...s, posts: s.posts }),
+      sources,
+    };
   }
 
   private toDto(s: {

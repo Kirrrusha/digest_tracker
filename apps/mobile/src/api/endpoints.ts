@@ -2,6 +2,7 @@ import type {
   Channel,
   DashboardStats,
   Post,
+  PostsListResponse,
   Summary,
   UserPreferences,
   UserProfile,
@@ -42,17 +43,21 @@ export const channelsApi = {
 
   posts: (id: string, page = 1, limit = 20) =>
     apiClient
-      .get<{
-        posts: Post[];
-        total: number;
-        hasMore: boolean;
-      }>(`/channels/${id}/posts`, { params: { page, limit } })
+      .get<PostsListResponse>(`/channels/${id}/posts`, { params: { page, limit } })
       .then((r) => r.data),
+};
+
+// Posts
+export const postsApi = {
+  list: (params?: { page?: number; limit?: number; channelId?: string }) =>
+    apiClient.get<PostsListResponse>("/posts", { params }).then((r) => r.data),
+
+  get: (id: string) => apiClient.get<Post>(`/posts/${id}`).then((r) => r.data),
 };
 
 // Summaries
 export const summariesApi = {
-  list: (params?: { period?: string; page?: number; limit?: number }) =>
+  list: (params?: { period?: string; topic?: string; page?: number; limit?: number }) =>
     apiClient
       .get<{ summaries: Summary[]; total: number; hasMore: boolean }>("/summaries", { params })
       .then((r) => r.data),
@@ -80,5 +85,5 @@ export const profileApi = {
   getPreferences: () => apiClient.get<UserPreferences>("/preferences").then((r) => r.data),
 
   updatePreferences: (data: Partial<UserPreferences>) =>
-    apiClient.patch<UserPreferences>("/preferences", data).then((r) => r.data),
+    apiClient.put<UserPreferences>("/preferences", data).then((r) => r.data),
 };
