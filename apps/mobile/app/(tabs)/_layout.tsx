@@ -28,6 +28,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="posts"
+        options={{
+          title: "Посты",
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="newspaper-variant-multiple" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="summaries"
         options={{
           title: "Саммари",
