@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { Linking, ScrollView, StyleSheet, View } from "react-native";
 import Markdown from "react-native-markdown-display";
-import { ActivityIndicator, Button, Chip, Text } from "react-native-paper";
+import { ActivityIndicator, Button, Card, Chip, Divider, Text } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useDeleteSummary, useSummary } from "../../../src/hooks";
@@ -47,6 +47,53 @@ export default function SummaryDetailScreen() {
         </View>
 
         <Markdown>{summary.content}</Markdown>
+
+        {summary.sources && summary.sources.length > 0 && (
+          <>
+            <Divider style={styles.divider} />
+            <Text variant="titleMedium" style={styles.sourcesTitle}>
+              Источники ({summary.sources.length})
+            </Text>
+            {summary.sources.map((source) => (
+              <Card key={source.id} style={styles.sourceCard}>
+                <Card.Content>
+                  <View style={styles.sourceHeader}>
+                    <Chip compact style={styles.sourceChip}>
+                      {source.channelName}
+                    </Chip>
+                    <Text variant="bodySmall" style={styles.sourceDate}>
+                      {new Date(source.publishedAt).toLocaleDateString("ru", {
+                        day: "numeric",
+                        month: "short",
+                      })}
+                    </Text>
+                  </View>
+                  {source.title && (
+                    <Text variant="bodyMedium" style={styles.sourceTitle} numberOfLines={2}>
+                      {source.title}
+                    </Text>
+                  )}
+                  {source.contentPreview && (
+                    <Text variant="bodySmall" style={styles.sourcePreview} numberOfLines={2}>
+                      {source.contentPreview}
+                    </Text>
+                  )}
+                </Card.Content>
+                {source.url && (
+                  <Card.Actions>
+                    <Button
+                      compact
+                      icon="open-in-new"
+                      onPress={() => source.url && Linking.openURL(source.url)}
+                    >
+                      Открыть
+                    </Button>
+                  </Card.Actions>
+                )}
+              </Card>
+            ))}
+          </>
+        )}
       </ScrollView>
 
       <View style={styles.actions}>
@@ -75,6 +122,20 @@ const styles = StyleSheet.create({
   period: { opacity: 0.6, marginBottom: 12 },
   topics: { flexDirection: "row", flexWrap: "wrap", gap: 4, marginBottom: 16 },
   chip: {},
+  divider: { marginVertical: 16 },
+  sourcesTitle: { fontWeight: "600", marginBottom: 12 },
+  sourceCard: { marginBottom: 8 },
+  sourceHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 6,
+    flexWrap: "wrap",
+  },
+  sourceChip: {},
+  sourceDate: { opacity: 0.5 },
+  sourceTitle: { fontWeight: "500", marginBottom: 4 },
+  sourcePreview: { opacity: 0.6 },
   actions: {
     padding: 16,
     borderTopWidth: 1,

@@ -17,6 +17,7 @@ node_modules/
 /blob-report/
 
 # next.js
+.next/
 /.next/
 /out/
 
