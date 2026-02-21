@@ -65,6 +65,9 @@ importers:
       class-validator:
         specifier: ^0.14.1
         version: 0.14.3
+      express:
+        specifier: ^5.2.1
+        version: 5.2.1
       grammy:
         specifier: ^1.36.0
         version: 1.40.0
@@ -102,6 +105,9 @@ importers:
       '@types/bcryptjs':
         specifier: ^2.4.6
         version: 2.4.6
+      '@types/express':
+        specifier: ^5.0.6
+        version: 5.0.6
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.11
@@ -12895,7 +12901,7 @@ snapshots:
 
   compressible@2.0.18:
     dependencies:
-      mime-db: 1.52.0
+      mime-db: 1.54.0
 
   compression@1.8.1:
     dependencies:
