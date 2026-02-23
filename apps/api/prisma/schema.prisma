@@ -13,7 +13,7 @@ datasource db {
 // Пользователи
 model User {
   id              String           @id @default(cuid())
-  email           String?          @unique // Опционально для Telegram пользователей
+  login           String?          @unique @map("email") // Опционально для Telegram пользователей
   name            String?
   passwordHash    String?          // Опционально для passkey-only и Telegram пользователей
   createdAt       DateTime         @default(now())
@@ -157,14 +157,23 @@ model Summary {
   userId    String
   title     String
   content   String   @db.Text
-  topics    String[] // Выделенные темы
   period    String   // daily-2024-01-25
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   posts     Post[]
+  topics    Topic[]
 
   @@index([userId, period])
   @@index([userId, createdAt])
   @@index([createdAt])
   @@map("summaries")
+}
+
+// Словарь тем
+model Topic {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  summaries Summary[]
+
+  @@map("topics")
 }

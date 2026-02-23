@@ -23,19 +23,19 @@ export class AuthService {
   }
 
   async register(dto: RegisterDto): Promise<AuthTokens> {
-    const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
-    if (existing) throw new ConflictException("Email уже занят");
+    const existing = await this.prisma.user.findUnique({ where: { login: dto.login } });
+    if (existing) throw new ConflictException("Логин уже занят");
 
     const hash = await bcrypt.hash(dto.password, 12);
     const user = await this.prisma.user.create({
-      data: { email: dto.email, name: dto.name ?? null, passwordHash: hash },
+      data: { login: dto.login, name: dto.name ?? null, passwordHash: hash },
     });
 
     return this.issueTokens(user.id);
   }
 
   async login(dto: LoginDto): Promise<AuthTokens> {
-    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const user = await this.prisma.user.findUnique({ where: { login: dto.login } });
     if (!user?.passwordHash) throw new UnauthorizedException("Неверные данные");
 
     const valid = await bcrypt.compare(dto.password, user.passwordHash);
