@@ -6,18 +6,18 @@ import { rpID, setChallenge } from "@/lib/passkey/config";
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { email } = body;
+  const { login } = body;
 
-  // Find user by email (optional - can do usernameless auth)
+  // Find user by login (optional - can do usernameless auth)
   let allowCredentials: {
     id: Buffer;
     type: "public-key";
     transports?: AuthenticatorTransport[];
   }[] = [];
 
-  if (email) {
+  if (login) {
     const user = await db.user.findUnique({
-      where: { email },
+      where: { login },
       include: { authenticators: true },
     });
 
@@ -36,8 +36,8 @@ export async function POST(request: NextRequest) {
     allowCredentials: allowCredentials.length > 0 ? allowCredentials : undefined,
   });
 
-  // Store challenge with email as key (or random key for discoverable credentials)
-  const challengeKey = email || `anon_${crypto.randomUUID()}`;
+  // Store challenge with login as key (or random key for discoverable credentials)
+  const challengeKey = login || `anon_${crypto.randomUUID()}`;
   setChallenge(challengeKey, options.challenge);
 
   return NextResponse.json({

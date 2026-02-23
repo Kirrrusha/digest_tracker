@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 interface ProfileSettingsProps {
   user: {
     name: string | null;
-    email: string | null;
+    login: string | null;
   } | null;
 }
 
@@ -21,7 +21,7 @@ export function ProfileSettings({ user }: ProfileSettingsProps) {
         .join("")
         .toUpperCase()
         .slice(0, 2)
-    : (user?.email?.[0]?.toUpperCase() ?? "?");
+    : (user?.login?.[0]?.toUpperCase() ?? "?");
   return (
     <Card>
       <CardHeader>
@@ -44,8 +44,8 @@ export function ProfileSettings({ user }: ProfileSettingsProps) {
             <Input value={user?.name || ""} disabled />
           </div>
           <div className="space-y-2">
-            <Label>Email</Label>
-            <Input value={user?.email || ""} disabled />
+            <Label>Логин</Label>
+            <Input value={user?.login || ""} disabled />
           </div>
         </div>
       </CardContent>

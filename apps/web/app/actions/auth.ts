@@ -9,12 +9,12 @@ import { db } from "@/lib/db";
 
 const registerSchema = z.object({
   name: z.string().min(2, "Имя должно содержать минимум 2 символа"),
-  email: z.string().email("Некорректный email"),
+  login: z.string().min(3, "Логин должен содержать минимум 3 символа"),
   password: z.string().min(6, "Пароль должен содержать минимум 6 символов"),
 });
 
 const loginSchema = z.object({
-  email: z.string().email("Некорректный email"),
+  login: z.string().min(3, "Введите логин"),
   password: z.string().min(1, "Введите пароль"),
 });
 
@@ -26,7 +26,7 @@ export type AuthState = {
 export async function register(_prevState: AuthState, formData: FormData): Promise<AuthState> {
   const rawData = {
     name: formData.get("name"),
-    email: formData.get("email"),
+    login: formData.get("login"),
     password: formData.get("password"),
   };
 
@@ -36,14 +36,14 @@ export async function register(_prevState: AuthState, formData: FormData): Promi
     return { error: parsed.error.errors[0].message };
   }
 
-  const { name, email, password } = parsed.data;
+  const { name, login, password } = parsed.data;
 
   const existingUser = await db.user.findUnique({
-    where: { email },
+    where: { login },
   });
 
   if (existingUser) {
-    return { error: "Пользователь с таким email уже существует" };
+    return { error: "Пользователь с таким логином уже существует" };
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
@@ -51,7 +51,7 @@ export async function register(_prevState: AuthState, formData: FormData): Promi
   await db.user.create({
     data: {
       name,
-      email,
+      login,
       passwordHash,
     },
   });
@@ -61,7 +61,7 @@ export async function register(_prevState: AuthState, formData: FormData): Promi
 
 export async function login(_prevState: AuthState, formData: FormData): Promise<AuthState> {
   const rawData = {
-    email: formData.get("email"),
+    login: formData.get("login"),
     password: formData.get("password"),
   };
 
@@ -73,7 +73,7 @@ export async function login(_prevState: AuthState, formData: FormData): Promise<
 
   try {
     await signIn("credentials", {
-      email: parsed.data.email,
+      login: parsed.data.login,
       password: parsed.data.password,
       redirectTo: "/",
     });
@@ -83,7 +83,7 @@ export async function login(_prevState: AuthState, formData: FormData): Promise<
     if (error instanceof AuthError) {
       switch (error.type) {
         case "CredentialsSignin":
-          return { error: "Неверный email или пароль" };
+          return { error: "Неверный логин или пароль" };
         default:
           return { error: "Произошла ошибка при входе" };
       }

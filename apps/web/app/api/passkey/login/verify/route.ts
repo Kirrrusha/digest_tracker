@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       verified: true,
       user: {
         id: authenticator.user.id,
-        email: authenticator.user.email,
+        login: authenticator.user.login,
         name: authenticator.user.name,
       },
     });

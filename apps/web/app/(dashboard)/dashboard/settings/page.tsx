@@ -19,7 +19,7 @@ async function getPreferences(userId: string) {
     }),
     db.user.findUnique({
       where: { id: userId },
-      select: { name: true, email: true },
+      select: { name: true, login: true },
     }),
     db.telegramAccount.findUnique({
       where: { userId },

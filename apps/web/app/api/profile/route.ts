@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       id: user.id,
       name: user.name,
-      email: user.email,
+      login: user.login,
       telegramId: user.telegramAccount?.telegramId,
       telegramUsername: user.telegramAccount?.username,
       preferences: user.preferences,

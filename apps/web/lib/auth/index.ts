@@ -8,25 +8,24 @@ import { db } from "@/lib/db";
 import { authConfig } from "./config";
 
 const loginSchema = z.object({
-  email: z.string().email(),
+  login: z.string().min(3),
   password: z.string().min(6),
 });
 
 const passkeyLoginSchema = z.object({
   userId: z.string(),
-  email: z.string().email(),
   name: z.string().nullable().optional(),
 });
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
   providers: [
-    // Email/Password provider
+    // Login/Password provider
     Credentials({
       id: "credentials",
-      name: "Email & Password",
+      name: "Login & Password",
       credentials: {
-        email: { label: "Email", type: "email" },
+        login: { label: "Логин", type: "text" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
@@ -36,10 +35,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
-        const { email, password } = parsed.data;
+        const { login, password } = parsed.data;
 
         const user = await db.user.findUnique({
-          where: { email },
+          where: { login },
         });
 
         if (!user || !user.passwordHash) {
@@ -54,7 +53,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         return {
           id: user.id,
-          email: user.email,
+          login: user.login,
           name: user.name,
         };
       },
@@ -65,7 +64,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       name: "Passkey",
       credentials: {
         userId: { label: "User ID", type: "text" },
-        email: { label: "Email", type: "email" },
         name: { label: "Name", type: "text" },
       },
       async authorize(credentials) {
@@ -86,7 +84,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         return {
           id: user.id,
-          email: user.email,
+          login: user.login,
           name: user.name,
         };
       },

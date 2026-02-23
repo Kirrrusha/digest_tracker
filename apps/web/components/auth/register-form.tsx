@@ -44,12 +44,12 @@ export function RegisterForm() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="login">Логин</Label>
             <Input
-              id="email"
-              name="email"
-              type="email"
-              placeholder="example@email.com"
+              id="login"
+              name="login"
+              type="text"
+              placeholder="johndoe"
               required
               disabled={isPending}
             />

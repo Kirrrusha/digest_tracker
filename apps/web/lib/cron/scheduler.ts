@@ -52,7 +52,7 @@ async function generateDailySummaries() {
         preferences: { summaryInterval: "daily" },
         channels: { some: { isActive: true } },
       },
-      select: { id: true, email: true },
+      select: { id: true, login: true },
     });
 
     let generated = 0;
@@ -86,9 +86,9 @@ async function generateDailySummaries() {
 
         await generateDailySummary(user.id);
         generated++;
-        console.warn(`[CRON] Generated daily summary for ${user.email}`);
+        console.warn(`[CRON] Generated daily summary for ${user.login}`);
       } catch (error) {
-        console.error(`[CRON] Error generating summary for ${user.email}:`, error);
+        console.error(`[CRON] Error generating summary for ${user.login}:`, error);
       }
     }
 
@@ -110,7 +110,7 @@ async function generateWeeklySummaries() {
         preferences: { summaryInterval: "weekly" },
         channels: { some: { isActive: true } },
       },
-      select: { id: true, email: true },
+      select: { id: true, login: true },
     });
 
     let generated = 0;
@@ -135,9 +135,9 @@ async function generateWeeklySummaries() {
 
         await generateWeeklySummary(user.id);
         generated++;
-        console.warn(`[CRON] Generated weekly summary for ${user.email}`);
+        console.warn(`[CRON] Generated weekly summary for ${user.login}`);
       } catch (error) {
-        console.error(`[CRON] Error generating weekly summary for ${user.email}:`, error);
+        console.error(`[CRON] Error generating weekly summary for ${user.login}:`, error);
       }
     }
 

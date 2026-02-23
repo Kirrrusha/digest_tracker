@@ -14,7 +14,7 @@ datasource db {
 // Пользователи
 model User {
   id              String           @id @default(cuid())
-  email           String?          @unique // Опционально для Telegram пользователей
+  login           String?          @unique @map("email") // Опционально для Telegram пользователей
   name            String?
   passwordHash    String?          // Опционально для passkey-only и Telegram пользователей
   createdAt       DateTime         @default(now())
