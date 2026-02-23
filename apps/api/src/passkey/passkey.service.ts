@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
 
-// TODO: перенести логику из apps/web/lib/passkey
+// TODO: реализовать WebAuthn логику
 @Injectable()
 export class PasskeyService {}

@@ -1,7 +1,7 @@
 import { Controller, Post } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 
-// TODO: реализовать WebAuthn flow (перенести из apps/web/lib/passkey)
+// TODO: реализовать WebAuthn flow
 @ApiTags("passkey")
 @Controller("passkey")
 export class PasskeyController {

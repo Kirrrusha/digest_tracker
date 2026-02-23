@@ -48,7 +48,7 @@ export class ChannelsService {
     });
     if (existing) throw new ConflictException("Канал уже добавлен");
 
-    // TODO: вызвать validateAndGetSourceInfo из parsers (перенести из apps/web/lib/parsers)
+    // TODO: вызвать validateAndGetSourceInfo из parsers
     // Пока создаём с базовыми данными
     const ch = await this.prisma.channel.create({
       data: {

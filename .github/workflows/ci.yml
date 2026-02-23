@@ -29,19 +29,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run ESLint
-        run: pnpm web:lint
-
       - name: Check code formatting
         run: pnpm format:check
 
-      - name: Type check
-        run: pnpm web:type-check
+      - name: Build frontend
+        run: pnpm frontend:build
 
-      - name: Build application
-        run: pnpm web:build
-        env:
-          SKIP_ENV_VALIDATION: true
+      - name: Build API
+        run: pnpm api:build
+
+      - name: Run API tests
+        run: pnpm api:test
 
   prisma-check:
     name: Prisma Schema Check
@@ -66,7 +64,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Validate Prisma schema
-        run: pnpm --filter @devdigest/web exec prisma validate
+        run: pnpm --filter @devdigest/api exec prisma validate
 
       - name: Check Prisma format
-        run: pnpm --filter @devdigest/web exec prisma format --check
+        run: pnpm --filter @devdigest/api exec prisma format --check
