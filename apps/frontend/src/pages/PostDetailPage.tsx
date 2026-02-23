@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 import { postsApi } from "../api/posts";
 
 export function PostDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { data: post, isLoading } = useQuery({
     queryKey: ["post", id],
     queryFn: () => postsApi.get(id!),
@@ -16,6 +17,12 @@ export function PostDetailPage() {
 
   return (
     <div className="max-w-2xl">
+      <button
+        onClick={() => navigate(-1)}
+        className="mb-4 text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1"
+      >
+        ← Назад
+      </button>
       <h1 className="text-2xl font-bold text-gray-900 mb-2">{post.title || "Без заголовка"}</h1>
       <p className="text-sm text-gray-500 mb-4">
         {new Date(post.publishedAt).toLocaleString("ru")}

@@ -1,15 +1,42 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
 
 import { summariesApi } from "../api/summaries";
 
 export function SummaryDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmRegenerate, setConfirmRegenerate] = useState(false);
+
   const { data: summary, isLoading } = useQuery({
     queryKey: ["summary", id],
     queryFn: () => summariesApi.get(id!),
     enabled: !!id,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => summariesApi.delete(id!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["summaries"] });
+      toast.success("Саммари удалено");
+      navigate("/summaries");
+    },
+    onError: () => toast.error("Не удалось удалить саммари"),
+  });
+
+  const regenerateMutation = useMutation({
+    mutationFn: () => summariesApi.regenerate(id!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["summary", id] });
+      queryClient.invalidateQueries({ queryKey: ["summaries"] });
+      toast.success("Саммари перегенерировано");
+    },
+    onError: () => toast.error("Не удалось перегенерировать саммари"),
   });
 
   if (isLoading)
@@ -21,10 +48,30 @@ export function SummaryDetailPage() {
     );
   if (!summary) return <p className="text-gray-500">Саммари не найдено</p>;
 
+  const isBusy = deleteMutation.isPending || regenerateMutation.isPending;
+
   return (
     <div className="max-w-2xl">
       <div className="mb-4">
-        <h1 className="text-2xl font-bold text-gray-900">{summary.title}</h1>
+        <div className="flex items-start justify-between gap-4">
+          <h1 className="text-2xl font-bold text-gray-900">{summary.title}</h1>
+          <div className="flex gap-2 shrink-0">
+            <button
+              onClick={() => setConfirmRegenerate(true)}
+              disabled={isBusy}
+              className="flex items-center gap-1 text-sm text-gray-500 hover:text-blue-600 disabled:opacity-40 transition-colors"
+            >
+              {regenerateMutation.isPending ? "Генерируем..." : "↻ Перегенерировать"}
+            </button>
+            <button
+              onClick={() => setConfirmDelete(true)}
+              disabled={isBusy}
+              className="flex items-center gap-1 text-sm text-gray-500 hover:text-red-600 disabled:opacity-40 transition-colors"
+            >
+              {deleteMutation.isPending ? "Удаляем..." : "🗑 Удалить"}
+            </button>
+          </div>
+        </div>
         <p className="text-sm text-gray-500 mt-1">
           {summary.period} · {summary.postsCount} постов
         </p>
@@ -38,9 +85,110 @@ export function SummaryDetailPage() {
           </div>
         )}
       </div>
-      <div className="bg-white border rounded-lg p-6 prose prose-sm max-w-none">
+      <div className="bg-white border rounded-lg p-6 prose prose-sm prose-headings:font-semibold prose-h1:text-xl prose-h2:text-lg prose-h3:text-base prose-li:my-0.5 max-w-none">
         <ReactMarkdown>{summary.content}</ReactMarkdown>
       </div>
+
+      {summary.sources && summary.sources.length > 0 && (
+        <div className="mt-6">
+          <h2 className="text-base font-semibold text-gray-700 mb-3">
+            Источники ({summary.sources.length})
+          </h2>
+          <div className="space-y-2">
+            {summary.sources.map((source) => (
+              <div key={source.id} className="bg-white border rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-medium">
+                    {source.channelName}
+                  </span>
+                  <span className="text-xs text-gray-400">
+                    {new Date(source.publishedAt).toLocaleDateString("ru", {
+                      day: "numeric",
+                      month: "short",
+                    })}
+                  </span>
+                </div>
+                {source.title && (
+                  <p className="text-sm font-medium text-gray-800 mb-1 line-clamp-2">
+                    {source.title}
+                  </p>
+                )}
+                {source.contentPreview && (
+                  <p className="text-xs text-gray-500 line-clamp-2">{source.contentPreview}</p>
+                )}
+                {source.url && (
+                  <a
+                    href={source.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 mt-2 text-xs text-blue-600 hover:text-blue-800 transition-colors"
+                  >
+                    Открыть →
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-80 shadow-xl">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Удалить саммари?</h2>
+            <p className="text-sm text-gray-500 mb-4">Это действие нельзя отменить.</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmDelete(false)}
+                disabled={deleteMutation.isPending}
+                className="flex-1 py-2 text-sm border rounded-lg hover:bg-gray-50 disabled:opacity-50"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={() => {
+                  setConfirmDelete(false);
+                  deleteMutation.mutate();
+                }}
+                disabled={deleteMutation.isPending}
+                className="flex-1 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+              >
+                Удалить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmRegenerate && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-80 shadow-xl">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Перегенерировать саммари?</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Текущий текст будет заменён новым. Посты останутся те же.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmRegenerate(false)}
+                disabled={regenerateMutation.isPending}
+                className="flex-1 py-2 text-sm border rounded-lg hover:bg-gray-50 disabled:opacity-50"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={() => {
+                  setConfirmRegenerate(false);
+                  regenerateMutation.mutate();
+                }}
+                disabled={regenerateMutation.isPending}
+                className="flex-1 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                Перегенерировать
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
