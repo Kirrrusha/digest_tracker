@@ -4,19 +4,19 @@ export interface AuthTokens {
 }
 
 export interface LoginDto {
-  email: string;
+  login: string;
   password: string;
 }
 
 export interface RegisterDto {
-  email: string;
+  login: string;
   password: string;
   name?: string;
 }
 
 export interface UserProfile {
   id: string;
-  email: string | null;
+  login: string | null;
   name: string | null;
   hasTelegram: boolean;
   hasPasskey: boolean;
