@@ -1,7 +1,18 @@
-import { Controller, Get, Param, Query, Request, UseGuards } from "@nestjs/common";
+import {
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Query,
+  Request,
+  UseGuards,
+} from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
 
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { MtprotoService } from "../mtproto/mtproto.service";
 import { PostsService } from "./posts.service";
 
 @ApiTags("posts")
@@ -9,7 +20,10 @@ import { PostsService } from "./posts.service";
 @UseGuards(JwtAuthGuard)
 @Controller()
 export class PostsController {
-  constructor(private posts: PostsService) {}
+  constructor(
+    private posts: PostsService,
+    private mtproto: MtprotoService
+  ) {}
 
   @Get("posts")
   @ApiOperation({ summary: "Все посты пользователя" })
@@ -36,6 +50,18 @@ export class PostsController {
     @Query("limit") limit = "20"
   ) {
     return this.posts.findByChannel(req.user.userId, channelId, +page, +limit);
+  }
+
+  @Post("channels/:channelId/sync")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Синхронизировать посты канала из Telegram" })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  syncChannel(
+    @Request() req: { user: { userId: string } },
+    @Param("channelId") channelId: string,
+    @Query("limit") limit = "50"
+  ) {
+    return this.mtproto.fetchAndSaveChannelPosts(req.user.userId, channelId, +limit);
   }
 
   @Get("posts/:id")

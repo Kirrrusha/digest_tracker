@@ -93,7 +93,9 @@ export class PostsService {
       id: p.id,
       channelId: p.channelId,
       externalId: p.externalId,
-      title: p.title,
+      title:
+        p.title ??
+        (p.contentPreview ? p.contentPreview.split("\n")[0].slice(0, 100) || null : null),
       contentPreview: p.contentPreview,
       url: p.url,
       author: p.author,
