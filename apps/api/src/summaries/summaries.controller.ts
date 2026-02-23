@@ -1,15 +1,38 @@
-import { Controller, Get, Param, Query, Request, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpException,
+  HttpStatus,
+  Param,
+  Post,
+  Query,
+  Request,
+  UseGuards,
+} from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
 
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { SummariesService } from "./summaries.service";
+import { SummarizerService } from "./summarizer.service";
 
 @ApiTags("summaries")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller("summaries")
 export class SummariesController {
-  constructor(private summaries: SummariesService) {}
+  constructor(
+    private summaries: SummariesService,
+    private summarizer: SummarizerService
+  ) {}
+
+  @Get("topics")
+  @ApiOperation({ summary: "Все уникальные темы саммари" })
+  getTopics(@Request() req: { user: { userId: string } }) {
+    return this.summaries.getTopics(req.user.userId);
+  }
 
   @Get()
   @ApiOperation({ summary: "Список саммари" })
@@ -25,6 +48,44 @@ export class SummariesController {
     @Query("topic") topic?: string
   ) {
     return this.summaries.findAll(req.user.userId, +page, +limit, type, topic);
+  }
+
+  @Post("generate")
+  @ApiOperation({ summary: "Сгенерировать саммари" })
+  async generate(
+    @Request() req: { user: { userId: string } },
+    @Body() body: { type?: "daily" | "weekly" }
+  ) {
+    try {
+      const type = body?.type === "weekly" ? "weekly" : "daily";
+      const summary =
+        type === "weekly"
+          ? await this.summarizer.generateWeekly(req.user.userId)
+          : await this.summarizer.generateDaily(req.user.userId);
+      return { success: true, summary };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to generate summary";
+      throw new HttpException({ success: false, error: message }, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @Post(":id/regenerate")
+  @ApiOperation({ summary: "Перегенерировать саммари" })
+  async regenerate(@Request() req: { user: { userId: string } }, @Param("id") id: string) {
+    try {
+      const summary = await this.summarizer.regenerate(req.user.userId, id);
+      return { success: true, summary };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to regenerate summary";
+      throw new HttpException({ success: false, error: message }, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @Delete(":id")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: "Удалить саммари" })
+  remove(@Request() req: { user: { userId: string } }, @Param("id") id: string) {
+    return this.summaries.remove(req.user.userId, id);
   }
 
   @Get(":id")

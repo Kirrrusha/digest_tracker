@@ -1,3 +1,13 @@
+export interface PostSource {
+  id: string;
+  title: string | null;
+  contentPreview: string | null;
+  url: string | null;
+  publishedAt: string;
+  channelName: string;
+  channelType: string;
+}
+
 export interface Summary {
   id: string;
   title: string;
@@ -6,6 +16,7 @@ export interface Summary {
   topics: string[];
   postsCount: number;
   createdAt: string;
+  sources?: PostSource[];
 }
 
 export interface SummariesResponse {

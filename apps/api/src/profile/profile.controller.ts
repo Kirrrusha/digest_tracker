@@ -25,7 +25,7 @@ export class ProfileController {
 
     return {
       id: user.id,
-      email: user.email,
+      login: user.login,
       name: user.name,
       hasTelegram: user.telegramAccount !== null,
       hasPasskey: user.authenticators.length > 0,

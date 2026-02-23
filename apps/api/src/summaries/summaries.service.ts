@@ -87,6 +87,21 @@ export class SummariesService {
     };
   }
 
+  async getTopics(userId: string): Promise<string[]> {
+    const summaries = await this.prisma.summary.findMany({
+      where: { userId },
+      select: { topics: true },
+    });
+    const topics = Array.from(new Set(summaries.flatMap((s) => s.topics))).sort();
+    return topics;
+  }
+
+  async remove(userId: string, id: string): Promise<void> {
+    const summary = await this.prisma.summary.findFirst({ where: { id, userId } });
+    if (!summary) throw new NotFoundException("Саммари не найдено");
+    await this.prisma.summary.delete({ where: { id } });
+  }
+
   private toDto(s: {
     id: string;
     title: string;
