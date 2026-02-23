@@ -22,20 +22,20 @@ export function LoginForm() {
       setTokens(tokens.accessToken, tokens.refreshToken);
       navigate("/dashboard");
     } catch {
-      toast.error("Неверный email или пароль");
+      toast.error("Неверный логин или пароль");
     }
   };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Логин</label>
         <input
-          type="email"
-          {...register("email")}
+          type="text"
+          {...register("login")}
           className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
+        {errors.login && <p className="text-red-500 text-xs mt-1">{errors.login.message}</p>}
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Пароль</label>

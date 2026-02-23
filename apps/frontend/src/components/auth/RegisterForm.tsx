@@ -22,7 +22,7 @@ export function RegisterForm() {
       setTokens(tokens.accessToken, tokens.refreshToken);
       navigate("/dashboard");
     } catch {
-      toast.error("Ошибка регистрации. Email может быть уже занят.");
+      toast.error("Ошибка регистрации. Логин может быть уже занят.");
     }
   };
 
@@ -38,13 +38,13 @@ export function RegisterForm() {
         {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Логин</label>
         <input
-          type="email"
-          {...register("email")}
+          type="text"
+          {...register("login")}
           className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
+        {errors.login && <p className="text-red-500 text-xs mt-1">{errors.login.message}</p>}
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Пароль</label>
