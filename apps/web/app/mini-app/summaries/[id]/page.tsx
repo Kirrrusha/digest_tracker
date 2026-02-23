@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import ReactMarkdown from "react-markdown";
 
 import { useTelegramWebApp } from "@/lib/telegram/useTelegramWebApp";
 
@@ -156,34 +157,10 @@ export default function SummaryDetailPage() {
       </div>
 
       {/* Content */}
-      <article className="bg-(--tg-theme-secondary-bg-color) rounded-xl p-4 mb-6 leading-relaxed">
-        {summary.content.split("\n").map((line, i) => {
-          if (line.startsWith("## "))
-            return (
-              <h2 key={i} className="text-lg font-bold mt-5 mb-3 first:mt-0">
-                {line.replace("## ", "")}
-              </h2>
-            );
-          if (line.startsWith("### "))
-            return (
-              <h3 key={i} className="text-base font-semibold mt-4 mb-2">
-                {line.replace("### ", "")}
-              </h3>
-            );
-          if (line.startsWith("- "))
-            return (
-              <li key={i} className="my-1.5 pl-2 list-inside">
-                {line.replace("- ", "")}
-              </li>
-            );
-          if (line.trim())
-            return (
-              <p key={i} className="my-2">
-                {line}
-              </p>
-            );
-          return null;
-        })}
+      <article className="bg-(--tg-theme-secondary-bg-color) rounded-xl p-4 mb-6">
+        <div className="mini-app-markdown">
+          <ReactMarkdown>{summary.content}</ReactMarkdown>
+        </div>
       </article>
 
       {/* Source Posts */}

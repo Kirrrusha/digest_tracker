@@ -67,7 +67,14 @@ export function TodaySummary({ summary, postsCount, yesterdayPostsCount = 0 }: T
                 </Badge>
               ))}
             </div>
-            <p className="text-muted-foreground line-clamp-4">{localSummary.content}</p>
+            <p className="text-muted-foreground line-clamp-4">
+              {localSummary.content
+                .replace(/#{1,6} /g, "")
+                .replace(/\*{1,2}([^*\n]+)\*{1,2}/g, "$1")
+                .replace(/^[-*+] /gm, "")
+                .replace(/\n{2,}/g, " ")
+                .trim()}
+            </p>
             <Link href={`/dashboard/summaries/${localSummary.id}`}>
               <Button variant="outline" size="sm">
                 Читать полностью

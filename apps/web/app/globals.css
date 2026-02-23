@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 @theme inline {
   /* Кастомные цвета из UI_GUIDELINES.md в OKLCH формате */
@@ -110,7 +111,7 @@ body {
 /* Кастомные utility классы из UI_GUIDELINES */
 @layer utilities {
   .heading-1 {
-    @apply text-4xl leading-tight font-bold tracking-tight;
+    @apply text-4xl font-bold leading-tight tracking-tight;
   }
 
   .heading-2 {
@@ -142,7 +143,7 @@ body {
   }
 
   .overline {
-    @apply text-xs font-semibold tracking-wide uppercase;
+    @apply text-xs font-semibold uppercase tracking-wide;
   }
 
   .container-padding {

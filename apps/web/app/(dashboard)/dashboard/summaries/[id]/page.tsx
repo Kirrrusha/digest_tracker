@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 import { ArrowLeft, Calendar, ExternalLink, Tag } from "lucide-react";
-import ReactMarkdown from "react-markdown";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -11,6 +10,7 @@ import { Header } from "@/components/dashboard/header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MarkdownContent } from "@/components/ui/markdown-content";
 import { Separator } from "@/components/ui/separator";
 
 interface PageProps {
@@ -45,7 +45,7 @@ export default async function SummaryDetailPage({ params }: PageProps) {
 
   const isDaily = summary.period.startsWith("daily-");
   const isWeekly = summary.period.startsWith("weekly-");
-
+  console.log("summary", summary);
   return (
     <div className="flex flex-col h-full">
       <Header title="Саммари" />
@@ -93,9 +93,7 @@ export default async function SummaryDetailPage({ params }: PageProps) {
 
             <Separator className="my-6" />
 
-            <div className="prose prose-sm dark:prose-invert max-w-none">
-              <ReactMarkdown>{summary.content}</ReactMarkdown>
-            </div>
+            <MarkdownContent content={summary.content} />
           </CardContent>
         </Card>
 

@@ -11,6 +11,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/#{1,6} /g, "")
+    .replace(/\*{1,2}([^*\n]+)\*{1,2}/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/^[-*+] /gm, "")
+    .replace(/\n{2,}/g, " ")
+    .trim();
+}
+
 const TOPIC_COLORS: Record<string, string> = {
   React: "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30",
   "Node.js": "bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30",
@@ -122,7 +133,9 @@ export function SummaryCard({ summary }: SummaryCardProps) {
             </Badge>
           )}
         </div>
-        <p className="text-sm text-muted-foreground line-clamp-3">{summary.content}</p>
+        <p className="text-sm text-muted-foreground line-clamp-3">
+          {stripMarkdown(summary.content)}
+        </p>
         <Link href={`/dashboard/summaries/${summary.id}`}>
           <Button variant="ghost" size="sm">
             Читать полностью

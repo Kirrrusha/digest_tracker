@@ -9,6 +9,81 @@
   --tg-theme-secondary-bg-color: #f0f0f0;
 }
 
+/* Markdown content */
+.mini-app-markdown {
+  line-height: 1.65;
+  color: var(--tg-theme-text-color);
+}
+
+.mini-app-markdown > *:first-child {
+  margin-top: 0;
+}
+.mini-app-markdown > *:last-child {
+  margin-bottom: 0;
+}
+
+.mini-app-markdown h1 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 1.25rem 0 0.5rem;
+}
+.mini-app-markdown h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 1rem 0 0.4rem;
+}
+.mini-app-markdown h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0.875rem 0 0.35rem;
+}
+.mini-app-markdown p {
+  margin: 0.4rem 0;
+}
+.mini-app-markdown ul,
+.mini-app-markdown ol {
+  padding-left: 1.4rem;
+  margin: 0.4rem 0;
+}
+.mini-app-markdown li {
+  margin: 0.2rem 0;
+}
+.mini-app-markdown strong {
+  font-weight: 700;
+}
+.mini-app-markdown em {
+  font-style: italic;
+}
+.mini-app-markdown a {
+  color: var(--tg-theme-link-color);
+  text-decoration: underline;
+}
+.mini-app-markdown code {
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 3px;
+  padding: 0.1em 0.3em;
+  font-size: 0.85em;
+  font-family: monospace;
+}
+.mini-app-markdown pre {
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  padding: 0.75rem;
+  overflow-x: auto;
+  margin: 0.5rem 0;
+}
+.mini-app-markdown pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.8rem;
+}
+.mini-app-markdown blockquote {
+  border-left: 3px solid var(--tg-theme-button-color);
+  padding-left: 0.75rem;
+  margin: 0.5rem 0;
+  opacity: 0.75;
+}
+
 /* Loading spinner animation */
 @keyframes spin {
   to {
