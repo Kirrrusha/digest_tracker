@@ -9,13 +9,23 @@ import {
   Dialog,
   FAB,
   Portal,
+  SegmentedButtons,
   Text,
   TextInput,
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useAddChannel, useChannels, useDeleteChannel, useToggleChannel } from "../../../src/hooks";
+import { TelegramChannelBrowser } from "../../../components/TelegramChannelBrowser";
+import {
+  useAddChannel,
+  useChannels,
+  useDeleteChannel,
+  useSyncChannel,
+  useToggleChannel,
+} from "../../../src/hooks";
 import type { Channel } from "../../../src/types";
+
+type AddTab = "url" | "telegram";
 
 export default function ChannelsScreen() {
   const router = useRouter();
@@ -23,8 +33,10 @@ export default function ChannelsScreen() {
   const addChannel = useAddChannel();
   const deleteChannel = useDeleteChannel();
   const toggleChannel = useToggleChannel();
+  const syncChannel = useSyncChannel();
 
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState<AddTab>("url");
   const [newUrl, setNewUrl] = useState("");
 
   const handleAdd = async () => {
@@ -32,6 +44,12 @@ export default function ChannelsScreen() {
     await addChannel.mutateAsync(newUrl.trim());
     setNewUrl("");
     setShowAddDialog(false);
+  };
+
+  const handleClose = () => {
+    setShowAddDialog(false);
+    setNewUrl("");
+    setActiveTab("url");
   };
 
   const renderChannel = ({ item }: { item: Channel }) => (
@@ -51,6 +69,15 @@ export default function ChannelsScreen() {
           compact
         >
           {item.isActive ? "Приостановить" : "Активировать"}
+        </Button>
+        <Button
+          onPress={() => syncChannel.mutate(item.id)}
+          loading={syncChannel.isPending && syncChannel.variables === item.id}
+          disabled={syncChannel.isPending && syncChannel.variables === item.id}
+          icon="sync"
+          compact
+        >
+          Синхр.
         </Button>
         <Button onPress={() => deleteChannel.mutate(item.id)} textColor="#ef4444" compact>
           Удалить
@@ -80,24 +107,51 @@ export default function ChannelsScreen() {
       />
 
       <Portal>
-        <Dialog visible={showAddDialog} onDismiss={() => setShowAddDialog(false)}>
+        <Dialog visible={showAddDialog} onDismiss={handleClose} style={styles.dialog}>
           <Dialog.Title>Добавить канал</Dialog.Title>
           <Dialog.Content>
-            <TextInput
-              label="URL канала или @username"
-              value={newUrl}
-              onChangeText={setNewUrl}
-              mode="outlined"
-              autoCapitalize="none"
-              autoCorrect={false}
+            <SegmentedButtons
+              value={activeTab}
+              onValueChange={(v) => setActiveTab(v as AddTab)}
+              style={styles.tabs}
+              buttons={[
+                { value: "url", label: "По URL" },
+                { value: "telegram", label: "Telegram" },
+              ]}
             />
+
+            {activeTab === "url" ? (
+              <TextInput
+                label="URL канала или @username"
+                value={newUrl}
+                onChangeText={setNewUrl}
+                mode="outlined"
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={styles.input}
+              />
+            ) : (
+              <TelegramChannelBrowser onAdded={handleClose} />
+            )}
           </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setShowAddDialog(false)}>Отмена</Button>
-            <Button onPress={handleAdd} loading={addChannel.isPending} disabled={!newUrl.trim()}>
-              Добавить
-            </Button>
-          </Dialog.Actions>
+
+          {activeTab === "url" && (
+            <Dialog.Actions>
+              <Button onPress={handleClose}>Отмена</Button>
+              <Button
+                onPress={handleAdd}
+                loading={addChannel.isPending}
+                disabled={!newUrl.trim() || addChannel.isPending}
+              >
+                Добавить
+              </Button>
+            </Dialog.Actions>
+          )}
+          {activeTab === "telegram" && (
+            <Dialog.Actions>
+              <Button onPress={handleClose}>Закрыть</Button>
+            </Dialog.Actions>
+          )}
         </Dialog>
       </Portal>
 
@@ -114,4 +168,7 @@ const styles = StyleSheet.create({
   chip: { marginRight: 8 },
   empty: { textAlign: "center", marginTop: 40, opacity: 0.5 },
   fab: { position: "absolute", right: 16, bottom: 16 },
+  dialog: { maxHeight: "85%" },
+  tabs: { marginBottom: 16 },
+  input: { marginTop: 4 },
 });

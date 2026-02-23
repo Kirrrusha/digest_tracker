@@ -1,9 +1,16 @@
 import { useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { Modal, ScrollView, StyleSheet, View } from "react-native";
 import { ActivityIndicator, Button, Chip, Divider, List, Switch, Text } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { usePreferences, useProfile, useUpdatePreferences } from "../../src/hooks";
+import { TelegramChannelBrowser } from "../../components/TelegramChannelBrowser";
+import { TelegramConnect } from "../../components/TelegramConnect";
+import {
+  useMTProtoStatus,
+  usePreferences,
+  useProfile,
+  useUpdatePreferences,
+} from "../../src/hooks";
 import { useAuthStore } from "../../src/stores/auth";
 
 const AVAILABLE_TOPICS = [
@@ -40,8 +47,10 @@ export default function SettingsScreen() {
   const { data: profile } = useProfile();
   const { data: prefs, isLoading: prefsLoading } = usePreferences();
   const updatePrefs = useUpdatePreferences();
+  const { data: mtprotoStatus } = useMTProtoStatus();
 
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [showChannelBrowser, setShowChannelBrowser] = useState(false);
 
   const toggleSection = (section: string) => {
     setExpandedSection(expandedSection === section ? null : section);
@@ -74,6 +83,24 @@ export default function SettingsScreen() {
             description={profile?.email ?? profile?.telegramUsername ?? ""}
             left={(props) => <List.Icon {...props} icon="account" />}
           />
+        </List.Section>
+
+        <Divider />
+
+        <List.Section title="Telegram">
+          <View style={styles.telegramSection}>
+            <TelegramConnect hasActiveSession={mtprotoStatus?.hasActiveSession ?? false} />
+            {mtprotoStatus?.hasActiveSession && (
+              <Button
+                mode="outlined"
+                icon="telegram"
+                onPress={() => setShowChannelBrowser(true)}
+                style={styles.addChannelsButton}
+              >
+                Добавить каналы из Telegram
+              </Button>
+            )}
+          </View>
         </List.Section>
 
         <Divider />
@@ -231,6 +258,25 @@ export default function SettingsScreen() {
           </Button>
         </View>
       </ScrollView>
+
+      <Modal
+        visible={showChannelBrowser}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowChannelBrowser(false)}
+      >
+        <SafeAreaView style={styles.modal}>
+          <View style={styles.modalHeader}>
+            <Text variant="titleMedium">Мои Telegram каналы</Text>
+            <Button onPress={() => setShowChannelBrowser(false)} compact>
+              Закрыть
+            </Button>
+          </View>
+          <View style={styles.modalContent}>
+            <TelegramChannelBrowser onAdded={() => setShowChannelBrowser(false)} />
+          </View>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -254,4 +300,17 @@ const styles = StyleSheet.create({
   optionChip: {},
   logout: { padding: 16, gap: 8 },
   saving: { textAlign: "center", opacity: 0.5 },
+  telegramSection: { paddingHorizontal: 16, paddingBottom: 12 },
+  addChannelsButton: { marginTop: 8 },
+  modal: { flex: 1 },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#e5e7eb",
+  },
+  modalContent: { padding: 16, flex: 1 },
 });

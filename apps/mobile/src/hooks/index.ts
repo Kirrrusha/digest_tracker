@@ -1,6 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { channelsApi, dashboardApi, postsApi, profileApi, summariesApi } from "../api/endpoints";
+import {
+  channelsApi,
+  dashboardApi,
+  mtprotoApi,
+  postsApi,
+  profileApi,
+  summariesApi,
+} from "../api/endpoints";
 
 // Dashboard
 export const useDashboardStats = () =>
@@ -48,6 +55,18 @@ export const useToggleChannel = () => {
   });
 };
 
+export const useSyncChannel = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => channelsApi.sync(id),
+    onSuccess: (_, id) => {
+      qc.invalidateQueries({ queryKey: ["channels", id, "posts"] });
+      qc.invalidateQueries({ queryKey: ["posts"] });
+      qc.invalidateQueries({ queryKey: ["dashboard", "stats"] });
+    },
+  });
+};
+
 // Posts
 export const usePosts = (page = 1, channelId?: string) =>
   useQuery({
@@ -67,6 +86,12 @@ export const useSummaries = (period?: string, topic?: string) =>
   useQuery({
     queryKey: ["summaries", period, topic],
     queryFn: () => summariesApi.list({ period, topic }),
+  });
+
+export const useSummaryTopics = () =>
+  useQuery({
+    queryKey: ["summaries", "topics"],
+    queryFn: summariesApi.topics,
   });
 
 export const useSummary = (id: string) =>
@@ -92,6 +117,17 @@ export const useDeleteSummary = () => {
   });
 };
 
+export const useRegenerateSummary = (id: string) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => summariesApi.regenerate(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["summaries", id] });
+      qc.invalidateQueries({ queryKey: ["summaries"] });
+    },
+  });
+};
+
 // Profile
 export const useProfile = () => useQuery({ queryKey: ["profile"], queryFn: profileApi.get });
 
@@ -106,5 +142,46 @@ export const useUpdatePreferences = () => {
   return useMutation({
     mutationFn: profileApi.updatePreferences,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["preferences"] }),
+  });
+};
+
+// MTProto
+export const useMTProtoStatus = () =>
+  useQuery({ queryKey: ["mtproto-status"], queryFn: mtprotoApi.getStatus });
+
+export const useSendMTProtoCode = () =>
+  useMutation({ mutationFn: (phone: string) => mtprotoApi.sendCode(phone) });
+
+export const useVerifyMTProtoCode = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: mtprotoApi.verify,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["mtproto-status"] }),
+  });
+};
+
+export const useDisconnectMTProto = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: mtprotoApi.disconnect,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["mtproto-status"] }),
+  });
+};
+
+export const useMTProtoChannels = (enabled: boolean) =>
+  useQuery({
+    queryKey: ["mtproto-channels"],
+    queryFn: mtprotoApi.listChannels,
+    enabled,
+  });
+
+export const useBulkAddMTProtoChannels = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: mtprotoApi.bulkAdd,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["channels"] });
+      qc.invalidateQueries({ queryKey: ["mtproto-channels"] });
+    },
   });
 };

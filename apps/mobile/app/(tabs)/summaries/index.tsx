@@ -13,7 +13,7 @@ import {
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useGenerateSummary, useSummaries } from "../../../src/hooks";
+import { useGenerateSummary, useSummaries, useSummaryTopics } from "../../../src/hooks";
 import type { Summary } from "../../../src/types";
 
 const PERIOD_OPTIONS = [
@@ -27,10 +27,9 @@ export default function SummariesScreen() {
   const [period, setPeriod] = useState<string | undefined>();
   const [topic, setTopic] = useState<string | undefined>();
   const { data, isLoading, refetch } = useSummaries(period, topic);
+  const { data: allTopics = [] } = useSummaryTopics();
   const generateSummary = useGenerateSummary();
   const [showDialog, setShowDialog] = useState(false);
-
-  const allTopics = Array.from(new Set(data?.summaries.flatMap((s) => s.topics) ?? [])).sort();
 
   const renderSummary = ({ item }: { item: Summary }) => (
     <Card style={styles.card} onPress={() => router.push(`/(tabs)/summaries/${item.id}`)}>

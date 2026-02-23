@@ -41,6 +41,9 @@ export const channelsApi = {
 
   refresh: (id: string) => apiClient.post(`/channels/${id}/refresh`).then((r) => r.data),
 
+  sync: (id: string) =>
+    apiClient.post<{ saved: number; skipped: number }>(`/channels/${id}/sync`).then((r) => r.data),
+
   posts: (id: string, page = 1, limit = 20) =>
     apiClient
       .get<PostsListResponse>(`/channels/${id}/posts`, { params: { page, limit } })
@@ -62,6 +65,8 @@ export const summariesApi = {
       .get<{ summaries: Summary[]; total: number; hasMore: boolean }>("/summaries", { params })
       .then((r) => r.data),
 
+  topics: () => apiClient.get<string[]>("/summaries/topics").then((r) => r.data),
+
   get: (id: string) => apiClient.get<Summary>(`/summaries/${id}`).then((r) => r.data),
 
   generate: (period: "daily" | "weekly") =>
@@ -76,6 +81,55 @@ export const summariesApi = {
 // Dashboard
 export const dashboardApi = {
   stats: () => apiClient.get<DashboardStats>("/dashboard/stats").then((r) => r.data),
+};
+
+// MTProto
+export interface MTProtoChannelInfo {
+  id: string;
+  title: string;
+  username: string | null;
+  participantsCount: number | null;
+  accessHash: string;
+  isAlreadyTracked: boolean;
+}
+
+export const mtprotoApi = {
+  getStatus: () =>
+    apiClient.get<{ hasActiveSession: boolean }>("/mtproto/status").then((r) => r.data),
+
+  sendCode: (phoneNumber: string) =>
+    apiClient
+      .post<{ phoneCodeHash: string; sessionString: string }>("/mtproto/auth/send-code", {
+        phoneNumber,
+      })
+      .then((r) => r.data),
+
+  verify: (data: {
+    phoneNumber: string;
+    phoneCode: string;
+    phoneCodeHash: string;
+    sessionString: string;
+    password?: string;
+  }) =>
+    apiClient
+      .post<{ success?: boolean; needs2FA?: boolean }>("/mtproto/auth/verify", data)
+      .then((r) => r.data),
+
+  disconnect: () => apiClient.post("/mtproto/auth/disconnect"),
+
+  listChannels: () => apiClient.get<MTProtoChannelInfo[]>("/mtproto/channels").then((r) => r.data),
+
+  bulkAdd: (
+    channels: Array<{
+      telegramId: string;
+      title: string;
+      username?: string | null;
+      accessHash: string;
+    }>
+  ) =>
+    apiClient
+      .post<{ added: number; errors: string[] }>("/mtproto/channels/bulk", { channels })
+      .then((r) => r.data),
 };
 
 // Profile & Preferences
