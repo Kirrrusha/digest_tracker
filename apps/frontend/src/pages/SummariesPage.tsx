@@ -54,27 +54,27 @@ function SummaryCard({
   const sources = summaryDetail?.sources ?? [];
 
   return (
-    <div className="bg-[#142035] border border-[#1e3050] rounded-xl p-6">
+    <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6">
       <div className="flex items-start justify-between mb-4">
         <div>
           <h3 className="font-semibold text-white text-lg">{summary.title}</h3>
           <p className="text-sm text-slate-400 mt-0.5">{formatSummaryDate(summary.period)}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0 ml-4">
-          <button className="p-2 rounded-lg hover:bg-[#1e3050] text-slate-400 hover:text-white transition-colors">
+          <button className="p-2 rounded-lg hover:bg-[var(--border)] text-slate-400 hover:text-white transition-colors">
             <Share2 size={16} />
           </button>
-          <button className="p-2 rounded-lg hover:bg-[#1e3050] text-slate-400 hover:text-white transition-colors">
+          <button className="p-2 rounded-lg hover:bg-[var(--border)] text-slate-400 hover:text-white transition-colors">
             <Download size={16} />
           </button>
         </div>
       </div>
 
-      <div className="border-t border-[#1e3050] pt-4">
+      <div className="border-t border-[var(--border)] pt-4">
         <MarkdownContent content={summary.content} className="text-sm" />
       </div>
 
-      <div className="border-t border-[#1e3050] mt-4 pt-3">
+      <div className="border-t border-[var(--border)] mt-4 pt-3">
         <div className="flex items-center justify-between">
           <button
             onClick={() => setShowSources(!showSources)}
@@ -130,7 +130,7 @@ function SummaryCard({
         )}
       </div>
 
-      <div className="flex gap-3 mt-3 pt-3 border-t border-[#1e3050]">
+      <div className="flex gap-3 mt-3 pt-3 border-t border-[var(--border)]">
         <button
           onClick={onRegenerate}
           className="text-xs text-slate-400 hover:text-blue-400 transition-colors"
@@ -219,7 +219,7 @@ export function SummariesPage() {
       {/* Period filter */}
       <div className="flex items-center gap-3 mt-5 mb-4">
         <Calendar size={18} className="text-slate-400 shrink-0" />
-        <div className="flex items-center gap-1 bg-[#142035] border border-[#1e3050] rounded-lg p-1">
+        <div className="flex items-center gap-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg p-1">
           {(Object.keys(PERIOD_LABELS) as PeriodFilter[]).map((p) => (
             <button
               key={p}
@@ -243,7 +243,7 @@ export function SummariesPage() {
             className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
               topicFilter === t
                 ? "bg-blue-600 text-white"
-                : "bg-[#142035] border border-[#1e3050] text-slate-400 hover:text-white hover:border-blue-500/50"
+                : "bg-[var(--surface)] border border-[var(--border)] text-slate-400 hover:text-white hover:border-blue-500/50"
             }`}
           >
             {t}
@@ -256,7 +256,7 @@ export function SummariesPage() {
           {[1, 2].map((i) => (
             <div
               key={i}
-              className="bg-[#142035] border border-[#1e3050] rounded-xl p-6 animate-pulse h-48"
+              className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6 animate-pulse h-48"
             />
           ))}
         </div>
@@ -278,14 +278,14 @@ export function SummariesPage() {
       {/* Delete confirm modal */}
       {confirmDelete && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-[#142035] border border-[#1e3050] rounded-xl p-6 w-80 shadow-2xl">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6 w-80 shadow-2xl">
             <h2 className="text-lg font-semibold text-white mb-2">Удалить саммари?</h2>
             <p className="text-sm text-slate-400 mb-4">Это действие нельзя отменить.</p>
             <div className="flex gap-2">
               <button
                 onClick={() => setConfirmDelete(null)}
                 disabled={deleteMutation.isPending}
-                className="flex-1 py-2 text-sm border border-[#1e3050] text-slate-300 rounded-lg hover:bg-[#1e3050] disabled:opacity-50 transition-colors"
+                className="flex-1 py-2 text-sm border border-[var(--border)] text-slate-300 rounded-lg hover:bg-[var(--border)] disabled:opacity-50 transition-colors"
               >
                 Отмена
               </button>
@@ -308,7 +308,7 @@ export function SummariesPage() {
       {/* Regenerate confirm modal */}
       {confirmRegenerate && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-[#142035] border border-[#1e3050] rounded-xl p-6 w-80 shadow-2xl">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6 w-80 shadow-2xl">
             <h2 className="text-lg font-semibold text-white mb-2">Перегенерировать саммари?</h2>
             <p className="text-sm text-slate-400 mb-4">
               Текущий текст будет заменён новым. Посты останутся те же.
@@ -317,7 +317,7 @@ export function SummariesPage() {
               <button
                 onClick={() => setConfirmRegenerate(null)}
                 disabled={regenerateMutation.isPending}
-                className="flex-1 py-2 text-sm border border-[#1e3050] text-slate-300 rounded-lg hover:bg-[#1e3050] disabled:opacity-50 transition-colors"
+                className="flex-1 py-2 text-sm border border-[var(--border)] text-slate-300 rounded-lg hover:bg-[var(--border)] disabled:opacity-50 transition-colors"
               >
                 Отмена
               </button>
@@ -340,7 +340,7 @@ export function SummariesPage() {
       {/* Generate dialog */}
       {showDialog && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-[#142035] border border-[#1e3050] rounded-xl p-6 w-80 shadow-2xl">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6 w-80 shadow-2xl">
             <h2 className="text-lg font-semibold text-white mb-4">Тип саммари</h2>
             {generateMutation.isError && (
               <p className="text-sm text-red-400 mb-3">
@@ -351,7 +351,7 @@ export function SummariesPage() {
               <button
                 onClick={() => generateMutation.mutate("daily")}
                 disabled={generateMutation.isPending}
-                className="w-full py-3 px-4 border border-[#1e3050] rounded-lg text-left hover:bg-[#1e3050] disabled:opacity-50 transition-colors"
+                className="w-full py-3 px-4 border border-[var(--border)] rounded-lg text-left hover:bg-[var(--border)] disabled:opacity-50 transition-colors"
               >
                 <div className="font-medium text-white">Дневное</div>
                 <div className="text-xs text-slate-400">Посты за сегодня</div>
@@ -359,7 +359,7 @@ export function SummariesPage() {
               <button
                 onClick={() => generateMutation.mutate("weekly")}
                 disabled={generateMutation.isPending}
-                className="w-full py-3 px-4 border border-[#1e3050] rounded-lg text-left hover:bg-[#1e3050] disabled:opacity-50 transition-colors"
+                className="w-full py-3 px-4 border border-[var(--border)] rounded-lg text-left hover:bg-[var(--border)] disabled:opacity-50 transition-colors"
               >
                 <div className="font-medium text-white">Недельное</div>
                 <div className="text-xs text-slate-400">Посты за текущую неделю</div>

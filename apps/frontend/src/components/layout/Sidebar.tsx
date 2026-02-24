@@ -1,7 +1,8 @@
-import { FileText, LayoutDashboard, LogOut, Radio, Settings, Sun } from "lucide-react";
+import { FileText, LayoutDashboard, LogOut, Moon, Radio, Settings, Sun } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 import { useAuthStore } from "../../stores/auth.store";
+import { useThemeStore } from "../../stores/theme.store";
 
 const nav = [
   { to: "/dashboard", label: "Главная", icon: LayoutDashboard },
@@ -13,6 +14,8 @@ const nav = [
 export function Sidebar() {
   const logout = useAuthStore((s) => s.logout);
   const user = useAuthStore((s) => s.user);
+  const isDark = useThemeStore((s) => s.isDark);
+  const toggleTheme = useThemeStore((s) => s.toggle);
 
   const initials = user?.name
     ? user.name
@@ -24,8 +27,8 @@ export function Sidebar() {
     : "?";
 
   return (
-    <aside className="w-56 bg-[#0d1629] border-r border-[#1e3050] flex flex-col shrink-0">
-      <div className="p-4 border-b border-[#1e3050] flex items-center gap-2.5">
+    <aside className="w-56 bg-[var(--bg)] border-r border-[var(--border)] flex flex-col shrink-0">
+      <div className="p-4 border-b border-[var(--border)] flex items-center gap-2.5">
         <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shrink-0">
           <FileText size={15} className="text-white" />
         </div>
@@ -41,7 +44,7 @@ export function Sidebar() {
               `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
                 isActive
                   ? "bg-blue-600 text-white font-medium"
-                  : "text-slate-400 hover:bg-[#142035] hover:text-white"
+                  : "text-slate-400 hover:bg-[var(--surface)] hover:text-white"
               }`
             }
           >
@@ -51,10 +54,13 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="p-3 border-t border-[#1e3050] space-y-1">
-        <button className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-sm text-slate-400 hover:bg-[#142035] hover:text-white transition-colors">
-          <Sun size={16} />
-          Светлая тема
+      <div className="p-3 border-t border-[var(--border)] space-y-1">
+        <button
+          onClick={toggleTheme}
+          className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-sm text-slate-400 hover:bg-[var(--surface)] hover:text-white transition-colors"
+        >
+          {isDark ? <Sun size={16} /> : <Moon size={16} />}
+          {isDark ? "Светлая тема" : "Тёмная тема"}
         </button>
         <div className="flex items-center gap-3 px-3 py-2">
           <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-semibold shrink-0">
@@ -69,7 +75,7 @@ export function Sidebar() {
         </div>
         <button
           onClick={logout}
-          className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-sm text-slate-400 hover:bg-[#142035] hover:text-red-400 transition-colors"
+          className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-sm text-slate-400 hover:bg-[var(--surface)] hover:text-red-400 transition-colors"
         >
           <LogOut size={16} />
           Выйти

@@ -109,7 +109,7 @@ export function SettingsPage() {
     return (
       <div className="animate-pulse space-y-4">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-10 bg-[#142035] rounded-lg" />
+          <div key={i} className="h-10 bg-[var(--surface)] rounded-lg" />
         ))}
       </div>
     );
@@ -123,7 +123,7 @@ export function SettingsPage() {
         </p>
       </div>
 
-      <div className="flex border-b border-[#1e3050] mb-6">
+      <div className="flex border-b border-[var(--border)] mb-6">
         {TABS.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -144,25 +144,49 @@ export function SettingsPage() {
         <div className="space-y-4">
           <TelegramConnect hasActiveSession={mtprotoStatus?.hasActiveSession ?? false} />
           {mtprotoStatus?.hasActiveSession && (
-            <div className="bg-[#142035] border border-[#1e3050] rounded-xl p-4 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-white">Мои Telegram каналы</p>
-                <p className="text-xs text-slate-400 mt-0.5">Добавьте каналы из вашего Telegram</p>
+            <>
+              <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-white">Мои Telegram каналы</p>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Добавьте каналы из вашего Telegram
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowChannelBrowser(true)}
+                  className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-blue-700 transition-colors"
+                >
+                  Добавить каналы
+                </button>
               </div>
-              <button
-                onClick={() => setShowChannelBrowser(true)}
-                className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-blue-700 transition-colors"
-              >
-                Добавить каналы
-              </button>
-            </div>
+              <div className="bg-(--surface) border border-(--border) rounded-xl p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-white">Помечать сообщения прочитанными</p>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    При синхронизации канала автоматически отмечать сообщения прочитанными в
+                    Telegram
+                  </p>
+                </div>
+                <button
+                  onClick={() =>
+                    mutation.mutate({ markTelegramAsRead: !prefs?.markTelegramAsRead })
+                  }
+                  disabled={mutation.isPending}
+                  className={`w-10 h-5 rounded-full transition-colors relative shrink-0 disabled:opacity-50 ${prefs?.markTelegramAsRead ? "bg-blue-600" : "bg-slate-600"}`}
+                >
+                  <span
+                    className={`absolute left-0 top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${prefs?.markTelegramAsRead ? "translate-x-5" : "translate-x-0.5"}`}
+                  />
+                </button>
+              </div>
+            </>
           )}
         </div>
       )}
 
       {activeTab === "preferences" && (
         <div className="space-y-6">
-          <div className="bg-[#142035] border border-[#1e3050] rounded-xl p-6">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6">
             <h3 className="text-base font-semibold text-white mb-1">Интересующие темы</h3>
             <p className="text-sm text-slate-400 mb-4">Выберите темы для персонализации контента</p>
             <div className="grid grid-cols-4 gap-2">
@@ -175,7 +199,7 @@ export function SettingsPage() {
                     className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition-colors text-left ${
                       checked
                         ? "border-blue-500 bg-blue-500/10 text-white"
-                        : "border-[#1e3050] text-slate-400 hover:border-slate-500 hover:text-white"
+                        : "border-[var(--border)] text-slate-400 hover:border-slate-500 hover:text-white"
                     }`}
                   >
                     <div
@@ -202,13 +226,13 @@ export function SettingsPage() {
             </div>
           </div>
 
-          <div className="bg-[#142035] border border-[#1e3050] rounded-xl p-6">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6">
             <h3 className="text-base font-semibold text-white mb-4">Частота саммари</h3>
             <div className="space-y-2">
               {FREQUENCY_OPTIONS.map(({ value, label }) => (
                 <label
                   key={value}
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg border border-[#1e3050] cursor-pointer hover:border-slate-600 transition-colors"
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg border border-[var(--border)] cursor-pointer hover:border-slate-600 transition-colors"
                 >
                   <div
                     className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
@@ -233,12 +257,12 @@ export function SettingsPage() {
             </div>
           </div>
 
-          <div className="bg-[#142035] border border-[#1e3050] rounded-xl p-6">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6">
             <h3 className="text-base font-semibold text-white mb-4">Язык</h3>
             <select
               value={selectedLanguage}
               onChange={(e) => setLocalLanguage(e.target.value)}
-              className="w-full bg-[#0d1629] border border-[#1e3050] rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-blue-500 transition-colors"
+              className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-blue-500 transition-colors"
             >
               <option value="ru">Русский</option>
               <option value="en">English</option>
@@ -249,7 +273,7 @@ export function SettingsPage() {
             <button
               onClick={handleCancel}
               disabled={mutation.isPending}
-              className="px-5 py-2.5 text-sm text-slate-300 border border-[#1e3050] rounded-lg hover:bg-[#142035] disabled:opacity-50 transition-colors"
+              className="px-5 py-2.5 text-sm text-slate-300 border border-[var(--border)] rounded-lg hover:bg-[var(--surface)] disabled:opacity-50 transition-colors"
             >
               Отмена
             </button>
@@ -265,7 +289,7 @@ export function SettingsPage() {
       )}
 
       {activeTab === "notifications" && (
-        <div className="bg-[#142035] border border-[#1e3050] rounded-xl p-6 space-y-4">
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6 space-y-4">
           {[
             {
               key: "telegramNotifications" as const,
@@ -298,14 +322,14 @@ export function SettingsPage() {
                   />
                 </button>
               </div>
-              {i < arr.length - 1 && <div className="border-t border-[#1e3050] mt-4" />}
+              {i < arr.length - 1 && <div className="border-t border-[var(--border)] mt-4" />}
             </div>
           ))}
         </div>
       )}
 
       {activeTab === "api" && (
-        <div className="bg-[#142035] border border-[#1e3050] rounded-xl p-6">
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6">
           <h3 className="text-base font-semibold text-white mb-2">API доступ</h3>
           <p className="text-sm text-slate-400">
             Управление API ключами и интеграциями — в разработке.
@@ -315,8 +339,8 @@ export function SettingsPage() {
 
       {showChannelBrowser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="bg-[#142035] border border-[#1e3050] rounded-xl shadow-2xl w-full max-w-lg mx-4">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e3050]">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-2xl w-full max-w-lg mx-4">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
               <h2 className="text-base font-semibold text-white">Мои Telegram каналы</h2>
               <button
                 onClick={() => setShowChannelBrowser(false)}

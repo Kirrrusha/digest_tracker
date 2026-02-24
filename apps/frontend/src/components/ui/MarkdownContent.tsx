@@ -9,12 +9,7 @@ interface MarkdownContentProps {
 
 export function MarkdownContent({ content, className }: MarkdownContentProps) {
   return (
-    <div
-      className={cn(
-        "prose prose-sm dark:prose-invert max-w-none prose-headings:text-white prose-p:text-slate-300 prose-li:text-slate-300 prose-strong:text-white",
-        className
-      )}
-    >
+    <div className={cn("prose prose-sm max-w-none", className)}>
       <ReactMarkdown>{content}</ReactMarkdown>
     </div>
   );

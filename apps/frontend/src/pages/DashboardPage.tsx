@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 
 import { api } from "../api/client";
 import { summariesApi } from "../api/summaries";
+import { MarkdownContent } from "../components/ui/MarkdownContent";
 import { useAuthStore } from "../stores/auth.store";
 
 interface TopTopic {
@@ -60,65 +61,29 @@ function formatSummaryDate(period: string): string {
   return period;
 }
 
-function parseSummaryContent(content: string) {
-  const lines = content.split("\n").filter((l) => l.trim());
-  const sections: Array<{ header: string; items: string[] }> = [];
-  let current: { header: string; items: string[] } | null = null;
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (trimmed.startsWith("•") || trimmed.startsWith("-") || trimmed.startsWith("*")) {
-      if (current) {
-        current.items.push(trimmed.replace(/^[•\-*]\s*/, ""));
-      }
-    } else if (trimmed) {
-      if (current) sections.push(current);
-      current = { header: trimmed, items: [] };
-    }
-  }
-  if (current) sections.push(current);
-  return sections;
-}
-
 function SummaryCard({ summary }: { summary: Summary }) {
-  const sections = parseSummaryContent(summary.content);
-
   return (
-    <div className="bg-[#142035] border border-[#1e3050] rounded-xl p-6">
+    <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6">
       <div className="flex items-start justify-between mb-4">
         <div>
           <h3 className="font-semibold text-white text-lg">{summary.title}</h3>
           <p className="text-sm text-slate-400 mt-0.5">{formatSummaryDate(summary.period)}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0 ml-4">
-          <button className="p-2 rounded-lg hover:bg-[#1e3050] text-slate-400 hover:text-white transition-colors">
+          <button className="p-2 rounded-lg hover:bg-[var(--border)] text-slate-400 hover:text-white transition-colors">
             <Share2 size={16} />
           </button>
-          <button className="p-2 rounded-lg hover:bg-[#1e3050] text-slate-400 hover:text-white transition-colors">
+          <button className="p-2 rounded-lg hover:bg-[var(--border)] text-slate-400 hover:text-white transition-colors">
             <Download size={16} />
           </button>
         </div>
       </div>
 
-      <div className="border-t border-[#1e3050] pt-4 space-y-4">
-        {sections.slice(0, 3).map((section, i) => (
-          <div key={i}>
-            <p className="font-semibold text-white mb-2">{section.header}</p>
-            {section.items.length > 0 && (
-              <ul className="space-y-1">
-                {section.items.map((item, j) => (
-                  <li key={j} className="text-sm text-slate-300 flex gap-2">
-                    <span className="text-slate-500 shrink-0">•</span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        ))}
+      <div className="border-t border-[var(--border)] pt-4">
+        <MarkdownContent content={summary.content} />
       </div>
 
-      <div className="border-t border-[#1e3050] mt-4 pt-3 flex items-center justify-between">
+      <div className="border-t border-[var(--border)] mt-4 pt-3 flex items-center justify-between">
         <button className="text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-1">
           Источники ({summary.postsCount}) <span className="text-slate-500">›</span>
         </button>
@@ -155,7 +120,7 @@ function RecentPostItem({ post }: { post: RecentPost }) {
   const initial = post.channelName?.[0]?.toUpperCase() ?? "?";
   return (
     <Link to={`/posts/${post.id}`} className="block">
-      <div className="bg-[#142035] border border-[#1e3050] rounded-xl p-4 flex items-center gap-4 hover:border-blue-500/40 transition-colors">
+      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 flex items-center gap-4 hover:border-blue-500/40 transition-colors">
         <div className="w-9 h-9 rounded-full bg-purple-600 flex items-center justify-center text-white text-sm font-semibold shrink-0">
           {initial}
         </div>
@@ -165,7 +130,10 @@ function RecentPostItem({ post }: { post: RecentPost }) {
           <div className="flex items-center gap-2 mt-1.5">
             <span className="text-xs text-slate-500">{formatTimeAgo(post.publishedAt)}</span>
             {post.topics?.map((t) => (
-              <span key={t} className="text-xs bg-[#1e3050] text-slate-300 px-2 py-0.5 rounded">
+              <span
+                key={t}
+                className="text-xs bg-[var(--border)] text-slate-300 px-2 py-0.5 rounded"
+              >
                 {t}
               </span>
             ))}

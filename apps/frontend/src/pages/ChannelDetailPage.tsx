@@ -39,8 +39,8 @@ export function ChannelDetailPage() {
   if (channelLoading) {
     return (
       <div className="animate-pulse space-y-4 max-w-3xl">
-        <div className="h-6 bg-[#142035] rounded w-32" />
-        <div className="h-24 bg-[#142035] rounded-xl" />
+        <div className="h-6 bg-[var(--surface)] rounded w-32" />
+        <div className="h-24 bg-[var(--surface)] rounded-xl" />
       </div>
     );
   }
@@ -62,7 +62,7 @@ export function ChannelDetailPage() {
         Назад к каналам
       </Link>
 
-      <div className="bg-[#142035] border border-[#1e3050] rounded-xl p-6 mb-6">
+      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6 mb-6">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xl shrink-0">
             {channelInitial(channel.name)}
@@ -82,7 +82,7 @@ export function ChannelDetailPage() {
         </div>
 
         <div className="flex items-center gap-3 mt-4 flex-wrap">
-          <span className="text-xs bg-[#1e3050] text-slate-300 px-2.5 py-1 rounded-full">
+          <span className="text-xs bg-[var(--border)] text-slate-300 px-2.5 py-1 rounded-full">
             {isTelegram ? "Telegram" : "RSS"}
           </span>
           <span className="text-sm text-slate-400">{channel.postsCount} постов</span>
@@ -101,7 +101,7 @@ export function ChannelDetailPage() {
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
-              className="bg-[#142035] border border-[#1e3050] rounded-xl p-4 animate-pulse h-20"
+              className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 animate-pulse h-20"
             />
           ))}
         </div>
@@ -113,7 +113,7 @@ export function ChannelDetailPage() {
             <Link
               key={post.id}
               to={`/posts/${post.id}`}
-              className="block bg-[#142035] border border-[#1e3050] rounded-xl p-4 hover:border-blue-500/40 transition-colors"
+              className="block bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 hover:border-blue-500/40 transition-colors"
             >
               <p className="font-medium text-white">{post.title || "Без заголовка"}</p>
               {post.contentPreview && (

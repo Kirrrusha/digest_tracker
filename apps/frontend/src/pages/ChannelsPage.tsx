@@ -147,7 +147,7 @@ export function ChannelsPage() {
             onClick={handleSyncAll}
             disabled={syncingAll || channels.length === 0}
             title="Обновить все каналы"
-            className="flex items-center gap-2 border border-[#1e3050] text-slate-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#142035] disabled:opacity-40 transition-colors"
+            className="flex items-center gap-2 border border-[var(--border)] text-slate-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--surface)] disabled:opacity-40 transition-colors"
           >
             <RefreshCw size={15} className={syncingAll ? "animate-spin" : ""} />
             Обновить все
@@ -163,7 +163,7 @@ export function ChannelsPage() {
       </div>
 
       <div className="flex items-center gap-3 mb-6">
-        <div className="flex items-center gap-1 bg-[#142035] border border-[#1e3050] rounded-lg p-1">
+        <div className="flex items-center gap-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg p-1">
           {(["all", "telegram", "rss"] as TypeFilter[]).map((f) => (
             <button
               key={f}
@@ -183,7 +183,7 @@ export function ChannelsPage() {
             placeholder="Поиск каналов..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-[#142035] border border-[#1e3050] rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500 transition-colors"
+            className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500 transition-colors"
           />
         </div>
       </div>
@@ -193,7 +193,7 @@ export function ChannelsPage() {
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <div
               key={i}
-              className="bg-[#142035] border border-[#1e3050] rounded-xl p-5 animate-pulse h-40"
+              className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 animate-pulse h-40"
             />
           ))}
         </div>
@@ -212,7 +212,7 @@ export function ChannelsPage() {
             return (
               <div
                 key={ch.id}
-                className="bg-[#142035] border border-[#1e3050] rounded-xl p-5 hover:border-blue-500/40 transition-colors"
+                className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 hover:border-blue-500/40 transition-colors"
               >
                 <div className="flex items-start gap-3 mb-3">
                   <Link
@@ -234,25 +234,25 @@ export function ChannelsPage() {
                       onClick={() => handleSync(ch)}
                       disabled={syncingId === ch.id}
                       title="Синхронизировать"
-                      className="p-1.5 rounded-lg text-slate-500 hover:text-blue-400 hover:bg-[#1e3050] transition-colors disabled:opacity-40"
+                      className="p-1.5 rounded-lg text-slate-500 hover:text-blue-400 hover:bg-[var(--border)] transition-colors disabled:opacity-40"
                     >
                       <RefreshCw size={14} className={syncingId === ch.id ? "animate-spin" : ""} />
                     </button>
                     <button
                       onClick={() => removeMutation.mutate(ch.id)}
                       disabled={syncingAll || removeMutation.isPending}
-                      className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-[#1e3050] transition-colors disabled:opacity-40"
+                      className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-[var(--border)] transition-colors disabled:opacity-40"
                     >
                       <Trash2 size={14} />
                     </button>
-                    <button className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-[#1e3050] transition-colors">
+                    <button className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-[var(--border)] transition-colors">
                       <MoreVertical size={14} />
                     </button>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs bg-[#1e3050] text-slate-300 px-2 py-0.5 rounded">
+                  <span className="text-xs bg-[var(--border)] text-slate-300 px-2 py-0.5 rounded">
                     {typeLabel}
                   </span>
                 </div>
@@ -269,8 +269,8 @@ export function ChannelsPage() {
 
       {showDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="bg-[#142035] border border-[#1e3050] rounded-xl shadow-2xl w-full max-w-lg mx-4">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e3050]">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-2xl w-full max-w-lg mx-4">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
               <h2 className="text-base font-semibold text-white">Добавить канал</h2>
               <button
                 onClick={() => setShowDialog(false)}
@@ -280,7 +280,7 @@ export function ChannelsPage() {
               </button>
             </div>
 
-            <div className="flex border-b border-[#1e3050]">
+            <div className="flex border-b border-[var(--border)]">
               <button
                 className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
                   activeTab === "url"
@@ -312,7 +312,7 @@ export function ChannelsPage() {
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && addMutation.mutate()}
-                    className="flex-1 bg-[#0d1629] border border-[#1e3050] rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500"
+                    className="flex-1 bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500"
                     autoFocus
                   />
                   <button

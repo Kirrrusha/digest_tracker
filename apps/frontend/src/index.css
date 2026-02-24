@@ -1,2 +1,97 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
+
+/* ── Theme color tokens ───────────────────────────────────────── */
+:root {
+  --bg: #0d1629;
+  --surface: #142035;
+  --border: #1e3050;
+}
+
+html.light {
+  --bg: #f0f4f8;
+  --surface: #ffffff;
+  --border: #e2e8f0;
+}
+
+/* ── Light-mode text overrides ────────────────────────────────── */
+
+/* Default: flip white text to near-black */
+html.light .text-white {
+  color: #0f172a;
+}
+
+/* Keep white on same-element colored backgrounds */
+html.light [class*="bg-blue-"].text-white,
+html.light [class*="bg-purple-"].text-white,
+html.light [class*="bg-green-"].text-white,
+html.light [class*="bg-rose-"].text-white,
+html.light [class*="bg-amber-"].text-white,
+html.light [class*="bg-pink-"].text-white,
+html.light [class*="bg-cyan-"].text-white,
+html.light [class*="bg-red-"].text-white,
+html.light [class*="bg-slate-"].text-white,
+/* Keep white on child elements inside colored backgrounds */
+html.light [class*="bg-blue-"] .text-white,
+html.light [class*="bg-purple-"] .text-white,
+html.light [class*="bg-green-"] .text-white,
+html.light [class*="bg-rose-"] .text-white,
+html.light [class*="bg-amber-"] .text-white,
+html.light [class*="bg-pink-"] .text-white,
+html.light [class*="bg-cyan-"] .text-white,
+html.light [class*="bg-red-"] .text-white,
+html.light [class*="bg-slate-"] .text-white {
+  color: white;
+}
+
+/* Fix hover:text-white on light hover backgrounds */
+html.light .hover\:text-white:hover {
+  color: #0f172a;
+}
+
+/* slate-300 is too light on white; darken it */
+html.light .text-slate-300 {
+  color: #374151;
+}
+
+/* ── Prose theme tokens ────────────────────────────────────────── */
+
+/* Dark (default) */
+.prose {
+  --tw-prose-body: #cbd5e1;
+  --tw-prose-headings: #ffffff;
+  --tw-prose-lead: #94a3b8;
+  --tw-prose-links: #60a5fa;
+  --tw-prose-bold: #ffffff;
+  --tw-prose-counters: #94a3b8;
+  --tw-prose-bullets: #475569;
+  --tw-prose-hr: #1e3050;
+  --tw-prose-quotes: #e2e8f0;
+  --tw-prose-quote-borders: #1e3050;
+  --tw-prose-captions: #94a3b8;
+  --tw-prose-code: #e2e8f0;
+  --tw-prose-pre-code: #e2e8f0;
+  --tw-prose-pre-bg: #0d1629;
+  --tw-prose-th-borders: #1e3050;
+  --tw-prose-td-borders: #1e3050;
+}
+
+/* Light */
+html.light .prose {
+  --tw-prose-body: #374151;
+  --tw-prose-headings: #0f172a;
+  --tw-prose-lead: #6b7280;
+  --tw-prose-links: #2563eb;
+  --tw-prose-bold: #0f172a;
+  --tw-prose-counters: #6b7280;
+  --tw-prose-bullets: #9ca3af;
+  --tw-prose-hr: #e5e7eb;
+  --tw-prose-quotes: #374151;
+  --tw-prose-quote-borders: #d1d5db;
+  --tw-prose-captions: #6b7280;
+  --tw-prose-code: #0f172a;
+  --tw-prose-pre-code: #e2e8f0;
+  --tw-prose-pre-bg: #1f2937;
+  --tw-prose-th-borders: #d1d5db;
+  --tw-prose-td-borders: #e5e7eb;
+}
