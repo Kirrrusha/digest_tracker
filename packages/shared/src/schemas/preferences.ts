@@ -9,4 +9,5 @@ export const updatePreferencesSchema = z.object({
   telegramNotifications: z.boolean().optional(),
   notifyOnNewSummary: z.boolean().optional(),
   notifyOnNewPosts: z.boolean().optional(),
+  markTelegramAsRead: z.boolean().optional(),
 });

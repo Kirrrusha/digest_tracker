@@ -22,6 +22,7 @@ export class PreferencesService {
       telegramNotifications: prefs.telegramNotifications,
       notifyOnNewSummary: prefs.notifyOnNewSummary,
       notifyOnNewPosts: prefs.notifyOnNewPosts,
+      markTelegramAsRead: prefs.markTelegramAsRead,
     };
   }
 
@@ -40,6 +41,7 @@ export class PreferencesService {
       telegramNotifications: prefs.telegramNotifications,
       notifyOnNewSummary: prefs.notifyOnNewSummary,
       notifyOnNewPosts: prefs.notifyOnNewPosts,
+      markTelegramAsRead: prefs.markTelegramAsRead,
     };
   }
 }

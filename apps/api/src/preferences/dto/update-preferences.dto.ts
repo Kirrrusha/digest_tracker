@@ -42,4 +42,9 @@ export class UpdatePreferencesDto {
   @IsOptional()
   @IsBoolean()
   notifyOnNewPosts?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  markTelegramAsRead?: boolean;
 }

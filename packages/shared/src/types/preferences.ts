@@ -7,4 +7,5 @@ export interface UserPreferences {
   telegramNotifications: boolean;
   notifyOnNewSummary: boolean;
   notifyOnNewPosts: boolean;
+  markTelegramAsRead: boolean;
 }
