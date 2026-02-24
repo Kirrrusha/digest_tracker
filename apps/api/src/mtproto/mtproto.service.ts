@@ -338,6 +338,20 @@ export class MtprotoService {
         skipDuplicates: true,
       });
 
+      const prefs = await this.prisma.userPreferences.findUnique({ where: { userId } });
+      if (prefs?.markTelegramAsRead && messages.length > 0) {
+        const maxId = Math.max(
+          ...messages.filter((m): m is Api.Message => m instanceof Api.Message).map((m) => m.id)
+        );
+        if (maxId > 0) {
+          try {
+            await client.invoke(new Api.channels.ReadHistory({ channel: peer, maxId }));
+          } catch (e) {
+            this.logger.warn(`ReadHistory failed: ${(e as Error)?.message}`);
+          }
+        }
+      }
+
       await this.prisma.mTProtoSession.update({
         where: { userId },
         data: { lastUsedAt: new Date() },
