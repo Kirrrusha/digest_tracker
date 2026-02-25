@@ -70,7 +70,7 @@ export function Sidebar() {
             <p className="text-sm font-medium text-white truncate">
               {user?.name ?? "Пользователь"}
             </p>
-            <p className="text-xs text-slate-500 truncate">{user?.email ?? ""}</p>
+            <p className="text-xs text-slate-500 truncate">{user?.login ?? ""}</p>
           </div>
         </div>
         <button

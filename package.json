@@ -2,6 +2,7 @@
   "name": "devdigest-monorepo",
   "private": true,
   "scripts": {
+    "dev": "concurrently \"pnpm run api:dev\" \"pnpm run frontend:dev\"",
     "mobile:start": "pnpm --filter @devdigest/mobile start",
     "mobile:ios": "pnpm --filter @devdigest/mobile ios",
     "mobile:android": "pnpm --filter @devdigest/mobile android",
@@ -16,7 +17,7 @@
     "frontend:preview": "pnpm --filter @devdigest/frontend preview",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,md,mdx,json,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,md,mdx,json,css}\"",
-    "deps:reinstall": "rm -rf node_modules && pnpm install",
+    "deps:reinstall": "rm -rf node_modules && pnpm install && pnpm --filter @devdigest/api prisma:generate",
     "prepare": "lefthook install"
   },
   "pnpm": {
@@ -26,12 +27,24 @@
       "esbuild",
       "sharp",
       "unrs-resolver"
+    ],
+    "ignoredBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "bufferutil",
+      "es5-ext",
+      "lefthook",
+      "prisma",
+      "sharp",
+      "unrs-resolver",
+      "utf-8-validate"
     ]
   },
   "devDependencies": {
+    "@ianvs/prettier-plugin-sort-imports": "^4.4.0",
+    "concurrently": "^9.1.2",
     "lefthook": "^1.9.3",
     "prettier": "^3.4.2",
-    "@ianvs/prettier-plugin-sort-imports": "^4.4.0",
     "prettier-plugin-tailwindcss": "^0.6.9"
   },
   "packageManager": "pnpm@10.29.3"
