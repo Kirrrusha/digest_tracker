@@ -34,14 +34,19 @@ export class MtprotoService {
 
   constructor(private prisma: PrismaService) {}
 
-  async sendCode(phoneNumber: string): Promise<{ phoneCodeHash: string; sessionString: string }> {
+  async sendCode(
+    phoneNumber: string
+  ): Promise<{ phoneCodeHash: string; sessionString: string; codeVia: "app" | "sms" | "other" }> {
     const client = createClient();
     try {
       await client.connect();
       const { apiId, apiHash } = getApiCredentials();
-      const { phoneCodeHash } = await client.sendCode({ apiId, apiHash }, phoneNumber);
+      const { phoneCodeHash, isCodeViaApp } = await client.sendCode(
+        { apiId, apiHash },
+        phoneNumber
+      );
       const sessionString = (client.session as StringSession).save();
-      return { phoneCodeHash, sessionString };
+      return { phoneCodeHash, sessionString, codeVia: isCodeViaApp ? "app" : "sms" };
     } catch (error) {
       if (error instanceof errors.FloodWaitError) {
         throw new BadRequestException(`Слишком много попыток. Подождите ${error.seconds} секунд.`);

@@ -19,6 +19,7 @@ export function TelegramConnect({ hasActiveSession }: TelegramConnectProps) {
   const [password, setPassword] = useState("");
   const [sessionString, setSessionString] = useState("");
   const [phoneCodeHash, setPhoneCodeHash] = useState("");
+  const [codeVia, setCodeVia] = useState<"app" | "sms" | "other">("app");
   const [error, setError] = useState<string | null>(null);
 
   const sendCodeMutation = useMutation({
@@ -26,6 +27,7 @@ export function TelegramConnect({ hasActiveSession }: TelegramConnectProps) {
     onSuccess: (data) => {
       setSessionString(data.sessionString);
       setPhoneCodeHash(data.phoneCodeHash);
+      setCodeVia(data.codeVia);
       setError(null);
       setStep("code");
     },
@@ -148,7 +150,17 @@ export function TelegramConnect({ hasActiveSession }: TelegramConnectProps) {
       {step === "code" && (
         <div className="space-y-3">
           <p className="text-sm text-gray-500">
-            Код отправлен на <span className="font-medium text-gray-800">{phone}</span>
+            {codeVia === "app" ? (
+              <>
+                Код отправлен в{" "}
+                <span className="font-medium text-gray-800">приложение Telegram</span> на номер{" "}
+                {phone} — проверьте чат с «Telegram»
+              </>
+            ) : (
+              <>
+                Код отправлен на <span className="font-medium text-gray-800">{phone}</span> по SMS
+              </>
+            )}
           </p>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Код из Telegram</label>
@@ -156,7 +168,7 @@ export function TelegramConnect({ hasActiveSession }: TelegramConnectProps) {
               placeholder="12345"
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && verifyMutation.mutate()}
+              onKeyDown={(e) => e.key === "Enter" && verifyMutation.mutate(undefined)}
               disabled={isPending}
               maxLength={8}
               className="w-full border rounded px-3 py-2 text-sm"
@@ -164,7 +176,7 @@ export function TelegramConnect({ hasActiveSession }: TelegramConnectProps) {
           </div>
           <div className="flex gap-2">
             <button
-              onClick={() => verifyMutation.mutate()}
+              onClick={() => verifyMutation.mutate(undefined)}
               disabled={!code.trim() || isPending}
               className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded text-sm disabled:opacity-50 hover:bg-blue-700"
             >
