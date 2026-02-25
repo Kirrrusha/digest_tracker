@@ -19,9 +19,11 @@ export const mtprotoApi = {
 
   sendCode: (phoneNumber: string) =>
     api
-      .post<{ phoneCodeHash: string; sessionString: string }>("/mtproto/auth/send-code", {
-        phoneNumber,
-      })
+      .post<{
+        phoneCodeHash: string;
+        sessionString: string;
+        codeVia: "app" | "sms" | "other";
+      }>("/mtproto/auth/send-code", { phoneNumber })
       .then((r) => r.data),
 
   verify: (data: {
