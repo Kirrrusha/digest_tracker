@@ -57,7 +57,7 @@ export class AuthService {
     await this.redis.del(`refresh:${userId}:${tokenId}`);
   }
 
-  private async issueTokens(userId: string): Promise<AuthTokens> {
+  async issueTokens(userId: string): Promise<AuthTokens> {
     const tokenId = randomUUID();
     const expiresIn = this.config.get("JWT_REFRESH_EXPIRES_IN", "7d");
     const ttlSeconds = this.parseTtl(expiresIn);

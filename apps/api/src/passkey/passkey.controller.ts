@@ -1,31 +1,71 @@
-import { Controller, Post } from "@nestjs/common";
-import { ApiOperation, ApiTags } from "@nestjs/swagger";
+import { Body, Controller, HttpCode, HttpStatus, Post, Request, UseGuards } from "@nestjs/common";
+import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 
-// TODO: реализовать WebAuthn flow
+import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { PasskeyAuthVerifyDto } from "./dto/passkey-auth-verify.dto";
+import { PasskeyRegisterVerifyDto } from "./dto/passkey-register-verify.dto";
+import { PasskeySignupOptionsDto } from "./dto/passkey-signup-options.dto";
+import { PasskeySignupVerifyDto } from "./dto/passkey-signup-verify.dto";
+import { PasskeyService } from "./passkey.service";
+
 @ApiTags("passkey")
 @Controller("passkey")
 export class PasskeyController {
+  constructor(private passkey: PasskeyService) {}
+
+  // ---------- Registration (requires auth — добавляем passkey к аккаунту) ----------
+
   @Post("register/options")
-  @ApiOperation({ summary: "WebAuthn registration options" })
-  registerOptions() {
-    return { message: "Not implemented" };
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Получить WebAuthn options для регистрации passkey" })
+  registerOptions(@Request() req: { user: { userId: string } }) {
+    return this.passkey.registrationOptions(req.user.userId);
   }
 
   @Post("register/verify")
-  @ApiOperation({ summary: "Создать passkey" })
-  registerVerify() {
-    return { message: "Not implemented" };
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Верифицировать и сохранить passkey" })
+  registerVerify(
+    @Request() req: { user: { userId: string } },
+    @Body() dto: PasskeyRegisterVerifyDto
+  ) {
+    return this.passkey.verifyRegistration(req.user.userId, dto.response, dto.name);
   }
 
+  // ---------- Signup (новые пользователи без пароля, публичные) ----------
+
+  @Post("signup/options")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Получить WebAuthn options для регистрации нового аккаунта через passkey",
+  })
+  signupOptions(@Body() dto: PasskeySignupOptionsDto) {
+    return this.passkey.signupOptions(dto.name);
+  }
+
+  @Post("signup/verify")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Создать аккаунт через passkey и получить токены" })
+  signupVerify(@Body() dto: PasskeySignupVerifyDto) {
+    return this.passkey.verifySignup(dto.challengeId, dto.response);
+  }
+
+  // ---------- Authentication (публичные) ----------
+
   @Post("login/options")
-  @ApiOperation({ summary: "WebAuthn authentication options" })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Получить WebAuthn challenge для входа" })
   loginOptions() {
-    return { message: "Not implemented" };
+    return this.passkey.authenticationOptions();
   }
 
   @Post("login/verify")
-  @ApiOperation({ summary: "Войти через passkey" })
-  loginVerify() {
-    return { message: "Not implemented" };
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Верифицировать passkey и получить токены" })
+  loginVerify(@Body() dto: PasskeyAuthVerifyDto) {
+    return this.passkey.verifyAuthentication(dto.challengeId, dto.response);
   }
 }

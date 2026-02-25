@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { mtprotoApi } from "../api/mtproto";
 import { preferencesApi } from "../api/preferences";
+import { PasskeyRegisterButton } from "../components/auth/PasskeyRegisterButton";
 import { TelegramChannelBrowser } from "../components/TelegramChannelBrowser";
 import { TelegramConnect } from "../components/TelegramConnect";
 
@@ -142,6 +143,15 @@ export function SettingsPage() {
 
       {activeTab === "profile" && (
         <div className="space-y-4">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-white">Ключи доступа (Passkey)</p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Входите без пароля с помощью Touch ID, Face ID или ключа безопасности
+              </p>
+            </div>
+            <PasskeyRegisterButton />
+          </div>
           <TelegramConnect hasActiveSession={mtprotoStatus?.hasActiveSession ?? false} />
           {mtprotoStatus?.hasActiveSession && (
             <>
