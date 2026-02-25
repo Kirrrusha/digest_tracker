@@ -7,9 +7,9 @@ export const summariesApi = {
     api.get<SummariesResponse>("/summaries", { params }).then((r) => r.data),
   topics: () => api.get<string[]>("/summaries/topics").then((r) => r.data),
   get: (id: string) => api.get<Summary>(`/summaries/${id}`).then((r) => r.data),
-  generate: (type: "daily" | "weekly") =>
+  generate: (type: "daily" | "weekly", force?: boolean) =>
     api
-      .post<{ success: boolean; summary: Summary }>("/summaries/generate", { type })
+      .post<{ success: boolean; summary: Summary }>("/summaries/generate", { type, force })
       .then((r) => r.data),
   delete: (id: string) => api.delete(`/summaries/${id}`),
   regenerate: (id: string) =>

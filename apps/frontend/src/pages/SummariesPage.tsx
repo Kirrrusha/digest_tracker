@@ -172,7 +172,8 @@ export function SummariesPage() {
   });
 
   const generateMutation = useMutation({
-    mutationFn: (type: "daily" | "weekly") => summariesApi.generate(type),
+    mutationFn: ({ type, force }: { type: "daily" | "weekly"; force?: boolean }) =>
+      summariesApi.generate(type, force),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["summaries"] });
       setShowDialog(false);
@@ -348,22 +349,36 @@ export function SummariesPage() {
               </p>
             )}
             <div className="space-y-2">
-              <button
-                onClick={() => generateMutation.mutate("daily")}
-                disabled={generateMutation.isPending}
-                className="w-full py-3 px-4 border border-[var(--border)] rounded-lg text-left hover:bg-[var(--border)] disabled:opacity-50 transition-colors"
-              >
-                <div className="font-medium text-white">Дневное</div>
-                <div className="text-xs text-slate-400">Посты за сегодня</div>
-              </button>
-              <button
-                onClick={() => generateMutation.mutate("weekly")}
-                disabled={generateMutation.isPending}
-                className="w-full py-3 px-4 border border-[var(--border)] rounded-lg text-left hover:bg-[var(--border)] disabled:opacity-50 transition-colors"
-              >
-                <div className="font-medium text-white">Недельное</div>
-                <div className="text-xs text-slate-400">Посты за текущую неделю</div>
-              </button>
+              {(
+                [
+                  { type: "daily", label: "Дневное", desc: "Посты за сегодня или последние" },
+                  { type: "weekly", label: "Недельное", desc: "Посты за текущую неделю" },
+                ] as const
+              ).map(({ type, label, desc }) => (
+                <div key={type} className="border border-(--border) rounded-lg overflow-hidden">
+                  <div className="px-4 pt-3 pb-2">
+                    <div className="font-medium text-white text-sm">{label}</div>
+                    <div className="text-xs text-slate-400">{desc}</div>
+                  </div>
+                  <div className="flex border-t border-(--border)">
+                    <button
+                      onClick={() => generateMutation.mutate({ type })}
+                      disabled={generateMutation.isPending}
+                      className="flex-1 py-2 text-xs text-slate-300 hover:bg-(--border) disabled:opacity-50 transition-colors"
+                    >
+                      Создать
+                    </button>
+                    <div className="w-px bg-(--border)" />
+                    <button
+                      onClick={() => generateMutation.mutate({ type, force: true })}
+                      disabled={generateMutation.isPending}
+                      className="flex-1 py-2 text-xs text-blue-400 hover:bg-(--border) disabled:opacity-50 transition-colors"
+                    >
+                      ↻ Перегенерировать
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
             {generateMutation.isPending && (
               <p className="text-sm text-slate-400 mt-3 text-center">Генерируем саммари...</p>

@@ -15,7 +15,8 @@ const SUMMARY_SYSTEM_PROMPT = `Ты — эксперт по программир
 3. Сохраняй технические детали, которые важны для разработчиков
 4. Используй markdown для форматирования
 5. Будь лаконичен, но информативен
-6. Если есть важные ссылки — сохраняй их
+6. Когда упоминаешь конкретный пост, ставь цитату [N] прямо в текст, где N — порядковый номер поста из списка (например: «Samsung выпустила Galaxy S26 [1]» или «вышел TypeScript 5.8 [3][7]»)
+7. НЕ добавляй раздел с источниками — он будет добавлен автоматически
 
 Формат ответа:
 - Используй заголовки ## для основных разделов
@@ -32,7 +33,8 @@ Rules:
 3. Preserve technical details important for developers
 4. Use markdown for formatting
 5. Be concise but informative
-6. Keep important links
+6. When referencing a specific post, insert an inline citation [N] right in the text, where N is the post's number from the list (e.g. "TypeScript 5.8 released [3]" or "new AI tool from Google [1][5]")
+7. Do NOT add a sources section — it will be appended automatically
 
 Response format:
 - Use ## for main sections
@@ -191,6 +193,7 @@ ${postsText}
 3. **Полезные практики** — советы и best practices из постов
 4. **Интересные ресурсы** — ссылки на статьи, репозитории, туториалы
 
+Важно: когда упоминаешь конкретный пост, ставь [N] прямо в текст (например: «вышел React 19 [3]»).
 Формат: используй Markdown с заголовками, списками и выделением важного.`;
   }
 
@@ -209,24 +212,38 @@ Create a summary that includes:
 3. **Useful practices** — tips and best practices from posts
 4. **Interesting resources** — links to articles, repositories, tutorials
 
+Important: when referencing a specific post, insert [N] inline in the text (e.g. "React 19 released [3]").
 Format: use Markdown with headers, lists, and highlight important things.`;
 }
 
 // ---- Sources section ----
 
 function buildSourcesSection(posts: PostForSummary[], language: string): string {
-  const postsWithUrls = posts.filter((p) => p.url);
-  if (postsWithUrls.length === 0) return "";
+  if (posts.length === 0) return "";
 
   const header = language === "ru" ? "\n\n---\n\n## Источники\n\n" : "\n\n---\n\n## Sources\n\n";
-  const links = postsWithUrls
-    .map((p) => {
+  const items = posts
+    .map((p, i) => {
       const label = p.title ? `${p.channelName} — ${p.title}` : p.channelName;
-      return `- [${label}](${p.url})`;
+      return p.url ? `${i + 1}. [${label}](${p.url})` : `${i + 1}. ${label}`;
     })
     .join("\n");
 
-  return header + links;
+  return header + items;
+}
+
+// ---- Citation injection ----
+
+function injectCitationLinks(content: string, posts: PostForSummary[]): string {
+  // Replace [N] (not already followed by a markdown link paren) with [[N]](post_url)
+  return content.replace(/\[(\d+)\](?!\()/g, (match, n) => {
+    const index = parseInt(n, 10) - 1;
+    const post = posts[index];
+    if (post?.url) {
+      return `[[${n}]](${post.url})`;
+    }
+    return match;
+  });
 }
 
 // ---- Service ----
@@ -257,7 +274,7 @@ export class SummarizerService {
     return this.openai;
   }
 
-  async generateDaily(userId: string) {
+  async generateDaily(userId: string, force = false) {
     const today = new Date();
     const startOfDay = new Date(today);
     startOfDay.setHours(0, 0, 0, 0);
@@ -266,9 +283,10 @@ export class SummarizerService {
     const period = `daily-${today.toISOString().split("T")[0]}`;
 
     const existing = await this.prisma.summary.findFirst({ where: { userId, period } });
-    if (existing) return existing;
+    if (existing && !force) return existing;
+    if (existing && force) await this.prisma.summary.delete({ where: { id: existing.id } });
 
-    const posts = await this.prisma.post.findMany({
+    let posts = await this.prisma.post.findMany({
       where: {
         channel: { userId },
         publishedAt: { gte: startOfDay, lte: endOfDay },
@@ -278,7 +296,17 @@ export class SummarizerService {
       take: 50,
     });
 
-    if (posts.length === 0) throw new Error("Нет постов за сегодня");
+    // Fallback: нет постов за сегодня — берём последние 50 постов без ограничения по дате
+    if (posts.length === 0) {
+      posts = await this.prisma.post.findMany({
+        where: { channel: { userId } },
+        include: { channel: { select: { name: true } } },
+        orderBy: { publishedAt: "desc" },
+        take: 50,
+      });
+    }
+
+    if (posts.length === 0) throw new Error("Нет постов для генерации");
 
     const preferences = await this.prisma.userPreferences.findUnique({ where: { userId } });
     const language = preferences?.language || "ru";
@@ -299,21 +327,27 @@ export class SummarizerService {
     });
     const title =
       language === "ru" ? `Саммари за ${todayFormatted}` : `Summary for ${todayFormatted}`;
-    const content = result.content + buildSourcesSection(postsForSummary, language);
+    const citedContent = injectCitationLinks(result.content, postsForSummary);
+    const content = citedContent + buildSourcesSection(postsForSummary, language);
 
     return this.prisma.summary.create({
       data: {
         userId,
         title,
         content,
-        topics: result.topics,
+        topics: {
+          connectOrCreate: result.topics.map((name: string) => ({
+            where: { name },
+            create: { name },
+          })),
+        },
         period,
         posts: { connect: posts.map((p) => ({ id: p.id })) },
       },
     });
   }
 
-  async generateWeekly(userId: string) {
+  async generateWeekly(userId: string, force = false) {
     const today = new Date();
     const weekNumber = getWeekNumber(today);
     const period = `weekly-${today.getFullYear()}-${weekNumber}`;
@@ -326,9 +360,10 @@ export class SummarizerService {
     endOfWeek.setHours(23, 59, 59, 999);
 
     const existing = await this.prisma.summary.findFirst({ where: { userId, period } });
-    if (existing) return existing;
+    if (existing && !force) return existing;
+    if (existing && force) await this.prisma.summary.delete({ where: { id: existing.id } });
 
-    const posts = await this.prisma.post.findMany({
+    let posts = await this.prisma.post.findMany({
       where: {
         channel: { userId },
         publishedAt: { gte: startOfWeek, lte: endOfWeek },
@@ -338,7 +373,17 @@ export class SummarizerService {
       take: 100,
     });
 
-    if (posts.length === 0) throw new Error("Нет постов за эту неделю");
+    // Fallback: нет постов за неделю — берём последние 100 постов без ограничения по дате
+    if (posts.length === 0) {
+      posts = await this.prisma.post.findMany({
+        where: { channel: { userId } },
+        include: { channel: { select: { name: true } } },
+        orderBy: { publishedAt: "desc" },
+        take: 100,
+      });
+    }
+
+    if (posts.length === 0) throw new Error("Нет постов для генерации");
 
     const preferences = await this.prisma.userPreferences.findUnique({ where: { userId } });
     const language = preferences?.language || "ru";
@@ -355,14 +400,20 @@ export class SummarizerService {
     const result = await this.callOpenAI(postsForSummary, language);
     const title =
       language === "en" ? `Weekly Summary #${weekNumber}` : `Недельное саммари #${weekNumber}`;
-    const content = result.content + buildSourcesSection(postsForSummary, language);
+    const citedContent = injectCitationLinks(result.content, postsForSummary);
+    const content = citedContent + buildSourcesSection(postsForSummary, language);
 
     return this.prisma.summary.create({
       data: {
         userId,
         title,
         content,
-        topics: result.topics,
+        topics: {
+          connectOrCreate: result.topics.map((name: string) => ({
+            where: { name },
+            create: { name },
+          })),
+        },
         period,
         posts: { connect: posts.map((p) => ({ id: p.id })) },
       },
@@ -424,11 +475,21 @@ export class SummarizerService {
     }));
 
     const result = await this.callOpenAI(postsForSummary, language);
-    const content = result.content + buildSourcesSection(postsForSummary, language);
+    const citedContent = injectCitationLinks(result.content, postsForSummary);
+    const content = citedContent + buildSourcesSection(postsForSummary, language);
 
     return this.prisma.summary.update({
       where: { id: summaryId },
-      data: { content, topics: result.topics },
+      data: {
+        content,
+        topics: {
+          set: [],
+          connectOrCreate: result.topics.map((name: string) => ({
+            where: { name },
+            create: { name },
+          })),
+        },
+      },
     });
   }
 }
