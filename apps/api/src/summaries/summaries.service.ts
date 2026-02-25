@@ -31,7 +31,7 @@ export class SummariesService {
     const where = {
       userId,
       ...(type ? { period: { startsWith: type } } : {}),
-      ...(topic ? { topics: { has: topic } } : {}),
+      ...(topic ? { topics: { some: { name: topic } } } : {}),
     };
 
     const [total, summaries] = await Promise.all([
@@ -41,7 +41,7 @@ export class SummariesService {
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * limit,
         take: limit,
-        include: { posts: { select: { id: true } } },
+        include: { posts: { select: { id: true } }, topics: { select: { name: true } } },
       }),
     ]);
 
@@ -67,6 +67,7 @@ export class SummariesService {
             channel: { select: { name: true, sourceType: true } },
           },
         },
+        topics: { select: { name: true } },
       },
     });
     if (!s) throw new NotFoundException("Саммари не найдено");
@@ -92,7 +93,9 @@ export class SummariesService {
       where: { userId },
       select: { topics: true },
     });
-    const topics = Array.from(new Set(summaries.flatMap((s) => s.topics))).sort();
+    const topics = Array.from(
+      new Set(summaries.flatMap((s) => s.topics.map((t) => t.name)))
+    ).sort();
     return topics;
   }
 
@@ -107,7 +110,7 @@ export class SummariesService {
     title: string;
     content: string;
     period: string;
-    topics: string[];
+    topics: { name: string }[];
     createdAt: Date;
     posts: { id: string }[];
   }): Summary {
@@ -116,7 +119,7 @@ export class SummariesService {
       title: s.title,
       content: s.content,
       period: s.period,
-      topics: s.topics,
+      topics: s.topics.map((t) => t.name),
       postsCount: s.posts.length,
       createdAt: s.createdAt.toISOString(),
     };

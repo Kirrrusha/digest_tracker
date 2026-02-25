@@ -43,7 +43,7 @@ export class DashboardController {
     const topicCounts: Record<string, number> = {};
     for (const s of allPosts) {
       for (const topic of s.topics) {
-        topicCounts[topic] = (topicCounts[topic] ?? 0) + 1;
+        topicCounts[topic.name] = (topicCounts[topic.name] ?? 0) + 1;
       }
     }
     const topTopics = Object.entries(topicCounts)

@@ -54,14 +54,15 @@ export class SummariesController {
   @ApiOperation({ summary: "Сгенерировать саммари" })
   async generate(
     @Request() req: { user: { userId: string } },
-    @Body() body: { type?: "daily" | "weekly" }
+    @Body() body: { type?: "daily" | "weekly"; force?: boolean }
   ) {
     try {
       const type = body?.type === "weekly" ? "weekly" : "daily";
+      const force = body?.force === true;
       const summary =
         type === "weekly"
-          ? await this.summarizer.generateWeekly(req.user.userId)
-          : await this.summarizer.generateDaily(req.user.userId);
+          ? await this.summarizer.generateWeekly(req.user.userId, force)
+          : await this.summarizer.generateDaily(req.user.userId, force);
       return { success: true, summary };
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to generate summary";
