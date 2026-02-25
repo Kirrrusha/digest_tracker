@@ -77,3 +77,4 @@ apps/web/lib/generated/
 
 .claude
 .docs
+.pnpm-store/
