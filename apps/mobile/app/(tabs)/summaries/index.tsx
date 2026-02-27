@@ -116,25 +116,51 @@ export default function SummariesScreen() {
       <Portal>
         <Dialog visible={showDialog} onDismiss={() => setShowDialog(false)}>
           <Dialog.Title>Создать саммари</Dialog.Title>
+          <Dialog.Content>
+            {(
+              [
+                { type: "daily", label: "Дневное", desc: "Посты за сегодня" },
+                { type: "weekly", label: "Недельное", desc: "Посты за текущую неделю" },
+              ] as const
+            ).map(({ type, label, desc }) => (
+              <View key={type} style={styles.generateRow}>
+                <View style={styles.generateInfo}>
+                  <Text variant="bodyMedium">{label}</Text>
+                  <Text variant="bodySmall" style={styles.generateDesc}>
+                    {desc}
+                  </Text>
+                </View>
+                <View style={styles.generateActions}>
+                  <Button
+                    compact
+                    onPress={async () => {
+                      await generateSummary.mutateAsync({ type });
+                      setShowDialog(false);
+                    }}
+                    loading={generateSummary.isPending}
+                    disabled={generateSummary.isPending}
+                  >
+                    Создать
+                  </Button>
+                  <Button
+                    compact
+                    icon="refresh"
+                    onPress={async () => {
+                      await generateSummary.mutateAsync({ type, force: true });
+                      setShowDialog(false);
+                    }}
+                    loading={generateSummary.isPending}
+                    disabled={generateSummary.isPending}
+                  >
+                    Перегенерировать
+                  </Button>
+                </View>
+              </View>
+            ))}
+          </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setShowDialog(false)}>Отмена</Button>
-            <Button
-              onPress={async () => {
-                await generateSummary.mutateAsync("daily");
-                setShowDialog(false);
-              }}
-              loading={generateSummary.isPending}
-            >
-              Дневное
-            </Button>
-            <Button
-              onPress={async () => {
-                await generateSummary.mutateAsync("weekly");
-                setShowDialog(false);
-              }}
-              loading={generateSummary.isPending}
-            >
-              Недельное
+            <Button onPress={() => setShowDialog(false)} disabled={generateSummary.isPending}>
+              Отмена
             </Button>
           </Dialog.Actions>
         </Dialog>
@@ -167,4 +193,15 @@ const styles = StyleSheet.create({
   selectedChip: { opacity: 0.8 },
   empty: { textAlign: "center", marginTop: 40, opacity: 0.5 },
   fab: { position: "absolute", right: 16, bottom: 16 },
+  generateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "rgba(0,0,0,0.1)",
+  },
+  generateInfo: { flex: 1 },
+  generateDesc: { opacity: 0.5 },
+  generateActions: { flexDirection: "row", gap: 4 },
 });

@@ -69,8 +69,8 @@ export const summariesApi = {
 
   get: (id: string) => apiClient.get<Summary>(`/summaries/${id}`).then((r) => r.data),
 
-  generate: (period: "daily" | "weekly") =>
-    apiClient.post<Summary>("/summaries/generate", { period }).then((r) => r.data),
+  generate: (type: "daily" | "weekly", force?: boolean) =>
+    apiClient.post<Summary>("/summaries/generate", { type, force }).then((r) => r.data),
 
   delete: (id: string) => apiClient.delete(`/summaries/${id}`),
 
@@ -99,9 +99,11 @@ export const mtprotoApi = {
 
   sendCode: (phoneNumber: string) =>
     apiClient
-      .post<{ phoneCodeHash: string; sessionString: string }>("/mtproto/auth/send-code", {
-        phoneNumber,
-      })
+      .post<{
+        phoneCodeHash: string;
+        sessionString: string;
+        codeVia: "app" | "sms" | "other";
+      }>("/mtproto/auth/send-code", { phoneNumber })
       .then((r) => r.data),
 
   verify: (data: {

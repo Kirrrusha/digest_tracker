@@ -104,7 +104,8 @@ export const useSummary = (id: string) =>
 export const useGenerateSummary = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (period: "daily" | "weekly") => summariesApi.generate(period),
+    mutationFn: ({ type, force }: { type: "daily" | "weekly"; force?: boolean }) =>
+      summariesApi.generate(type, force),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["summaries"] }),
   });
 };
