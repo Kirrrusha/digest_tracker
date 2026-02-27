@@ -17,6 +17,7 @@ export function TelegramConnect({ hasActiveSession }: TelegramConnectProps) {
   const [password, setPassword] = useState("");
   const [sessionString, setSessionString] = useState("");
   const [phoneCodeHash, setPhoneCodeHash] = useState("");
+  const [codeVia, setCodeVia] = useState<"app" | "sms" | "other">("app");
   const [error, setError] = useState<string | null>(null);
 
   const sendCode = useSendMTProtoCode();
@@ -32,6 +33,7 @@ export function TelegramConnect({ hasActiveSession }: TelegramConnectProps) {
       onSuccess: (data) => {
         setSessionString(data.sessionString);
         setPhoneCodeHash(data.phoneCodeHash);
+        setCodeVia(data.codeVia);
         setStep("code");
       },
       onError: (err: unknown) => {
@@ -153,7 +155,9 @@ export function TelegramConnect({ hasActiveSession }: TelegramConnectProps) {
       {step === "code" && (
         <View style={styles.section}>
           <Text variant="bodySmall" style={styles.hint}>
-            Код отправлен на номер {phone}
+            {codeVia === "app"
+              ? `Код отправлен в приложение Telegram на номер ${phone}`
+              : `Код отправлен на ${phone} по SMS`}
           </Text>
           <TextInput
             label="Код из Telegram"

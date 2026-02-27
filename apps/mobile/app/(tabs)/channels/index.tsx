@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRouter } from "expo-router";
-import { FlatList, StyleSheet, View } from "react-native";
+import { FlatList, ScrollView, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Button,
@@ -26,6 +26,13 @@ import {
 import type { Channel } from "../../../src/types";
 
 type AddTab = "url" | "telegram";
+type TypeFilter = "all" | "TELEGRAM" | "RSS";
+
+const TYPE_FILTERS: { label: string; value: TypeFilter }[] = [
+  { label: "Все", value: "all" },
+  { label: "Telegram", value: "TELEGRAM" },
+  { label: "RSS", value: "RSS" },
+];
 
 export default function ChannelsScreen() {
   const router = useRouter();
@@ -38,6 +45,8 @@ export default function ChannelsScreen() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [activeTab, setActiveTab] = useState<AddTab>("url");
   const [newUrl, setNewUrl] = useState("");
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const [search, setSearch] = useState("");
 
   const handleAdd = async () => {
     if (!newUrl.trim()) return;
@@ -51,6 +60,15 @@ export default function ChannelsScreen() {
     setNewUrl("");
     setActiveTab("url");
   };
+
+  const filtered = (channels ?? []).filter((ch) => {
+    const matchType = typeFilter === "all" || ch.type === typeFilter;
+    const matchSearch =
+      !search ||
+      ch.name.toLowerCase().includes(search.toLowerCase()) ||
+      ch.url.toLowerCase().includes(search.toLowerCase());
+    return matchType && matchSearch;
+  });
 
   const renderChannel = ({ item }: { item: Channel }) => (
     <Card style={styles.card} onPress={() => router.push(`/(tabs)/channels/${item.id}`)}>
@@ -96,14 +114,44 @@ export default function ChannelsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.filters}>
+        <TextInput
+          placeholder="Поиск каналов..."
+          value={search}
+          onChangeText={setSearch}
+          mode="outlined"
+          dense
+          left={<TextInput.Icon icon="magnify" />}
+          right={search ? <TextInput.Icon icon="close" onPress={() => setSearch("")} /> : null}
+          style={styles.searchInput}
+        />
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeChips}>
+          {TYPE_FILTERS.map(({ label, value }) => (
+            <Chip
+              key={value}
+              selected={typeFilter === value}
+              onPress={() => setTypeFilter(value)}
+              style={styles.filterChip}
+              compact
+            >
+              {label}
+            </Chip>
+          ))}
+        </ScrollView>
+      </View>
+
       <FlatList
-        data={channels}
+        data={filtered}
         keyExtractor={(item) => item.id}
         renderItem={renderChannel}
         contentContainerStyle={styles.list}
         onRefresh={refetch}
         refreshing={isLoading}
-        ListEmptyComponent={<Text style={styles.empty}>Каналы не добавлены</Text>}
+        ListEmptyComponent={
+          <Text style={styles.empty}>
+            {channels?.length === 0 ? "Каналы не добавлены" : "Нет каналов по фильтру"}
+          </Text>
+        }
       />
 
       <Portal>
@@ -163,6 +211,10 @@ export default function ChannelsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  filters: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4, gap: 8 },
+  searchInput: { backgroundColor: "transparent" },
+  typeChips: { flexGrow: 0 },
+  filterChip: { marginRight: 8 },
   list: { padding: 16, paddingBottom: 80, gap: 12 },
   card: {},
   chip: { marginRight: 8 },
