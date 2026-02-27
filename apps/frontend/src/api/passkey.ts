@@ -40,4 +40,13 @@ export const passkeyApi = {
 
   verifySignup: (challengeId: string, response: RegistrationResponseJSON) =>
     api.post<AuthTokens>("/passkey/signup/verify", { challengeId, response }).then((r) => r.data),
+
+  list: () =>
+    api
+      .get<
+        Array<{ id: string; name: string | null; createdAt: string; credentialDeviceType: string }>
+      >("/passkey")
+      .then((r) => r.data),
+
+  deleteKey: (id: string) => api.delete(`/passkey/${id}`),
 };

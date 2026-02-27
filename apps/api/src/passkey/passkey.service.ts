@@ -1,6 +1,11 @@
 import { randomUUID } from "crypto";
 import type { AuthTokens } from "@devdigest/shared";
-import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import {
   generateAuthenticationOptions,
@@ -231,5 +236,23 @@ export class PasskeyService {
     });
 
     return this.auth.issueTokens(authenticator.userId);
+  }
+
+  // ---------- Management ----------
+
+  async listPasskeys(userId: string) {
+    const authenticators = await this.prisma.authenticator.findMany({
+      where: { userId },
+      select: { id: true, name: true, createdAt: true, credentialDeviceType: true },
+      orderBy: { createdAt: "asc" },
+    });
+    return authenticators;
+  }
+
+  async deletePasskey(userId: string, id: string) {
+    const authenticator = await this.prisma.authenticator.findUnique({ where: { id } });
+    if (!authenticator) throw new NotFoundException("Passkey не найден");
+    if (authenticator.userId !== userId) throw new ForbiddenException();
+    await this.prisma.authenticator.delete({ where: { id } });
   }
 }

@@ -1,4 +1,15 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Request, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Request,
+  UseGuards,
+} from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
@@ -12,6 +23,25 @@ import { PasskeyService } from "./passkey.service";
 @Controller("passkey")
 export class PasskeyController {
   constructor(private passkey: PasskeyService) {}
+
+  // ---------- Management ----------
+
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Получить список passkey текущего пользователя" })
+  listPasskeys(@Request() req: { user: { userId: string } }) {
+    return this.passkey.listPasskeys(req.user.userId);
+  }
+
+  @Delete(":id")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: "Удалить passkey" })
+  deletePasskey(@Request() req: { user: { userId: string } }, @Param("id") id: string) {
+    return this.passkey.deletePasskey(req.user.userId, id);
+  }
 
   // ---------- Registration (requires auth — добавляем passkey к аккаунту) ----------
 
