@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, Code, Settings, User, X } from "lucide-react";
+import { Bell, Code, Fingerprint, KeyRound, Settings, Trash2, User, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { mtprotoApi } from "../api/mtproto";
+import { passkeyApi } from "../api/passkey";
 import { preferencesApi } from "../api/preferences";
 import { PasskeyRegisterButton } from "../components/auth/PasskeyRegisterButton";
 import { TelegramChannelBrowser } from "../components/TelegramChannelBrowser";
@@ -62,6 +63,20 @@ export function SettingsPage() {
   const { data: mtprotoStatus } = useQuery({
     queryKey: ["mtproto-status"],
     queryFn: mtprotoApi.getStatus,
+  });
+
+  const { data: passkeys } = useQuery({
+    queryKey: ["passkeys"],
+    queryFn: passkeyApi.list,
+  });
+
+  const deletePasskeyMutation = useMutation({
+    mutationFn: (id: string) => passkeyApi.deleteKey(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["passkeys"] });
+      toast.success("Passkey удалён");
+    },
+    onError: () => toast.error("Не удалось удалить passkey"),
   });
 
   const [localTopics, setLocalTopics] = useState<string[] | null>(null);
@@ -143,14 +158,49 @@ export function SettingsPage() {
 
       {activeTab === "profile" && (
         <div className="space-y-4">
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-white">Ключи доступа (Passkey)</p>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Входите без пароля с помощью Touch ID, Face ID или ключа безопасности
-              </p>
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-sm font-medium text-white">Ключи доступа (Passkey)</p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Входите без пароля с помощью Touch ID, Face ID или ключа безопасности
+                </p>
+              </div>
+              <PasskeyRegisterButton />
             </div>
-            <PasskeyRegisterButton />
+            {passkeys && passkeys.length > 0 && (
+              <div className="mt-1 space-y-1.5">
+                {passkeys.map((pk) => (
+                  <div
+                    key={pk.id}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg bg-(--bg) border border-(--border)"
+                  >
+                    {pk.credentialDeviceType === "multiDevice" ? (
+                      <Fingerprint size={15} className="text-blue-400 shrink-0" />
+                    ) : (
+                      <KeyRound size={15} className="text-slate-400 shrink-0" />
+                    )}
+                    <span className="text-sm text-slate-200 flex-1 min-w-0 truncate">
+                      {pk.name ??
+                        (pk.credentialDeviceType === "multiDevice"
+                          ? "Touch ID / Face ID"
+                          : "Ключ безопасности")}
+                    </span>
+                    <span className="text-xs text-slate-500 shrink-0">
+                      {new Date(pk.createdAt).toLocaleDateString("ru-RU")}
+                    </span>
+                    <button
+                      onClick={() => deletePasskeyMutation.mutate(pk.id)}
+                      disabled={deletePasskeyMutation.isPending}
+                      className="text-slate-500 hover:text-red-400 transition-colors disabled:opacity-50 shrink-0"
+                      title="Удалить passkey"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <TelegramConnect hasActiveSession={mtprotoStatus?.hasActiveSession ?? false} />
           {mtprotoStatus?.hasActiveSession && (
