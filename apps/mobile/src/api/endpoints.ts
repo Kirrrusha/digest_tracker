@@ -58,6 +58,14 @@ export const postsApi = {
   get: (id: string) => apiClient.get<Post>(`/posts/${id}`).then((r) => r.data),
 };
 
+export type JobStatus = "waiting" | "active" | "completed" | "failed" | "delayed" | "unknown";
+
+export interface JobStatusResponse {
+  status: JobStatus;
+  summaryId?: string;
+  error?: string;
+}
+
 // Summaries
 export const summariesApi = {
   list: (params?: { period?: string; topic?: string; page?: number; limit?: number }) =>
@@ -70,7 +78,10 @@ export const summariesApi = {
   get: (id: string) => apiClient.get<Summary>(`/summaries/${id}`).then((r) => r.data),
 
   generate: (type: "daily" | "weekly", force?: boolean) =>
-    apiClient.post<Summary>("/summaries/generate", { type, force }).then((r) => r.data),
+    apiClient.post<{ jobId: string }>("/summaries/generate", { type, force }).then((r) => r.data),
+
+  getJobStatus: (jobId: string) =>
+    apiClient.get<JobStatusResponse>(`/summaries/jobs/${jobId}`).then((r) => r.data),
 
   delete: (id: string) => apiClient.delete(`/summaries/${id}`),
 

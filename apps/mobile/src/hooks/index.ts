@@ -101,12 +101,30 @@ export const useSummary = (id: string) =>
     enabled: !!id,
   });
 
+async function pollJobStatus(jobId: string, qc: ReturnType<typeof useQueryClient>) {
+  const poll = async () => {
+    try {
+      const { status } = await summariesApi.getJobStatus(jobId);
+      if (status === "completed") {
+        qc.invalidateQueries({ queryKey: ["summaries"] });
+        return;
+      }
+      if (status !== "failed") {
+        setTimeout(poll, 2000);
+      }
+    } catch {
+      // silently stop polling on network error
+    }
+  };
+  poll();
+}
+
 export const useGenerateSummary = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ type, force }: { type: "daily" | "weekly"; force?: boolean }) =>
       summariesApi.generate(type, force),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["summaries"] }),
+    onSuccess: ({ jobId }) => pollJobStatus(jobId, qc),
   });
 };
 
