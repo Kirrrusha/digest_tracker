@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { Summary } from "@devdigest/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Calendar, Download, ExternalLink, Share2 } from "lucide-react";
@@ -148,6 +148,8 @@ function SummaryCard({
   );
 }
 
+type GenerateStatus = "idle" | "queued" | "active" | "completed" | "failed";
+
 export function SummariesPage() {
   const queryClient = useQueryClient();
   const [showDialog, setShowDialog] = useState(false);
@@ -155,6 +157,8 @@ export function SummariesPage() {
   const [topicFilter, setTopicFilter] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [confirmRegenerate, setConfirmRegenerate] = useState<string | null>(null);
+  const [generateStatus, setGenerateStatus] = useState<GenerateStatus>("idle");
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { data: allTopics = [] } = useQuery({
     queryKey: ["summaries", "topics"],
@@ -171,13 +175,41 @@ export function SummariesPage() {
       } as Parameters<typeof summariesApi.list>[0]),
   });
 
+  function startPolling(jobId: string) {
+    setGenerateStatus("queued");
+    pollingRef.current = setInterval(async () => {
+      try {
+        const { status } = await summariesApi.getJobStatus(jobId);
+        if (status === "active") {
+          setGenerateStatus("active");
+        } else if (status === "completed") {
+          clearInterval(pollingRef.current!);
+          pollingRef.current = null;
+          setGenerateStatus("completed");
+          queryClient.invalidateQueries({ queryKey: ["summaries"] });
+          setShowDialog(false);
+          toast.success("Саммари готово");
+          setGenerateStatus("idle");
+        } else if (status === "failed") {
+          clearInterval(pollingRef.current!);
+          pollingRef.current = null;
+          setGenerateStatus("failed");
+          toast.error("Ошибка генерации");
+        }
+      } catch {
+        clearInterval(pollingRef.current!);
+        pollingRef.current = null;
+        setGenerateStatus("failed");
+        toast.error("Ошибка проверки статуса");
+      }
+    }, 2000);
+  }
+
   const generateMutation = useMutation({
     mutationFn: ({ type, force }: { type: "daily" | "weekly"; force?: boolean }) =>
       summariesApi.generate(type, force),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["summaries"] });
-      setShowDialog(false);
-      toast.success("Саммари сгенерировано");
+    onSuccess: ({ jobId }) => {
+      startPolling(jobId);
     },
     onError: (e) => toast.error((e as Error).message || "Ошибка генерации"),
   });
@@ -363,7 +395,11 @@ export function SummariesPage() {
                   <div className="flex border-t border-(--border)">
                     <button
                       onClick={() => generateMutation.mutate({ type })}
-                      disabled={generateMutation.isPending}
+                      disabled={
+                        generateMutation.isPending ||
+                        generateStatus === "queued" ||
+                        generateStatus === "active"
+                      }
                       className="flex-1 py-2 text-xs text-slate-300 hover:bg-(--border) disabled:opacity-50 transition-colors"
                     >
                       Создать
@@ -371,7 +407,11 @@ export function SummariesPage() {
                     <div className="w-px bg-(--border)" />
                     <button
                       onClick={() => generateMutation.mutate({ type, force: true })}
-                      disabled={generateMutation.isPending}
+                      disabled={
+                        generateMutation.isPending ||
+                        generateStatus === "queued" ||
+                        generateStatus === "active"
+                      }
                       className="flex-1 py-2 text-xs text-blue-400 hover:bg-(--border) disabled:opacity-50 transition-colors"
                     >
                       ↻ Перегенерировать
@@ -380,15 +420,31 @@ export function SummariesPage() {
                 </div>
               ))}
             </div>
-            {generateMutation.isPending && (
-              <p className="text-sm text-slate-400 mt-3 text-center">Генерируем саммари...</p>
+            {(generateMutation.isPending ||
+              generateStatus === "queued" ||
+              generateStatus === "active") && (
+              <p className="text-sm text-slate-400 mt-3 text-center">
+                {generateStatus === "active" ? "Анализируем посты..." : "Генерируем саммари..."}
+              </p>
+            )}
+            {generateStatus === "failed" && (
+              <p className="text-sm text-red-400 mt-3 text-center">
+                Ошибка генерации. Попробуйте снова.
+              </p>
             )}
             <button
               onClick={() => {
+                if (pollingRef.current) clearInterval(pollingRef.current);
+                pollingRef.current = null;
+                setGenerateStatus("idle");
                 setShowDialog(false);
                 generateMutation.reset();
               }}
-              disabled={generateMutation.isPending}
+              disabled={
+                generateMutation.isPending ||
+                generateStatus === "queued" ||
+                generateStatus === "active"
+              }
               className="mt-4 w-full py-2 text-sm text-slate-400 hover:text-white disabled:opacity-50 transition-colors"
             >
               Отмена

@@ -1,5 +1,6 @@
+import { BullModule } from "@nestjs/bullmq";
 import { Module } from "@nestjs/common";
-import { ConfigModule } from "@nestjs/config";
+import { ConfigModule, ConfigService } from "@nestjs/config";
 
 import { AuthModule } from "./auth/auth.module";
 import { ChannelsModule } from "./channels/channels.module";
@@ -18,6 +19,12 @@ import { TelegramModule } from "./telegram/telegram.module";
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: ["../../.env", ".env"] }),
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        connection: { url: config.getOrThrow<string>("REDIS_URL") },
+      }),
+    }),
     PrismaModule,
     AuthModule,
     PasskeyModule,

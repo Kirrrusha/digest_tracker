@@ -1,3 +1,4 @@
+import { InjectQueue } from "@nestjs/bullmq";
 import {
   Body,
   Controller,
@@ -6,6 +7,7 @@ import {
   HttpCode,
   HttpException,
   HttpStatus,
+  NotFoundException,
   Param,
   Post,
   Query,
@@ -13,6 +15,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
+import { Queue } from "bullmq";
 
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { SummariesService } from "./summaries.service";
@@ -25,7 +28,8 @@ import { SummarizerService } from "./summarizer.service";
 export class SummariesController {
   constructor(
     private summaries: SummariesService,
-    private summarizer: SummarizerService
+    private summarizer: SummarizerService,
+    @InjectQueue("summaries") private summariesQueue: Queue
   ) {}
 
   @Get("topics")
@@ -51,23 +55,34 @@ export class SummariesController {
   }
 
   @Post("generate")
-  @ApiOperation({ summary: "Сгенерировать саммари" })
+  @HttpCode(HttpStatus.ACCEPTED)
+  @ApiOperation({ summary: "Поставить саммари в очередь генерации (202 Accepted)" })
   async generate(
     @Request() req: { user: { userId: string } },
     @Body() body: { type?: "daily" | "weekly"; force?: boolean }
   ) {
-    try {
-      const type = body?.type === "weekly" ? "weekly" : "daily";
-      const force = body?.force === true;
-      const summary =
-        type === "weekly"
-          ? await this.summarizer.generateWeekly(req.user.userId, force)
-          : await this.summarizer.generateDaily(req.user.userId, force);
-      return { success: true, summary };
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to generate summary";
-      throw new HttpException({ success: false, error: message }, HttpStatus.BAD_REQUEST);
-    }
+    const type = body?.type === "weekly" ? "weekly" : "daily";
+    const force = body?.force === true;
+    const job = await this.summariesQueue.add("generate", {
+      userId: req.user.userId,
+      type,
+      force,
+    });
+    return { jobId: job.id };
+  }
+
+  @Get("jobs/:jobId")
+  @ApiOperation({ summary: "Статус задачи генерации саммари" })
+  async getJobStatus(@Param("jobId") jobId: string) {
+    const job = await this.summariesQueue.getJob(jobId);
+    if (!job) throw new NotFoundException(`Job ${jobId} not found`);
+    const state = await job.getState();
+    return {
+      status: state,
+      summaryId:
+        state === "completed" ? (job.returnvalue as { summaryId: string })?.summaryId : undefined,
+      error: state === "failed" ? job.failedReason : undefined,
+    };
   }
 
   @Post(":id/regenerate")

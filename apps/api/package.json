@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@devdigest/shared": "workspace:*",
+    "@nestjs/bullmq": "^11.0.4",
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.0",
     "@nestjs/core": "^11.0.0",
@@ -25,6 +26,7 @@
     "@simplewebauthn/server": "^13.0.0",
     "bcryptjs": "^3.0.2",
     "big-integer": "^1.6.52",
+    "bullmq": "^5.70.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "express": "^5.2.1",
