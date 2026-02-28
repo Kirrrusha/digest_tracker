@@ -222,6 +222,7 @@ devdigest/
 - [Руководство по настройке](SETUP_GUIDE.md)
 - [UI/UX рекомендации](UI_GUIDELINES.md)
 - [Качество кода (ESLint, Prettier, Lefthook)](CODE_QUALITY.md)
+- [Асинхронная генерация саммари (BullMQ)](ASYNC_SUMMARY_GENERATION.md)
 
 ## Особенности реализации
 
@@ -242,6 +243,7 @@ devdigest/
 ### AI Суммаризация
 
 - GPT-4 для генерации саммари
+- **Асинхронная генерация** — BullMQ + Redis, запрос возвращает 202, polling статуса джоба ([подробнее](ASYNC_SUMMARY_GENERATION.md))
 - Автоматическое извлечение тем
 - Кэширование результатов
 - Группировка по категориям
