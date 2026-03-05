@@ -68,7 +68,7 @@ export interface JobStatusResponse {
 
 // Summaries
 export const summariesApi = {
-  list: (params?: { period?: string; topic?: string; page?: number; limit?: number }) =>
+  list: (params?: { type?: string; topic?: string; page?: number; limit?: number }) =>
     apiClient
       .get<{ summaries: Summary[]; total: number; hasMore: boolean }>("/summaries", { params })
       .then((r) => r.data),
@@ -79,6 +79,11 @@ export const summariesApi = {
 
   generate: (type: "daily" | "weekly", force?: boolean) =>
     apiClient.post<{ jobId: string }>("/summaries/generate", { type, force }).then((r) => r.data),
+
+  generateForChannel: (channelId: string) =>
+    apiClient
+      .post<{ jobId: string }>(`/summaries/generate/channel/${channelId}`)
+      .then((r) => r.data),
 
   getJobStatus: (jobId: string) =>
     apiClient.get<JobStatusResponse>(`/summaries/jobs/${jobId}`).then((r) => r.data),
@@ -104,6 +109,22 @@ export interface MTProtoChannelInfo {
   isAlreadyTracked: boolean;
 }
 
+export interface MTProtoGroupInfo {
+  id: string;
+  title: string;
+  username: string | null;
+  participantsCount: number | null;
+  accessHash: string | null;
+  groupType: "group" | "supergroup" | "forum";
+  isAlreadyTracked: boolean;
+}
+
+export interface MTProtoFolderInfo {
+  id: number;
+  title: string;
+  channels: MTProtoChannelInfo[];
+}
+
 export const mtprotoApi = {
   getStatus: () =>
     apiClient.get<{ hasActiveSession: boolean }>("/mtproto/status").then((r) => r.data),
@@ -117,6 +138,15 @@ export const mtprotoApi = {
       }>("/mtproto/auth/send-code", { phoneNumber })
       .then((r) => r.data),
 
+  resendCode: (data: { phoneNumber: string; phoneCodeHash: string; sessionString: string }) =>
+    apiClient
+      .post<{
+        phoneCodeHash: string;
+        sessionString: string;
+        codeVia: "app" | "sms" | "other";
+      }>("/mtproto/auth/resend-code", data)
+      .then((r) => r.data),
+
   verify: (data: {
     phoneNumber: string;
     phoneCode: string;
@@ -127,6 +157,24 @@ export const mtprotoApi = {
     apiClient
       .post<{ success?: boolean; needs2FA?: boolean }>("/mtproto/auth/verify", data)
       .then((r) => r.data),
+
+  qrStart: () =>
+    apiClient
+      .post<{ token: string; expires: number; sessionString: string }>("/mtproto/auth/qr-start")
+      .then((r) => r.data),
+
+  qrPoll: (sessionString: string) =>
+    apiClient
+      .post<
+        | { status: "pending"; token: string; expires: number; sessionString: string }
+        | { status: "success" }
+        | { status: "needs2FA"; sessionString: string }
+        | { status: "expired" }
+      >("/mtproto/auth/qr-poll", { sessionString })
+      .then((r) => r.data),
+
+  qrVerify2fa: (data: { sessionString: string; password: string }) =>
+    apiClient.post<{ success: boolean }>("/mtproto/auth/qr-verify-2fa", data).then((r) => r.data),
 
   disconnect: () => apiClient.post("/mtproto/auth/disconnect"),
 
@@ -142,6 +190,23 @@ export const mtprotoApi = {
   ) =>
     apiClient
       .post<{ added: number; errors: string[] }>("/mtproto/channels/bulk", { channels })
+      .then((r) => r.data),
+
+  listGroups: () => apiClient.get<MTProtoGroupInfo[]>("/mtproto/groups").then((r) => r.data),
+
+  listFolders: () => apiClient.get<MTProtoFolderInfo[]>("/mtproto/folders").then((r) => r.data),
+
+  bulkAddGroups: (
+    groups: Array<{
+      telegramId: string;
+      title: string;
+      username?: string | null;
+      accessHash?: string | null;
+      groupType: "group" | "supergroup" | "forum";
+    }>
+  ) =>
+    apiClient
+      .post<{ added: number; errors: string[] }>("/mtproto/groups/bulk", { groups })
       .then((r) => r.data),
 };
 
