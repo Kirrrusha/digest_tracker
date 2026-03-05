@@ -55,6 +55,17 @@ export function createClient(sessionString?: string): TelegramClient {
   });
 }
 
+export function createClientForDC(dcId: number, ipAddress: string, port: number): TelegramClient {
+  const { apiId, apiHash } = getApiCredentials();
+  const session = new StringSession("");
+  session.setDC(dcId, ipAddress, port);
+  return new TelegramClient(session, apiId, apiHash, {
+    connectionRetries: 1,
+    retryDelay: 1000,
+    autoReconnect: false,
+  });
+}
+
 export function createClientFromEncrypted(encryptedSessionData: string): TelegramClient {
   const sessionString = decryptSession(encryptedSessionData);
   return createClient(sessionString);
