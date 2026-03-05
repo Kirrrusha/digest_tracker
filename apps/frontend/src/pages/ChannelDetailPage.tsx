@@ -1,9 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ExternalLink } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { ArrowLeft, ExternalLink, Loader2, Sparkles } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
 
 import { channelsApi } from "../api/channels";
 import { postsApi } from "../api/posts";
+import { summariesApi } from "../api/summaries";
 
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
@@ -23,11 +26,44 @@ function channelInitial(name: string): string {
 
 export function ChannelDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [jobId, setJobId] = useState<string | null>(null);
 
   const { data: channel, isLoading: channelLoading } = useQuery({
     queryKey: ["channel", id],
     queryFn: () => channelsApi.get(id!),
     enabled: !!id,
+  });
+
+  const { data: jobData } = useQuery({
+    queryKey: ["summary-job", jobId],
+    queryFn: () => summariesApi.getJobStatus(jobId!),
+    enabled: !!jobId,
+    refetchInterval: (query) => {
+      const s = query.state.data?.status;
+      return s === "completed" || s === "failed" ? false : 2000;
+    },
+  });
+
+  useEffect(() => {
+    if (!jobData) return;
+    if (jobData.status === "completed" && jobData.summaryId) {
+      setJobId(null);
+      toast.success("Саммари создано");
+      navigate(`/summaries/${jobData.summaryId}`);
+    } else if (jobData.status === "failed") {
+      setJobId(null);
+      toast.error(jobData.error || "Ошибка генерации саммари");
+    }
+  }, [jobData]);
+
+  const generateMutation = useMutation({
+    mutationFn: () => summariesApi.generateForChannel(id!),
+    onSuccess: ({ jobId }) => {
+      setJobId(jobId);
+      toast.info("Генерация саммари запущена...");
+    },
+    onError: () => toast.error("Ошибка запуска генерации"),
   });
 
   const { data: posts = [], isLoading: postsLoading } = useQuery({
@@ -83,7 +119,7 @@ export function ChannelDetailPage() {
 
         <div className="flex items-center gap-3 mt-4 flex-wrap">
           <span className="text-xs bg-[var(--border)] text-slate-300 px-2.5 py-1 rounded-full">
-            {isTelegram ? "Telegram" : "RSS"}
+            {isTelegram ? (channel.isGroup ? "Telegram группа" : "Telegram") : "RSS"}
           </span>
           <span className="text-sm text-slate-400">{channel.postsCount} постов</span>
           {channel.lastPostAt && (
@@ -91,6 +127,14 @@ export function ChannelDetailPage() {
               Последний: {formatDate(channel.lastPostAt)}
             </span>
           )}
+          <button
+            onClick={() => generateMutation.mutate()}
+            disabled={generateMutation.isPending || !!jobId}
+            className="ml-auto flex items-center gap-1.5 bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          >
+            {jobId ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+            {jobId ? "Генерируется..." : "Сгенерировать саммари"}
+          </button>
         </div>
       </div>
 
