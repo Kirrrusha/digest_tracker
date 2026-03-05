@@ -56,12 +56,12 @@ pnpm add @nestjs/bullmq bullmq
 
 ```typescript
 // summaries.module.ts
-BullModule.registerQueue({ name: 'summaries' })
+BullModule.registerQueue({ name: "summaries" });
 ```
 
 ```typescript
 // app.module.ts
-BullModule.forRoot({ connection: { host, port } })  // из существующего RedisModule
+BullModule.forRoot({ connection: { host, port } }); // из существующего RedisModule
 ```
 
 #### 3. Изменение контроллера
@@ -93,7 +93,7 @@ async getJobStatus(@Param('jobId') jobId: string) {
 #### 4. Процессор очереди
 
 ```typescript
-@Processor('summaries')
+@Processor("summaries")
 export class SummariesProcessor extends WorkerHost {
   constructor(private readonly summarizer: SummarizerService) {
     super();
@@ -102,7 +102,7 @@ export class SummariesProcessor extends WorkerHost {
   async process(job: Job<GenerateJobData>): Promise<{ summaryId: string }> {
     const { userId, type, force } = job.data;
     const summary =
-      type === 'weekly'
+      type === "weekly"
         ? await this.summarizer.generateWeekly(userId, force)
         : await this.summarizer.generateDaily(userId, force);
     return { summaryId: summary.id };
@@ -116,16 +116,16 @@ export class SummariesProcessor extends WorkerHost {
 
 ## Реализованные файлы
 
-| Файл | Описание |
-|------|----------|
-| `apps/api/src/summaries/summaries.processor.ts` | BullMQ processor (WorkerHost) |
+| Файл                                             | Описание                                       |
+| ------------------------------------------------ | ---------------------------------------------- |
+| `apps/api/src/summaries/summaries.processor.ts`  | BullMQ processor (WorkerHost)                  |
 | `apps/api/src/summaries/summaries.controller.ts` | `generate` → 202 + `jobId`, `GET /jobs/:jobId` |
-| `apps/api/src/summaries/summaries.module.ts` | `BullModule.registerQueue` |
-| `apps/api/src/app.module.ts` | `BullModule.forRoot` |
-| `apps/frontend/src/api/summaries.ts` | `generate()`, `getJobStatus()` |
-| `apps/frontend/src/pages/SummariesPage.tsx` | Polling job status, loading states |
-| `apps/mobile/src/api/endpoints.ts` | `getJobStatus` |
-| `apps/mobile/src/hooks/index.ts` | `useGenerateSummary` с polling |
+| `apps/api/src/summaries/summaries.module.ts`     | `BullModule.registerQueue`                     |
+| `apps/api/src/app.module.ts`                     | `BullModule.forRoot`                           |
+| `apps/frontend/src/api/summaries.ts`             | `generate()`, `getJobStatus()`                 |
+| `apps/frontend/src/pages/SummariesPage.tsx`      | Polling job status, loading states             |
+| `apps/mobile/src/api/endpoints.ts`               | `getJobStatus`                                 |
+| `apps/mobile/src/hooks/index.ts`                 | `useGenerateSummary` с polling                 |
 
 ---
 
@@ -136,7 +136,7 @@ export class SummariesProcessor extends WorkerHost {
 ```typescript
 // useMutation → возвращает jobId, затем запускает polling
 const generateMutation = useMutation({
-  mutationFn: (params) => summariesApi.generate(params),  // теперь возвращает { jobId }
+  mutationFn: (params) => summariesApi.generate(params), // теперь возвращает { jobId }
   onSuccess: ({ jobId }) => {
     startPolling(jobId);
   },
@@ -145,14 +145,14 @@ const generateMutation = useMutation({
 function startPolling(jobId: string) {
   const interval = setInterval(async () => {
     const { status, summaryId } = await summariesApi.getJobStatus(jobId);
-    if (status === 'completed') {
+    if (status === "completed") {
       clearInterval(interval);
-      queryClient.invalidateQueries({ queryKey: ['summaries'] });
-      toast.success('Саммари готово');
+      queryClient.invalidateQueries({ queryKey: ["summaries"] });
+      toast.success("Саммари готово");
     }
-    if (status === 'failed') {
+    if (status === "failed") {
       clearInterval(interval);
-      toast.error('Ошибка генерации');
+      toast.error("Ошибка генерации");
     }
   }, 2000);
 }
@@ -160,12 +160,12 @@ function startPolling(jobId: string) {
 
 #### UI-состояния
 
-| Состояние       | Отображение                                |
-|-----------------|--------------------------------------------|
-| `queued`        | Спиннер + «Генерируем саммари...»          |
-| `active`        | Спиннер + «Анализируем посты...»           |
-| `completed`     | Toast «Саммари готово», список обновляется |
-| `failed`        | Toast с ошибкой, кнопка «Попробовать снова»|
+| Состояние   | Отображение                                 |
+| ----------- | ------------------------------------------- |
+| `queued`    | Спиннер + «Генерируем саммари...»           |
+| `active`    | Спиннер + «Анализируем посты...»            |
+| `completed` | Toast «Саммари готово», список обновляется  |
+| `failed`    | Toast с ошибкой, кнопка «Попробовать снова» |
 
 ---
 
@@ -185,11 +185,11 @@ export function useGenerateSummary() {
 async function pollJobStatus(jobId: string, queryClient: QueryClient) {
   const poll = async () => {
     const { status, summaryId } = await summariesApi.getJobStatus(jobId);
-    if (status === 'completed') {
-      queryClient.invalidateQueries({ queryKey: ['summaries'] });
+    if (status === "completed") {
+      queryClient.invalidateQueries({ queryKey: ["summaries"] });
       return;
     }
-    if (status !== 'failed') setTimeout(poll, 2000);
+    if (status !== "failed") setTimeout(poll, 2000);
   };
   poll();
 }
@@ -216,4 +216,3 @@ pnpm add @bull-board/nestjs @bull-board/api @bull-board/ui
   очередь по аналогии
 - Cron-заглушки (`/cron/daily-summary`) — их реализацию теперь проще сделать через
   ту же очередь
-
