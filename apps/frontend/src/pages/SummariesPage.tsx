@@ -1,9 +1,10 @@
 import { useRef, useState } from "react";
 import type { Summary } from "@devdigest/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calendar, Download, ExternalLink, Share2 } from "lucide-react";
+import { Calendar, Download, ExternalLink, FolderOpen, Loader2, Share2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { mtprotoApi } from "../api/mtproto";
 import { summariesApi } from "../api/summaries";
 import { MarkdownContent } from "../components/ui/MarkdownContent";
 
@@ -148,22 +149,32 @@ function SummaryCard({
   );
 }
 
-type GenerateStatus = "idle" | "queued" | "active" | "completed" | "failed";
-
 export function SummariesPage() {
   const queryClient = useQueryClient();
-  const [showDialog, setShowDialog] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("daily");
   const [topicFilter, setTopicFilter] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [confirmRegenerate, setConfirmRegenerate] = useState<string | null>(null);
-  const [generateStatus, setGenerateStatus] = useState<GenerateStatus>("idle");
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { data: allTopics = [] } = useQuery({
     queryKey: ["summaries", "topics"],
     queryFn: () => summariesApi.topics(),
   });
+
+  const { data: folders = [] } = useQuery({
+    queryKey: ["mtproto-folders"],
+    queryFn: mtprotoApi.listFolders,
+    enabled: dropdownOpen,
+    staleTime: 2 * 60 * 1000,
+    retry: false,
+  });
+
+  const trackedFolders = folders.filter(
+    (f) => f.channels.filter((c) => c.isAlreadyTracked).length > 0
+  );
 
   const { data, isLoading } = useQuery({
     queryKey: ["summaries", { type: periodFilter, topic: topicFilter }],
@@ -176,30 +187,27 @@ export function SummariesPage() {
   });
 
   function startPolling(jobId: string) {
-    setGenerateStatus("queued");
+    setIsGenerating(true);
+    setDropdownOpen(false);
     pollingRef.current = setInterval(async () => {
       try {
         const { status } = await summariesApi.getJobStatus(jobId);
-        if (status === "active") {
-          setGenerateStatus("active");
-        } else if (status === "completed") {
+        if (status === "completed") {
           clearInterval(pollingRef.current!);
           pollingRef.current = null;
-          setGenerateStatus("completed");
+          setIsGenerating(false);
           queryClient.invalidateQueries({ queryKey: ["summaries"] });
-          setShowDialog(false);
           toast.success("Саммари готово");
-          setGenerateStatus("idle");
         } else if (status === "failed") {
           clearInterval(pollingRef.current!);
           pollingRef.current = null;
-          setGenerateStatus("failed");
+          setIsGenerating(false);
           toast.error("Ошибка генерации");
         }
       } catch {
         clearInterval(pollingRef.current!);
         pollingRef.current = null;
-        setGenerateStatus("failed");
+        setIsGenerating(false);
         toast.error("Ошибка проверки статуса");
       }
     }, 2000);
@@ -208,9 +216,21 @@ export function SummariesPage() {
   const generateMutation = useMutation({
     mutationFn: ({ type, force }: { type: "daily" | "weekly"; force?: boolean }) =>
       summariesApi.generate(type, force),
-    onSuccess: ({ jobId }) => {
-      startPolling(jobId);
-    },
+    onSuccess: ({ jobId }) => startPolling(jobId),
+    onError: (e) => toast.error((e as Error).message || "Ошибка генерации"),
+  });
+
+  const generateFolderMutation = useMutation({
+    mutationFn: ({
+      folderId,
+      folderTitle,
+      telegramIds,
+    }: {
+      folderId: number;
+      folderTitle: string;
+      telegramIds: string[];
+    }) => summariesApi.generateForFolder(folderId, folderTitle, telegramIds),
+    onSuccess: ({ jobId }) => startPolling(jobId),
     onError: (e) => toast.error((e as Error).message || "Ошибка генерации"),
   });
 
@@ -241,12 +261,75 @@ export function SummariesPage() {
             Автоматически сгенерированные сводки из ваших каналов
           </p>
         </div>
-        <button
-          onClick={() => setShowDialog(true)}
-          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          + Сгенерировать
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => !isGenerating && setDropdownOpen((v) => !v)}
+            disabled={
+              isGenerating || generateMutation.isPending || generateFolderMutation.isPending
+            }
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-70 transition-colors"
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                Генерируется...
+              </>
+            ) : (
+              "+ Сгенерировать"
+            )}
+          </button>
+
+          {dropdownOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setDropdownOpen(false)} />
+              <div className="absolute right-0 top-full mt-1 z-20 w-56 bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-2xl overflow-hidden">
+                <button
+                  onClick={() => generateMutation.mutate({ type: "daily" })}
+                  className="w-full flex items-center justify-between px-4 py-3 text-sm text-slate-200 hover:bg-[var(--border)] transition-colors text-left"
+                >
+                  <span className="font-medium">Дневное</span>
+                  <span className="text-xs text-slate-500">за сегодня</span>
+                </button>
+                <button
+                  onClick={() => generateMutation.mutate({ type: "weekly" })}
+                  className="w-full flex items-center justify-between px-4 py-3 text-sm text-slate-200 hover:bg-[var(--border)] transition-colors text-left border-t border-[var(--border)]"
+                >
+                  <span className="font-medium">Недельное</span>
+                  <span className="text-xs text-slate-500">за неделю</span>
+                </button>
+                {trackedFolders.length > 0 && (
+                  <>
+                    <div className="h-px bg-[var(--border)] mx-2 my-1" />
+                    {trackedFolders.map((folder) => {
+                      const trackedIds = folder.channels
+                        .filter((c) => c.isAlreadyTracked)
+                        .map((c) => c.id);
+                      return (
+                        <button
+                          key={folder.id}
+                          onClick={() =>
+                            generateFolderMutation.mutate({
+                              folderId: folder.id,
+                              folderTitle: folder.title,
+                              telegramIds: trackedIds,
+                            })
+                          }
+                          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-slate-200 hover:bg-[var(--border)] transition-colors text-left"
+                        >
+                          <FolderOpen size={13} className="text-slate-400 shrink-0" />
+                          <span className="flex-1 truncate">{folder.title}</span>
+                          <span className="text-xs text-slate-500 shrink-0">
+                            {trackedIds.length}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Period filter */}
@@ -366,89 +449,6 @@ export function SummariesPage() {
                 Перегенерировать
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Generate dialog */}
-      {showDialog && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6 w-80 shadow-2xl">
-            <h2 className="text-lg font-semibold text-white mb-4">Тип саммари</h2>
-            {generateMutation.isError && (
-              <p className="text-sm text-red-400 mb-3">
-                {(generateMutation.error as Error)?.message || "Ошибка генерации"}
-              </p>
-            )}
-            <div className="space-y-2">
-              {(
-                [
-                  { type: "daily", label: "Дневное", desc: "Посты за сегодня или последние" },
-                  { type: "weekly", label: "Недельное", desc: "Посты за текущую неделю" },
-                ] as const
-              ).map(({ type, label, desc }) => (
-                <div key={type} className="border border-(--border) rounded-lg overflow-hidden">
-                  <div className="px-4 pt-3 pb-2">
-                    <div className="font-medium text-white text-sm">{label}</div>
-                    <div className="text-xs text-slate-400">{desc}</div>
-                  </div>
-                  <div className="flex border-t border-(--border)">
-                    <button
-                      onClick={() => generateMutation.mutate({ type })}
-                      disabled={
-                        generateMutation.isPending ||
-                        generateStatus === "queued" ||
-                        generateStatus === "active"
-                      }
-                      className="flex-1 py-2 text-xs text-slate-300 hover:bg-(--border) disabled:opacity-50 transition-colors"
-                    >
-                      Создать
-                    </button>
-                    <div className="w-px bg-(--border)" />
-                    <button
-                      onClick={() => generateMutation.mutate({ type, force: true })}
-                      disabled={
-                        generateMutation.isPending ||
-                        generateStatus === "queued" ||
-                        generateStatus === "active"
-                      }
-                      className="flex-1 py-2 text-xs text-blue-400 hover:bg-(--border) disabled:opacity-50 transition-colors"
-                    >
-                      ↻ Перегенерировать
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-            {(generateMutation.isPending ||
-              generateStatus === "queued" ||
-              generateStatus === "active") && (
-              <p className="text-sm text-slate-400 mt-3 text-center">
-                {generateStatus === "active" ? "Анализируем посты..." : "Генерируем саммари..."}
-              </p>
-            )}
-            {generateStatus === "failed" && (
-              <p className="text-sm text-red-400 mt-3 text-center">
-                Ошибка генерации. Попробуйте снова.
-              </p>
-            )}
-            <button
-              onClick={() => {
-                if (pollingRef.current) clearInterval(pollingRef.current);
-                pollingRef.current = null;
-                setGenerateStatus("idle");
-                setShowDialog(false);
-                generateMutation.reset();
-              }}
-              disabled={
-                generateMutation.isPending ||
-                generateStatus === "queued" ||
-                generateStatus === "active"
-              }
-              className="mt-4 w-full py-2 text-sm text-slate-400 hover:text-white disabled:opacity-50 transition-colors"
-            >
-              Отмена
-            </button>
           </div>
         </div>
       )}
