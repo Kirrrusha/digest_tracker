@@ -56,12 +56,12 @@ export class PostsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Синхронизировать посты канала из Telegram" })
   @ApiQuery({ name: "limit", required: false, type: Number })
-  syncChannel(
+  async syncChannel(
     @Request() req: { user: { userId: string } },
     @Param("channelId") channelId: string,
     @Query("limit") limit = "50"
   ) {
-    return this.mtproto.fetchAndSaveChannelPosts(req.user.userId, channelId, +limit);
+    return this.mtproto.fetchAndSavePosts(req.user.userId, channelId, +limit);
   }
 
   @Get("posts/:id")

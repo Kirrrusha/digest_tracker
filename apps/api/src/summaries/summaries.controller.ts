@@ -44,14 +44,16 @@ export class SummariesController {
   @ApiQuery({ name: "limit", required: false, type: Number })
   @ApiQuery({ name: "type", required: false, enum: ["daily", "weekly"] })
   @ApiQuery({ name: "topic", required: false, type: String })
+  @ApiQuery({ name: "channelId", required: false, type: String })
   findAll(
     @Request() req: { user: { userId: string } },
     @Query("page") page = "1",
     @Query("limit") limit = "10",
     @Query("type") type?: string,
-    @Query("topic") topic?: string
+    @Query("topic") topic?: string,
+    @Query("channelId") channelId?: string
   ) {
-    return this.summaries.findAll(req.user.userId, +page, +limit, type, topic);
+    return this.summaries.findAll(req.user.userId, +page, +limit, type, topic, channelId);
   }
 
   @Post("generate")
@@ -67,6 +69,41 @@ export class SummariesController {
       userId: req.user.userId,
       type,
       force,
+    });
+    return { jobId: job.id };
+  }
+
+  @Post("generate/folder")
+  @HttpCode(HttpStatus.ACCEPTED)
+  @ApiOperation({ summary: "Сгенерировать саммари для папки (202 Accepted)" })
+  async generateForFolder(
+    @Request() req: { user: { userId: string } },
+    @Body()
+    body: { telegramIds: string[]; folderId: number; folderTitle: string; force?: boolean }
+  ) {
+    const job = await this.summariesQueue.add("generate", {
+      userId: req.user.userId,
+      type: "daily",
+      force: body.force ?? false,
+      telegramIds: body.telegramIds,
+      folderId: body.folderId,
+      folderTitle: body.folderTitle,
+    });
+    return { jobId: job.id };
+  }
+
+  @Post("generate/channel/:channelId")
+  @HttpCode(HttpStatus.ACCEPTED)
+  @ApiOperation({ summary: "Сгенерировать саммари для конкретного канала/группы (202 Accepted)" })
+  async generateForChannel(
+    @Request() req: { user: { userId: string } },
+    @Param("channelId") channelId: string
+  ) {
+    const job = await this.summariesQueue.add("generate", {
+      userId: req.user.userId,
+      type: "daily",
+      force: false,
+      channelId,
     });
     return { jobId: job.id };
   }

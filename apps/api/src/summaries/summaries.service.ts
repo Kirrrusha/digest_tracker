@@ -26,12 +26,14 @@ export class SummariesService {
     page = 1,
     limit = 10,
     type?: string,
-    topic?: string
+    topic?: string,
+    channelId?: string
   ): Promise<SummariesResponse> {
     const where = {
       userId,
       ...(type ? { period: { startsWith: type } } : {}),
       ...(topic ? { topics: { some: { name: topic } } } : {}),
+      ...(channelId !== undefined ? { channelId: channelId || null } : {}),
     };
 
     const [total, summaries] = await Promise.all([
