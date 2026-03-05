@@ -68,6 +68,8 @@ export class ChannelsService {
       description: ch.description,
       imageUrl: ch.imageUrl,
       isActive: ch.isActive,
+      isGroup: ch.isGroup,
+      groupType: (ch.groupType as Channel["groupType"]) ?? null,
       postsCount: 0,
       lastPostAt: null,
       createdAt: ch.createdAt.toISOString(),
@@ -105,6 +107,9 @@ export class ChannelsService {
     description: string | null;
     imageUrl: string | null;
     isActive: boolean;
+    isGroup: boolean;
+    groupType: string | null;
+    telegramId: string | null;
     createdAt: Date;
     updatedAt: Date;
     _count: { posts: number };
@@ -118,6 +123,9 @@ export class ChannelsService {
       description: ch.description,
       imageUrl: ch.imageUrl,
       isActive: ch.isActive,
+      isGroup: ch.isGroup,
+      groupType: (ch.groupType as Channel["groupType"]) ?? null,
+      telegramId: ch.telegramId,
       postsCount: ch._count.posts,
       lastPostAt: ch.posts[0]?.publishedAt?.toISOString() ?? null,
       createdAt: ch.createdAt.toISOString(),

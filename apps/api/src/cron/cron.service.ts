@@ -25,12 +25,14 @@ export class CronService {
     for (const { userId } of sessions) {
       const channels = await this.prisma.channel.findMany({
         where: { userId, sourceType: "telegram_mtproto", isActive: true },
-        select: { id: true, name: true },
+        select: { id: true, name: true, isGroup: true },
       });
 
       for (const channel of channels) {
         try {
-          const result = await this.mtproto.fetchAndSaveChannelPosts(userId, channel.id, 50);
+          const result = channel.isGroup
+            ? await this.mtproto.fetchAndSaveGroupPosts(userId, channel.id, 50)
+            : await this.mtproto.fetchAndSaveChannelPosts(userId, channel.id, 50);
           totalFetched += result.saved;
           totalChannels++;
           this.logger.log(`[${channel.name}] saved=${result.saved} skipped=${result.skipped}`);

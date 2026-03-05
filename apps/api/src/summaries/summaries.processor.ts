@@ -7,6 +7,10 @@ interface GenerateJobData {
   userId: string;
   type: "daily" | "weekly";
   force: boolean;
+  channelId?: string;
+  telegramIds?: string[];
+  folderId?: number;
+  folderTitle?: string;
 }
 
 @Processor("summaries")
@@ -16,7 +20,24 @@ export class SummariesProcessor extends WorkerHost {
   }
 
   async process(job: Job<GenerateJobData>): Promise<{ summaryId: string }> {
-    const { userId, type, force } = job.data;
+    const { userId, type, force, channelId, telegramIds, folderId, folderTitle } = job.data;
+
+    if (telegramIds && folderId !== undefined && folderTitle) {
+      const summary = await this.summarizer.generateForFolder(
+        userId,
+        telegramIds,
+        folderId,
+        folderTitle,
+        force
+      );
+      return { summaryId: summary.id };
+    }
+
+    if (channelId) {
+      const summary = await this.summarizer.generateForChannel(userId, channelId);
+      return { summaryId: summary.id };
+    }
+
     const summary =
       type === "weekly"
         ? await this.summarizer.generateWeekly(userId, force)
