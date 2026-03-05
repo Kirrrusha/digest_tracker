@@ -1,15 +1,16 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { FlatList, Linking, StyleSheet, View } from "react-native";
-import { ActivityIndicator, Card, Chip, IconButton, Text } from "react-native-paper";
+import { ActivityIndicator, Button, Card, Chip, IconButton, Text } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useChannel, useChannelPosts } from "../../../src/hooks";
+import { useChannel, useChannelPosts, useGenerateSummaryForChannel } from "../../../src/hooks";
 
 export default function ChannelDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { data: channel, isLoading: channelLoading } = useChannel(id);
   const { data: postsData, isLoading: postsLoading, refetch } = useChannelPosts(id);
+  const generateSummary = useGenerateSummaryForChannel();
 
   if (channelLoading) {
     return (
@@ -59,6 +60,17 @@ export default function ChannelDetailScreen() {
                 Всего постов: {channel.postsCount}
               </Text>
             )}
+            <Button
+              mode="contained"
+              icon="creation"
+              onPress={() => generateSummary.mutate(id)}
+              loading={generateSummary.isPending}
+              disabled={generateSummary.isPending}
+              style={styles.summaryBtn}
+              compact
+            >
+              Сгенерировать саммари
+            </Button>
           </View>
         }
         renderItem={({ item }) => (
@@ -108,6 +120,7 @@ const styles = StyleSheet.create({
   url: { opacity: 0.5, flex: 1 },
   urlIcon: { margin: 0 },
   postsCount: { opacity: 0.5, marginTop: 4 },
+  summaryBtn: { marginTop: 12, alignSelf: "flex-start" },
   list: { padding: 16, gap: 12 },
   card: {},
   postFooter: {

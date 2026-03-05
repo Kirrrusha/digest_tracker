@@ -16,6 +16,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { TelegramChannelBrowser } from "../../../components/TelegramChannelBrowser";
+import { TelegramFolderBrowser } from "../../../components/TelegramFolderBrowser";
+import { TelegramGroupBrowser } from "../../../components/TelegramGroupBrowser";
 import {
   useAddChannel,
   useChannels,
@@ -25,7 +27,7 @@ import {
 } from "../../../src/hooks";
 import type { Channel } from "../../../src/types";
 
-type AddTab = "url" | "telegram";
+type AddTab = "url" | "telegram" | "groups" | "folders";
 type TypeFilter = "all" | "TELEGRAM" | "RSS";
 
 const TYPE_FILTERS: { label: string; value: TypeFilter }[] = [
@@ -163,8 +165,10 @@ export default function ChannelsScreen() {
               onValueChange={(v) => setActiveTab(v as AddTab)}
               style={styles.tabs}
               buttons={[
-                { value: "url", label: "По URL" },
-                { value: "telegram", label: "Telegram" },
+                { value: "url", label: "URL" },
+                { value: "telegram", label: "Каналы" },
+                { value: "groups", label: "Группы" },
+                { value: "folders", label: "Папки" },
               ]}
             />
 
@@ -178,8 +182,12 @@ export default function ChannelsScreen() {
                 autoCorrect={false}
                 style={styles.input}
               />
-            ) : (
+            ) : activeTab === "telegram" ? (
               <TelegramChannelBrowser onAdded={handleClose} />
+            ) : activeTab === "groups" ? (
+              <TelegramGroupBrowser onAdded={handleClose} />
+            ) : (
+              <TelegramFolderBrowser onAdded={handleClose} />
             )}
           </Dialog.Content>
 
@@ -195,7 +203,7 @@ export default function ChannelsScreen() {
               </Button>
             </Dialog.Actions>
           )}
-          {activeTab === "telegram" && (
+          {(activeTab === "telegram" || activeTab === "groups" || activeTab === "folders") && (
             <Dialog.Actions>
               <Button onPress={handleClose}>Закрыть</Button>
             </Dialog.Actions>

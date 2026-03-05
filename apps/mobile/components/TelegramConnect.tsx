@@ -1,10 +1,17 @@
-import { useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Linking, StyleSheet, View } from "react-native";
 import { ActivityIndicator, Banner, Button, Text, TextInput } from "react-native-paper";
 
-import { useDisconnectMTProto, useSendMTProtoCode, useVerifyMTProtoCode } from "../src/hooks";
+import { mtprotoApi } from "../src/api/endpoints";
+import {
+  useDisconnectMTProto,
+  useQrVerify2fa,
+  useResendMTProtoCode,
+  useSendMTProtoCode,
+  useVerifyMTProtoCode,
+} from "../src/hooks";
 
-type Step = "phone" | "code" | "password" | "connected";
+type Step = "phone" | "code" | "password" | "qr" | "connected";
 
 interface TelegramConnectProps {
   hasActiveSession: boolean;
@@ -20,11 +27,94 @@ export function TelegramConnect({ hasActiveSession }: TelegramConnectProps) {
   const [codeVia, setCodeVia] = useState<"app" | "sms" | "other">("app");
   const [error, setError] = useState<string | null>(null);
 
+  // QR state
+  const [qrToken, setQrToken] = useState<string>("");
+  const [qrExpired, setQrExpired] = useState(false);
+  const [qrNeeds2FA, setQrNeeds2FA] = useState(false);
+  const [qrKey, setQrKey] = useState(0);
+  const qrSessionRef = useRef<string>("");
+
   const sendCode = useSendMTProtoCode();
+  const resendCode = useResendMTProtoCode();
   const verify = useVerifyMTProtoCode();
   const disconnect = useDisconnectMTProto();
+  const qrVerify2fa = useQrVerify2fa();
 
-  const isPending = sendCode.isPending || verify.isPending || disconnect.isPending;
+  const isPending =
+    sendCode.isPending ||
+    resendCode.isPending ||
+    verify.isPending ||
+    disconnect.isPending ||
+    qrVerify2fa.isPending;
+
+  // QR polling
+  useEffect(() => {
+    if (step !== "qr") {
+      qrSessionRef.current = "";
+      setQrToken("");
+      setQrExpired(false);
+      setQrNeeds2FA(false);
+      return;
+    }
+
+    let cancelled = false;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
+    const startPolling = (sessionStr: string) => {
+      let pollInProgress = false;
+      intervalId = setInterval(async () => {
+        if (cancelled || !sessionStr || pollInProgress) return;
+        pollInProgress = true;
+        try {
+          const result = await mtprotoApi.qrPoll(sessionStr);
+          if (cancelled) return;
+          if (result.status === "success") {
+            clearInterval(intervalId!);
+            setStep("connected");
+          } else if (result.status === "pending") {
+            setQrToken(result.token);
+            sessionStr = result.sessionString;
+            qrSessionRef.current = result.sessionString;
+          } else if (result.status === "needs2FA") {
+            clearInterval(intervalId!);
+            qrSessionRef.current = result.sessionString;
+            if (!cancelled) setQrNeeds2FA(true);
+          } else {
+            clearInterval(intervalId!);
+            if (!cancelled) setQrExpired(true);
+          }
+        } catch {
+          // ignore, keep polling
+        } finally {
+          pollInProgress = false;
+        }
+      }, 3000);
+    };
+
+    const init = async () => {
+      setQrToken("");
+      setQrExpired(false);
+      setQrNeeds2FA(false);
+      setError(null);
+      try {
+        const data = await mtprotoApi.qrStart();
+        if (cancelled) return;
+        setQrToken(data.token);
+        qrSessionRef.current = data.sessionString;
+        startPolling(data.sessionString);
+      } catch {
+        if (!cancelled) setError("Не удалось создать QR-код");
+      }
+    };
+
+    init();
+
+    return () => {
+      cancelled = true;
+      if (intervalId) clearInterval(intervalId);
+      qrSessionRef.current = "";
+    };
+  }, [step, qrKey]);
 
   const handleSendCode = () => {
     if (!phone.trim()) return;
@@ -149,6 +239,124 @@ export function TelegramConnect({ hasActiveSession }: TelegramConnectProps) {
           >
             Получить код
           </Button>
+          <Button
+            mode="text"
+            icon="qrcode"
+            onPress={() => {
+              setError(null);
+              setStep("qr");
+            }}
+            style={styles.qrButton}
+          >
+            Войти по QR-коду
+          </Button>
+        </View>
+      )}
+
+      {step === "qr" && (
+        <View style={styles.section}>
+          {qrNeeds2FA ? (
+            <>
+              <View style={styles.info}>
+                <Text variant="bodySmall" style={styles.hint}>
+                  На аккаунте включена двухфакторная аутентификация
+                </Text>
+              </View>
+              <TextInput
+                label="Пароль 2FA"
+                value={password}
+                onChangeText={setPassword}
+                mode="outlined"
+                secureTextEntry
+                disabled={qrVerify2fa.isPending}
+              />
+              <View style={styles.row}>
+                <Button
+                  mode="contained"
+                  onPress={() =>
+                    qrVerify2fa.mutate(
+                      { sessionString: qrSessionRef.current, password },
+                      {
+                        onSuccess: () => {
+                          setStep("connected");
+                          setPassword("");
+                          setError(null);
+                        },
+                        onError: (err: unknown) => {
+                          const msg = (err as { response?: { data?: { message?: string } } })
+                            ?.response?.data?.message;
+                          setError(msg ?? "Неверный пароль");
+                        },
+                      }
+                    )
+                  }
+                  disabled={!password.trim() || qrVerify2fa.isPending}
+                  loading={qrVerify2fa.isPending}
+                  style={styles.flex}
+                >
+                  Войти
+                </Button>
+                <Button
+                  mode="text"
+                  onPress={() => {
+                    setError(null);
+                    setStep("phone");
+                  }}
+                  disabled={qrVerify2fa.isPending}
+                >
+                  Назад
+                </Button>
+              </View>
+            </>
+          ) : (
+            <>
+              <Text variant="bodySmall" style={styles.hint}>
+                Откройте Telegram → Настройки → Устройства → Привязать устройство, затем нажмите
+                кнопку ниже
+              </Text>
+              {qrExpired ? (
+                <View style={styles.qrActions}>
+                  <Text variant="bodySmall" style={styles.hint}>
+                    QR-код истёк
+                  </Text>
+                  <Button
+                    mode="contained"
+                    icon="qrcode"
+                    onPress={() => setQrKey((k) => k + 1)}
+                    style={styles.button}
+                  >
+                    Обновить QR-код
+                  </Button>
+                </View>
+              ) : qrToken ? (
+                <View style={styles.qrActions}>
+                  <Button
+                    mode="contained"
+                    icon="open-in-new"
+                    onPress={() => Linking.openURL(`tg://login?token=${qrToken}`)}
+                    style={styles.button}
+                  >
+                    Открыть в Telegram
+                  </Button>
+                  <Text variant="bodySmall" style={styles.hint}>
+                    Или отсканируйте QR-код на другом устройстве
+                  </Text>
+                </View>
+              ) : (
+                <ActivityIndicator style={styles.loader} />
+              )}
+              <Button
+                mode="text"
+                onPress={() => {
+                  setError(null);
+                  setStep("phone");
+                }}
+                style={styles.button}
+              >
+                ← Войти по номеру телефона
+              </Button>
+            </>
+          )}
         </View>
       )}
 
@@ -174,7 +382,7 @@ export function TelegramConnect({ hasActiveSession }: TelegramConnectProps) {
               mode="contained"
               onPress={() => handleVerify()}
               disabled={!code.trim() || isPending}
-              loading={isPending}
+              loading={verify.isPending}
               style={styles.flex}
             >
               Подтвердить
@@ -183,6 +391,33 @@ export function TelegramConnect({ hasActiveSession }: TelegramConnectProps) {
               Назад
             </Button>
           </View>
+          {codeVia === "app" && (
+            <Button
+              mode="text"
+              onPress={() =>
+                resendCode.mutate(
+                  { phoneNumber: phone, phoneCodeHash, sessionString },
+                  {
+                    onSuccess: (data) => {
+                      setSessionString(data.sessionString);
+                      setPhoneCodeHash(data.phoneCodeHash);
+                      setCodeVia(data.codeVia);
+                      setError(null);
+                    },
+                    onError: (err: unknown) => {
+                      const msg = (err as { response?: { data?: { message?: string } } })?.response
+                        ?.data?.message;
+                      setError(msg ?? "Не удалось переотправить код");
+                    },
+                  }
+                )
+              }
+              disabled={isPending}
+              loading={resendCode.isPending}
+            >
+              Получить код по SMS
+            </Button>
+          )}
         </View>
       )}
 
@@ -218,7 +453,9 @@ export function TelegramConnect({ hasActiveSession }: TelegramConnectProps) {
         </View>
       )}
 
-      {isPending && step !== "connected" && <ActivityIndicator style={styles.loader} />}
+      {isPending && step !== "connected" && step !== "qr" && (
+        <ActivityIndicator style={styles.loader} />
+      )}
     </View>
   );
 }
@@ -246,6 +483,8 @@ const styles = StyleSheet.create({
     borderColor: "#e5e7eb",
   },
   button: { marginTop: 4 },
+  qrButton: { marginTop: 0 },
+  qrActions: { gap: 8 },
   row: { flexDirection: "row", alignItems: "center", gap: 8 },
   flex: { flex: 1 },
   loader: { marginTop: 8 },

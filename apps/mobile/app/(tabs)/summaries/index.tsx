@@ -18,15 +18,15 @@ import type { Summary } from "../../../src/types";
 
 const PERIOD_OPTIONS = [
   { label: "Все", value: undefined as string | undefined },
-  { label: "Дневные", value: "DAILY" as string | undefined },
-  { label: "Недельные", value: "WEEKLY" as string | undefined },
+  { label: "Дневные", value: "daily" as string | undefined },
+  { label: "Недельные", value: "weekly" as string | undefined },
 ];
 
 export default function SummariesScreen() {
   const router = useRouter();
-  const [period, setPeriod] = useState<string | undefined>();
+  const [type, setType] = useState<string | undefined>();
   const [topic, setTopic] = useState<string | undefined>();
-  const { data, isLoading, refetch } = useSummaries(period, topic);
+  const { data, isLoading, refetch } = useSummaries(type, topic);
   const { data: allTopics = [] } = useSummaryTopics();
   const generateSummary = useGenerateSummary();
   const [showDialog, setShowDialog] = useState(false);
@@ -64,8 +64,8 @@ export default function SummariesScreen() {
         {PERIOD_OPTIONS.map(({ label, value }) => (
           <Chip
             key={label}
-            selected={period === value}
-            onPress={() => setPeriod(value)}
+            selected={type === value}
+            onPress={() => setType(value)}
             style={styles.filterChip}
           >
             {label}

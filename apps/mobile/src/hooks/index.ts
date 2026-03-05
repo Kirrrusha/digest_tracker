@@ -82,10 +82,10 @@ export const usePost = (id: string) =>
   });
 
 // Summaries
-export const useSummaries = (period?: string, topic?: string) =>
+export const useSummaries = (type?: string, topic?: string) =>
   useQuery({
-    queryKey: ["summaries", period, topic],
-    queryFn: () => summariesApi.list({ period, topic }),
+    queryKey: ["summaries", type, topic],
+    queryFn: () => summariesApi.list({ type, topic }),
   });
 
 export const useSummaryTopics = () =>
@@ -171,6 +171,12 @@ export const useMTProtoStatus = () =>
 export const useSendMTProtoCode = () =>
   useMutation({ mutationFn: (phone: string) => mtprotoApi.sendCode(phone) });
 
+export const useResendMTProtoCode = () =>
+  useMutation({
+    mutationFn: (data: { phoneNumber: string; phoneCodeHash: string; sessionString: string }) =>
+      mtprotoApi.resendCode(data),
+  });
+
 export const useVerifyMTProtoCode = () => {
   const qc = useQueryClient();
   return useMutation({
@@ -183,6 +189,14 @@ export const useDisconnectMTProto = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: mtprotoApi.disconnect,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["mtproto-status"] }),
+  });
+};
+
+export const useQrVerify2fa = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { sessionString: string; password: string }) => mtprotoApi.qrVerify2fa(data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["mtproto-status"] }),
   });
 };
@@ -202,5 +216,38 @@ export const useBulkAddMTProtoChannels = () => {
       qc.invalidateQueries({ queryKey: ["channels"] });
       qc.invalidateQueries({ queryKey: ["mtproto-channels"] });
     },
+  });
+};
+
+export const useMTProtoGroups = (enabled: boolean) =>
+  useQuery({
+    queryKey: ["mtproto-groups"],
+    queryFn: mtprotoApi.listGroups,
+    enabled,
+  });
+
+export const useBulkAddMTProtoGroups = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: mtprotoApi.bulkAddGroups,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["channels"] });
+      qc.invalidateQueries({ queryKey: ["mtproto-groups"] });
+    },
+  });
+};
+
+export const useMTProtoFolders = (enabled: boolean) =>
+  useQuery({
+    queryKey: ["mtproto-folders"],
+    queryFn: mtprotoApi.listFolders,
+    enabled,
+  });
+
+export const useGenerateSummaryForChannel = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (channelId: string) => summariesApi.generateForChannel(channelId),
+    onSuccess: ({ jobId }) => pollJobStatus(jobId, qc),
   });
 };
