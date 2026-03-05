@@ -12,10 +12,11 @@ export interface Summary {
   id: string;
   title: string;
   content: string;
-  period: string; // формат: "daily-2024-01-25"
+  period: string; // формат: "daily-2024-01-25" | "channel-{id}-daily-2024-01-25"
   topics: string[];
   postsCount: number;
   createdAt: string;
+  channelId?: string | null;
   sources?: PostSource[];
 }
 
