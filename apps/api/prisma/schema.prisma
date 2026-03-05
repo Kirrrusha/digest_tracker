@@ -105,11 +105,14 @@ model Channel {
   accessHash  String?  // MTProto access hash (зашифрован)
   botAccess   Boolean  @default(false) // Бот добавлен как участник канала
   isActive    Boolean  @default(true)
+  isGroup     Boolean  @default(false) // true для групп и супергрупп
+  groupType   String?                  // "group" | "supergroup" | "forum"
   tags        String[] // Категории (frontend, backend, etc)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   posts       Post[]
+  summaries   Summary[]
 
   @@unique([userId, sourceUrl])
   @@index([userId, isActive])
@@ -160,14 +163,17 @@ model Summary {
   userId    String
   title     String
   content   String   @db.Text
-  period    String   // daily-2024-01-25
+  period    String   // daily-2024-01-25 | channel-{id}-daily-2024-01-25
+  channelId String?  // null = глобальная агрегация, иначе — саммари конкретного канала/группы
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel   Channel? @relation(fields: [channelId], references: [id], onDelete: SetNull)
   posts     Post[]
   topics    Topic[]
 
   @@index([userId, period])
   @@index([userId, createdAt])
+  @@index([userId, channelId])
   @@index([createdAt])
   @@map("summaries")
 }
