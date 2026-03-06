@@ -1,4 +1,5 @@
 // Types
+export * from "./types/app-folder";
 export * from "./types/auth";
 export * from "./types/channel";
 export * from "./types/post";
