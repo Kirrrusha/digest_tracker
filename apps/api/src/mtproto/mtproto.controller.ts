@@ -123,4 +123,10 @@ export class MtprotoController {
   async folders(@Request() req: { user: { userId: string } }) {
     return this.mtproto.listUserFolders(req.user.userId);
   }
+
+  @Get("unread-counts")
+  @ApiOperation({ summary: "Количество непрочитанных сообщений по отслеживаемым каналам" })
+  async unreadCounts(@Request() req: { user: { userId: string } }) {
+    return this.mtproto.getUnreadCounts(req.user.userId);
+  }
 }

@@ -24,6 +24,7 @@ import {
   useDeleteChannel,
   useSyncChannel,
   useToggleChannel,
+  useUnreadCounts,
 } from "../../../src/hooks";
 import type { Channel } from "../../../src/types";
 
@@ -43,6 +44,7 @@ export default function ChannelsScreen() {
   const deleteChannel = useDeleteChannel();
   const toggleChannel = useToggleChannel();
   const syncChannel = useSyncChannel();
+  const { data: unreadCounts } = useUnreadCounts();
 
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [activeTab, setActiveTab] = useState<AddTab>("url");
@@ -72,39 +74,49 @@ export default function ChannelsScreen() {
     return matchType && matchSearch;
   });
 
-  const renderChannel = ({ item }: { item: Channel }) => (
-    <Card style={styles.card} onPress={() => router.push(`/(tabs)/channels/${item.id}`)}>
-      <Card.Title
-        title={item.name}
-        subtitle={item.url}
-        right={() => (
-          <Chip compact style={styles.chip}>
-            {item.type}
-          </Chip>
-        )}
-      />
-      <Card.Actions>
-        <Button
-          onPress={() => toggleChannel.mutate({ id: item.id, isActive: !item.isActive })}
-          compact
-        >
-          {item.isActive ? "Приостановить" : "Активировать"}
-        </Button>
-        <Button
-          onPress={() => syncChannel.mutate(item.id)}
-          loading={syncChannel.isPending && syncChannel.variables === item.id}
-          disabled={syncChannel.isPending && syncChannel.variables === item.id}
-          icon="sync"
-          compact
-        >
-          Синхр.
-        </Button>
-        <Button onPress={() => deleteChannel.mutate(item.id)} textColor="#ef4444" compact>
-          Удалить
-        </Button>
-      </Card.Actions>
-    </Card>
-  );
+  const renderChannel = ({ item }: { item: Channel }) => {
+    const unread = item.telegramId ? (unreadCounts?.[item.telegramId] ?? 0) : 0;
+    return (
+      <Card style={styles.card} onPress={() => router.push(`/(tabs)/channels/${item.id}`)}>
+        <Card.Title
+          title={item.name}
+          subtitle={item.url}
+          right={() => (
+            <View style={styles.rightChips}>
+              {unread > 0 && (
+                <Chip compact style={styles.unreadChip} textStyle={styles.unreadChipText}>
+                  {unread}
+                </Chip>
+              )}
+              <Chip compact style={styles.chip}>
+                {item.type}
+              </Chip>
+            </View>
+          )}
+        />
+        <Card.Actions>
+          <Button
+            onPress={() => toggleChannel.mutate({ id: item.id, isActive: !item.isActive })}
+            compact
+          >
+            {item.isActive ? "Приостановить" : "Активировать"}
+          </Button>
+          <Button
+            onPress={() => syncChannel.mutate(item.id)}
+            loading={syncChannel.isPending && syncChannel.variables === item.id}
+            disabled={syncChannel.isPending && syncChannel.variables === item.id}
+            icon="sync"
+            compact
+          >
+            Синхр.
+          </Button>
+          <Button onPress={() => deleteChannel.mutate(item.id)} textColor="#ef4444" compact>
+            Удалить
+          </Button>
+        </Card.Actions>
+      </Card>
+    );
+  };
 
   if (isLoading) {
     return (
@@ -225,7 +237,10 @@ const styles = StyleSheet.create({
   filterChip: { marginRight: 8 },
   list: { padding: 16, paddingBottom: 80, gap: 12 },
   card: {},
-  chip: { marginRight: 8 },
+  rightChips: { flexDirection: "row", alignItems: "center", gap: 4, marginRight: 8 },
+  chip: {},
+  unreadChip: { backgroundColor: "#3b82f6" },
+  unreadChipText: { color: "#fff", fontWeight: "bold" },
   empty: { textAlign: "center", marginTop: 40, opacity: 0.5 },
   fab: { position: "absolute", right: 16, bottom: 16 },
   dialog: { maxHeight: "85%" },

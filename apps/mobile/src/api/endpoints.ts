@@ -184,6 +184,9 @@ export const mtprotoApi = {
     apiClient
       .post<{ added: number; errors: string[] }>("/mtproto/groups/bulk", { groups })
       .then((r) => r.data),
+
+  getUnreadCounts: () =>
+    apiClient.get<Record<string, number>>("/mtproto/unread-counts").then((r) => r.data),
 };
 
 // Profile & Preferences

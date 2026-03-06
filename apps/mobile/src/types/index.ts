@@ -5,6 +5,7 @@ export interface Channel {
   type: "TELEGRAM" | "RSS";
   description?: string | null;
   isActive: boolean;
+  telegramId?: string | null;
   postsCount?: number;
   lastFetchedAt?: string;
   createdAt: string;

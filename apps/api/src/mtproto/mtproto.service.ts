@@ -908,6 +908,48 @@ export class MtprotoService {
     }
   }
 
+  async getUnreadCounts(userId: string): Promise<Record<string, number>> {
+    const session = await this.prisma.mTProtoSession.findUnique({ where: { userId } });
+    if (!session?.isActive) return {};
+
+    const trackedChannels = await this.prisma.channel.findMany({
+      where: { userId, sourceType: "telegram_mtproto", telegramId: { not: null } },
+      select: { telegramId: true },
+    });
+    if (trackedChannels.length === 0) return {};
+    const trackedIds = new Set(trackedChannels.map((c) => c.telegramId!));
+
+    const client = createClientFromEncrypted(session.sessionData);
+    try {
+      await client.connect();
+      const dialogs = await client.getDialogs({ limit: 500 });
+
+      const result: Record<string, number> = {};
+      for (const dialog of dialogs) {
+        if (!dialog.id) continue;
+        const idStr = dialog.id.toString();
+        if (trackedIds.has(idStr) && dialog.unreadCount > 0) {
+          result[idStr] = dialog.unreadCount;
+        }
+      }
+
+      await this.prisma.mTProtoSession.update({
+        where: { userId },
+        data: { lastUsedAt: new Date() },
+      });
+
+      return result;
+    } catch {
+      return {};
+    } finally {
+      try {
+        await client.destroy();
+      } catch {
+        // ignore
+      }
+    }
+  }
+
   async listUserFolders(userId: string): Promise<MTProtoFolderInfo[]> {
     const session = await this.prisma.mTProtoSession.findUnique({ where: { userId } });
     if (!session?.isActive) {

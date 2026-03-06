@@ -211,6 +211,13 @@ export const useMTProtoFolders = (enabled: boolean) =>
     enabled,
   });
 
+export const useUnreadCounts = () =>
+  useQuery({
+    queryKey: ["mtproto-unread-counts"],
+    queryFn: mtprotoApi.getUnreadCounts,
+    staleTime: 30_000,
+  });
+
 export const useGenerateSummaryForChannel = () => {
   const qc = useQueryClient();
   return useMutation({
