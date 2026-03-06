@@ -2,6 +2,7 @@ import { BullModule } from "@nestjs/bullmq";
 import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 
+import { AppFoldersModule } from "./app-folders/app-folders.module";
 import { AuthModule } from "./auth/auth.module";
 import { ChannelsModule } from "./channels/channels.module";
 import { CronModule } from "./cron/cron.module";
@@ -9,7 +10,6 @@ import { DashboardModule } from "./dashboard/dashboard.module";
 import { HealthModule } from "./health/health.module";
 import { MtprotoModule } from "./mtproto/mtproto.module";
 import { PasskeyModule } from "./passkey/passkey.module";
-import { PostsModule } from "./posts/posts.module";
 import { PreferencesModule } from "./preferences/preferences.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { ProfileModule } from "./profile/profile.module";
@@ -27,9 +27,9 @@ import { TelegramModule } from "./telegram/telegram.module";
     }),
     PrismaModule,
     AuthModule,
+    AppFoldersModule,
     PasskeyModule,
     ChannelsModule,
-    PostsModule,
     SummariesModule,
     PreferencesModule,
     ProfileModule,

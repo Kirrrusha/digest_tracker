@@ -45,6 +45,14 @@ export interface MTProtoFolderInfo {
   channels: MTProtoChannelInfo[];
 }
 
+export interface FetchedMessage {
+  title: string | null;
+  content: string;
+  url: string | null;
+  channelName: string;
+  publishedAt: Date;
+}
+
 @Injectable()
 export class MtprotoService {
   private readonly logger = new Logger(MtprotoService.name);
@@ -653,26 +661,22 @@ export class MtprotoService {
     return { added, errors: errs };
   }
 
-  async fetchAndSavePosts(
-    userId: string,
-    channelId: string,
-    limit = 50
-  ): Promise<{ saved: number; skipped: number }> {
+  async fetchMessages(userId: string, channelId: string, limit = 50): Promise<FetchedMessage[]> {
     const channel = await this.prisma.channel.findFirst({
       where: { id: channelId, userId },
       select: { isGroup: true },
     });
     if (!channel) throw new NotFoundException("Канал не найден.");
     return channel.isGroup
-      ? this.fetchAndSaveGroupPosts(userId, channelId, limit)
-      : this.fetchAndSaveChannelPosts(userId, channelId, limit);
+      ? this.fetchGroupMessages(userId, channelId, limit)
+      : this.fetchChannelMessages(userId, channelId, limit);
   }
 
-  async fetchAndSaveChannelPosts(
+  async fetchChannelMessages(
     userId: string,
     channelId: string,
     limit = 50
-  ): Promise<{ saved: number; skipped: number }> {
+  ): Promise<FetchedMessage[]> {
     const session = await this.prisma.mTProtoSession.findUnique({ where: { userId } });
     if (!session?.isActive) {
       throw new UnauthorizedException(
@@ -689,7 +693,6 @@ export class MtprotoService {
 
     const decryptedHash = decryptSession(channel.accessHash);
 
-    // Extract username from sourceUrl (https://t.me/username → "username")
     let username: string | null = null;
     if (channel.sourceUrl.startsWith("https://t.me/")) {
       const candidate = channel.sourceUrl.replace("https://t.me/", "").split("/")[0];
@@ -722,31 +725,11 @@ export class MtprotoService {
 
       const sanitize = (text: string): string =>
         text
-          .replace(/\x00/g, "") // null bytes — PostgreSQL rejects them
-          .replace(/[\uD800-\uDFFF]/g, "") // lone surrogates — break JSON serialization
-          // Remove any backslash not starting a valid JSON escape:
-          // valid: \" \\ \/ \n \r \t \b \f \uXXXX
-          // invalid (e.g. \x, \u with <4 hex digits) cause PostgreSQL JSON parser to fail
+          .replace(/\x00/g, "")
+          .replace(/[\uD800-\uDFFF]/g, "")
           .replace(/\\(?!["\\\/nrtbf]|u[0-9a-fA-F]{4})/g, "");
 
       const messages = "messages" in result ? result.messages : [];
-      const postsData = messages
-        .filter((m): m is Api.Message => m instanceof Api.Message && !!m.message)
-        .map((m) => ({
-          channelId: channel.id,
-          externalId: String(m.id),
-          title: sanitize(m.message).split("\n")[0].slice(0, 100) || null,
-          contentPreview: sanitize(m.message).slice(0, 500),
-          url: username
-            ? `https://t.me/${username}/${m.id}`
-            : `https://t.me/c/${channel.telegramId}/${m.id}`,
-          publishedAt: new Date(m.date * 1000),
-        }));
-
-      const { count } = await this.prisma.post.createMany({
-        data: postsData,
-        skipDuplicates: true,
-      });
 
       const prefs = await this.prisma.userPreferences.findUnique({ where: { userId } });
       if (prefs?.markTelegramAsRead && messages.length > 0) {
@@ -771,7 +754,17 @@ export class MtprotoService {
         data: { lastUsedAt: new Date() },
       });
 
-      return { saved: count, skipped: postsData.length - count };
+      return messages
+        .filter((m): m is Api.Message => m instanceof Api.Message && !!m.message)
+        .map((m) => ({
+          title: sanitize(m.message).split("\n")[0].slice(0, 100) || null,
+          content: sanitize(m.message).slice(0, 500),
+          url: username
+            ? `https://t.me/${username}/${m.id}`
+            : `https://t.me/c/${channel.telegramId}/${m.id}`,
+          channelName: channel.name,
+          publishedAt: new Date(m.date * 1000),
+        }));
     } catch (error) {
       if (error instanceof errors.AuthKeyError) {
         await this.prisma.mTProtoSession.update({
@@ -784,7 +777,7 @@ export class MtprotoService {
       }
       if (error instanceof UnauthorizedException || error instanceof NotFoundException) throw error;
       this.logger.error(
-        `fetchAndSaveChannelPosts error: ${(error as Error)?.message}`,
+        `fetchChannelMessages error: ${(error as Error)?.message}`,
         (error as Error)?.stack
       );
       throw new BadRequestException("Не удалось получить посты канала.");
@@ -797,11 +790,11 @@ export class MtprotoService {
     }
   }
 
-  async fetchAndSaveGroupPosts(
+  async fetchGroupMessages(
     userId: string,
     channelId: string,
     limit = 50
-  ): Promise<{ saved: number; skipped: number }> {
+  ): Promise<FetchedMessage[]> {
     const session = await this.prisma.mTProtoSession.findUnique({ where: { userId } });
     if (!session?.isActive) {
       throw new UnauthorizedException(
@@ -822,10 +815,8 @@ export class MtprotoService {
 
       let peer: Api.TypeInputPeer;
       if (channel.groupType === "group") {
-        // Basic group — InputPeerChat
         peer = new Api.InputPeerChat({ chatId: bigInt(channel.telegramId) });
       } else {
-        // Supergroup / Forum — InputPeerChannel
         if (!channel.accessHash) throw new NotFoundException("accessHash не найден для группы.");
         const decryptedHash = decryptSession(channel.accessHash);
         peer = new Api.InputPeerChannel({
@@ -858,24 +849,6 @@ export class MtprotoService {
         ? channel.sourceUrl.replace("https://t.me/", "").split("/")[0] || null
         : null;
 
-      const postsData = messages
-        .filter((m): m is Api.Message => m instanceof Api.Message && !!m.message)
-        .map((m) => ({
-          channelId: channel.id,
-          externalId: String(m.id),
-          title: sanitize(m.message).split("\n")[0].slice(0, 100) || null,
-          contentPreview: sanitize(m.message).slice(0, 500),
-          url: username
-            ? `https://t.me/${username}/${m.id}`
-            : `https://t.me/c/${channel.telegramId}/${m.id}`,
-          publishedAt: new Date(m.date * 1000),
-        }));
-
-      const { count } = await this.prisma.post.createMany({
-        data: postsData,
-        skipDuplicates: true,
-      });
-
       const prefs = await this.prisma.userPreferences.findUnique({ where: { userId } });
       if (prefs?.markTelegramAsRead && messages.length > 0) {
         const maxId = Math.max(
@@ -899,7 +872,17 @@ export class MtprotoService {
         data: { lastUsedAt: new Date() },
       });
 
-      return { saved: count, skipped: postsData.length - count };
+      return messages
+        .filter((m): m is Api.Message => m instanceof Api.Message && !!m.message)
+        .map((m) => ({
+          title: sanitize(m.message).split("\n")[0].slice(0, 100) || null,
+          content: sanitize(m.message).slice(0, 500),
+          url: username
+            ? `https://t.me/${username}/${m.id}`
+            : `https://t.me/c/${channel.telegramId}/${m.id}`,
+          channelName: channel.name,
+          publishedAt: new Date(m.date * 1000),
+        }));
     } catch (error) {
       if (error instanceof errors.AuthKeyError) {
         await this.prisma.mTProtoSession.update({
@@ -912,7 +895,7 @@ export class MtprotoService {
       }
       if (error instanceof UnauthorizedException || error instanceof NotFoundException) throw error;
       this.logger.error(
-        `fetchAndSaveGroupPosts error: ${(error as Error)?.message}`,
+        `fetchGroupMessages error: ${(error as Error)?.message}`,
         (error as Error)?.stack
       );
       throw new BadRequestException("Не удалось получить посты группы.");

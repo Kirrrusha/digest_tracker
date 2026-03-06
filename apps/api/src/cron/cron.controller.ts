@@ -24,14 +24,6 @@ export class CronController {
     if (expected && secret !== expected) throw new UnauthorizedException();
   }
 
-  @Post("fetch-posts")
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: "Фетч постов (CRON_SECRET)" })
-  fetchPosts(@Headers("x-cron-secret") secret: string) {
-    this.checkSecret(secret);
-    return this.cron.fetchPosts();
-  }
-
   @Post("daily-summary")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Дневное саммари (CRON_SECRET)" })

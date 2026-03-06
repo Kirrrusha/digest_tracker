@@ -12,14 +12,6 @@ export class ChannelsService {
   async findAll(userId: string): Promise<Channel[]> {
     const channels = await this.prisma.channel.findMany({
       where: { userId },
-      include: {
-        _count: { select: { posts: true } },
-        posts: {
-          orderBy: { publishedAt: "desc" },
-          take: 1,
-          select: { publishedAt: true },
-        },
-      },
       orderBy: { createdAt: "desc" },
     });
 
@@ -29,14 +21,6 @@ export class ChannelsService {
   async findOne(userId: string, id: string): Promise<Channel> {
     const ch = await this.prisma.channel.findFirst({
       where: { id, userId },
-      include: {
-        _count: { select: { posts: true } },
-        posts: {
-          orderBy: { publishedAt: "desc" },
-          take: 1,
-          select: { publishedAt: true },
-        },
-      },
     });
     if (!ch) throw new NotFoundException("Канал не найден");
     return this.toDto(ch);
@@ -82,14 +66,6 @@ export class ChannelsService {
     const ch = await this.prisma.channel.update({
       where: { id },
       data: dto,
-      include: {
-        _count: { select: { posts: true } },
-        posts: {
-          orderBy: { publishedAt: "desc" },
-          take: 1,
-          select: { publishedAt: true },
-        },
-      },
     });
     return this.toDto(ch);
   }
@@ -112,8 +88,6 @@ export class ChannelsService {
     telegramId: string | null;
     createdAt: Date;
     updatedAt: Date;
-    _count: { posts: number };
-    posts: { publishedAt: Date }[];
   }): Channel {
     return {
       id: ch.id,
@@ -126,8 +100,8 @@ export class ChannelsService {
       isGroup: ch.isGroup,
       groupType: (ch.groupType as Channel["groupType"]) ?? null,
       telegramId: ch.telegramId,
-      postsCount: ch._count.posts,
-      lastPostAt: ch.posts[0]?.publishedAt?.toISOString() ?? null,
+      postsCount: 0,
+      lastPostAt: null,
       createdAt: ch.createdAt.toISOString(),
       updatedAt: ch.updatedAt.toISOString(),
     };

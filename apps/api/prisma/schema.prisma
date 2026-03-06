@@ -24,6 +24,7 @@ model User {
   authenticators  Authenticator[]
   telegramAccount TelegramAccount?
   mtprotoSession  MTProtoSession?
+  appFolders      AppFolder[]
 
   @@map("users")
 }
@@ -110,14 +111,28 @@ model Channel {
   tags        String[] // Категории (frontend, backend, etc)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  posts       Post[]
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   summaries   Summary[]
+  appFolders  AppFolder[]
 
   @@unique([userId, sourceUrl])
   @@index([userId, isActive])
   @@index([sourceType])
   @@map("channels")
+}
+
+// Пользовательские папки (созданные в приложении)
+model AppFolder {
+  id        String    @id @default(cuid())
+  userId    String
+  name      String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channels  Channel[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("app_folders")
 }
 
 // MTProto сессии (для доступа к приватным каналам)
@@ -136,27 +151,6 @@ model MTProtoSession {
   @@map("mtproto_sessions")
 }
 
-// Посты из каналов
-model Post {
-  id          String    @id @default(cuid())
-  channelId   String
-  externalId  String    // ID поста в источнике
-  title       String?
-  contentPreview String? @db.VarChar(500)
-  url         String?
-  author      String?
-  publishedAt DateTime
-  createdAt   DateTime  @default(now())
-  channel     Channel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  summaries   Summary[]
-
-  @@unique([channelId, externalId])
-  @@index([channelId])
-  @@index([publishedAt])
-  @@index([channelId, publishedAt])
-  @@map("posts")
-}
-
 // Саммари
 model Summary {
   id        String   @id @default(cuid())
@@ -168,7 +162,6 @@ model Summary {
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   channel   Channel? @relation(fields: [channelId], references: [id], onDelete: SetNull)
-  posts     Post[]
   topics    Topic[]
 
   @@index([userId, period])

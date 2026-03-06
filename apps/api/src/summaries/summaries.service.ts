@@ -3,20 +3,6 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 
 import { PrismaService } from "../prisma/prisma.service";
 
-export interface PostSource {
-  id: string;
-  title: string | null;
-  contentPreview: string | null;
-  url: string | null;
-  publishedAt: string;
-  channelName: string;
-  channelType: string;
-}
-
-export interface SummaryWithSources extends Summary {
-  sources: PostSource[];
-}
-
 @Injectable()
 export class SummariesService {
   constructor(private prisma: PrismaService) {}
@@ -31,7 +17,7 @@ export class SummariesService {
   ): Promise<SummariesResponse> {
     const where = {
       userId,
-      ...(type ? { period: { startsWith: type } } : {}),
+      ...(type ? { period: { contains: type } } : {}),
       ...(topic ? { topics: { some: { name: topic } } } : {}),
       ...(channelId !== undefined ? { channelId: channelId || null } : {}),
     };
@@ -43,7 +29,7 @@ export class SummariesService {
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * limit,
         take: limit,
-        include: { posts: { select: { id: true } }, topics: { select: { name: true } } },
+        include: { topics: { select: { name: true } } },
       }),
     ]);
 
@@ -55,39 +41,13 @@ export class SummariesService {
     };
   }
 
-  async findOne(userId: string, id: string): Promise<SummaryWithSources> {
+  async findOne(userId: string, id: string): Promise<Summary> {
     const s = await this.prisma.summary.findFirst({
       where: { id, userId },
-      include: {
-        posts: {
-          select: {
-            id: true,
-            title: true,
-            contentPreview: true,
-            url: true,
-            publishedAt: true,
-            channel: { select: { name: true, sourceType: true } },
-          },
-        },
-        topics: { select: { name: true } },
-      },
+      include: { topics: { select: { name: true } } },
     });
     if (!s) throw new NotFoundException("Саммари не найдено");
-
-    const sources: PostSource[] = s.posts.map((p) => ({
-      id: p.id,
-      title: p.title,
-      contentPreview: p.contentPreview,
-      url: p.url,
-      publishedAt: p.publishedAt.toISOString(),
-      channelName: p.channel.name,
-      channelType: p.channel.sourceType,
-    }));
-
-    return {
-      ...this.toDto({ ...s, posts: s.posts }),
-      sources,
-    };
+    return this.toDto(s);
   }
 
   async getTopics(userId: string): Promise<string[]> {
@@ -112,17 +72,18 @@ export class SummariesService {
     title: string;
     content: string;
     period: string;
+    channelId?: string | null;
     topics: { name: string }[];
     createdAt: Date;
-    posts: { id: string }[];
   }): Summary {
     return {
       id: s.id,
       title: s.title,
       content: s.content,
       period: s.period,
+      channelId: s.channelId,
       topics: s.topics.map((t) => t.name),
-      postsCount: s.posts.length,
+      postsCount: 0,
       createdAt: s.createdAt.toISOString(),
     };
   }

@@ -2,45 +2,37 @@ import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import OpenAI from "openai";
 
+import { MtprotoService } from "../mtproto/mtproto.service";
 import { PrismaService } from "../prisma/prisma.service";
 
 // ---- Prompts ----
 
-const SUMMARY_SYSTEM_PROMPT = `Ты — эксперт по программированию и техническим новостям.
-Твоя задача — создавать краткие и информативные саммари из постов технических каналов.
+function buildSystemPrompt(language: string, sourceContext?: string): string {
+  const outputLang = language === "ru" ? "Russian" : "English";
+  const contextNote = sourceContext
+    ? `\nThis digest is specifically for ${sourceContext}. Focus on content from this source.`
+    : "";
 
-Правила:
-1. Группируй посты по темам (фреймворки, языки, инструменты, практики)
-2. Выделяй ключевые новости и релизы
-3. Сохраняй технические детали, которые важны для разработчиков
-4. Используй markdown для форматирования
-5. Будь лаконичен, но информативен
-6. Когда упоминаешь конкретный пост, ставь цитату [N] прямо в текст, где N — порядковый номер поста из списка (например: «Samsung выпустила Galaxy S26 [1]» или «вышел TypeScript 5.8 [3][7]»)
-7. НЕ добавляй раздел с источниками — он будет добавлен автоматически
+  return `You are an expert news analyst and editor creating structured daily digests from Telegram channels.
 
-Формат ответа:
-- Используй заголовки ## для основных разделов
-- Используй ### для подразделов
-- Используй списки для перечислений
-- Выделяй важное **жирным**`;
-
-const SUMMARY_SYSTEM_PROMPT_EN = `You are an expert in programming and tech news.
-Your task is to create concise and informative summaries from technical channel posts.
+Your goal is to give the reader a clear, comprehensive overview of everything significant — across ALL topics present in the posts: technology, science, politics, economics, business, culture, sports, and more. Do not skip non-technical content.
 
 Rules:
-1. Group posts by topics (frameworks, languages, tools, practices)
-2. Highlight key news and releases
-3. Preserve technical details important for developers
-4. Use markdown for formatting
-5. Be concise but informative
-6. When referencing a specific post, insert an inline citation [N] right in the text, where N is the post's number from the list (e.g. "TypeScript 5.8 released [3]" or "new AI tool from Google [1][5]")
+1. Cover ALL significant news from ALL posts regardless of topic
+2. Identify the natural themes from the actual content — do not force a technical framing
+3. Group related posts under shared topic headings
+4. Highlight key events, announcements, releases, and developments
+5. Preserve important details specific to each topic (e.g. version numbers for software, names for political news, prices for business)
+6. When referencing a specific post, insert an inline citation [N] directly in the text, where N is the post's order number in the list (e.g. "Xbox Project Helix announced [3][9]" or "ФАС признала рекламу в Telegram незаконной [14][26]")
 7. Do NOT add a sources section — it will be appended automatically
+8. Write the entire summary in ${outputLang}${contextNote}
 
-Response format:
-- Use ## for main sections
-- Use ### for subsections
-- Use lists for enumerations
-- Highlight important things with **bold**`;
+Formatting:
+- Use ## for main topic sections
+- Use ### for subsections if needed
+- Use bullet lists for enumerations
+- Bold **important facts, names, and figures**`;
+}
 
 // ---- Topic extraction ----
 
@@ -158,8 +150,7 @@ function truncateContent(content: string, maxLength: number): string {
   return truncated.slice(0, lastSpace) + "...";
 }
 
-interface PostForSummary {
-  id: string;
+export interface PostForSummary {
   title: string | null;
   content: string;
   url: string | null;
@@ -167,53 +158,26 @@ interface PostForSummary {
   publishedAt: Date;
 }
 
-function buildSummaryPrompt(posts: PostForSummary[], language: string): string {
+function buildSummaryPrompt(posts: PostForSummary[]): string {
   const postsText = posts
     .map((post, i) => {
       const title = post.title ? `**${post.title}**` : "";
       const content = truncateContent(post.content, 500);
-      const url = post.url ? `\nСсылка: ${post.url}` : "";
+      const url = post.url ? `\nLink: ${post.url}` : "";
       return `### ${i + 1}. [${post.channelName}] ${title}\n${content}${url}`;
     })
     .join("\n\n---\n\n");
 
-  if (language === "ru") {
-    return `Проанализируй следующие ${posts.length} постов из технических каналов и создай структурированное саммари.
+  return `Analyze the following ${posts.length} posts from Telegram channels and write a structured digest.
 
-## Посты для анализа:
-
-${postsText}
-
-## Задание:
-
-Создай саммари, которое включает:
-
-1. **Основные темы дня** — перечисли 3-5 ключевых тем с кратким описанием
-2. **Важные релизы и новости** — если есть анонсы версий, новых инструментов
-3. **Полезные практики** — советы и best practices из постов
-4. **Интересные ресурсы** — ссылки на статьи, репозитории, туториалы
-
-Важно: когда упоминаешь конкретный пост, ставь [N] прямо в текст (например: «вышел React 19 [3]»).
-Формат: используй Markdown с заголовками, списками и выделением важного.`;
-  }
-
-  return `Analyze the following ${posts.length} posts from technical channels and create a structured summary.
-
-## Posts to analyze:
+## Posts:
 
 ${postsText}
 
 ## Task:
 
-Create a summary that includes:
-
-1. **Main topics of the day** — list 3-5 key topics with brief descriptions
-2. **Important releases and news** — version announcements, new tools
-3. **Useful practices** — tips and best practices from posts
-4. **Interesting resources** — links to articles, repositories, tutorials
-
-Important: when referencing a specific post, insert [N] inline in the text (e.g. "React 19 released [3]").
-Format: use Markdown with headers, lists, and highlight important things.`;
+Write a digest covering all significant content. Group posts by topic naturally. For each topic include key facts, names, and figures. Cite posts inline as [N] (e.g. "React 19 released [3]" or "Xbox Project Helix announced [3][9]").
+Format: Markdown with ## topic headers, bullet lists, and **bold** for key facts.`;
 }
 
 // ---- Sources section ----
@@ -235,7 +199,6 @@ function buildSourcesSection(posts: PostForSummary[], language: string): string 
 // ---- Citation injection ----
 
 function injectCitationLinks(content: string, posts: PostForSummary[]): string {
-  // Replace [N] (not already followed by a markdown link paren) with [[N]](post_url)
   return content.replace(/\[(\d+)\](?!\()/g, (match, n) => {
     const index = parseInt(n, 10) - 1;
     const post = posts[index];
@@ -260,7 +223,8 @@ export class SummarizerService {
 
   constructor(
     private prisma: PrismaService,
-    private config: ConfigService
+    private config: ConfigService,
+    private mtproto: MtprotoService
   ) {}
 
   private getOpenAI(): OpenAI {
@@ -274,61 +238,60 @@ export class SummarizerService {
     return this.openai;
   }
 
+  private async fetchAllUserMessages(userId: string, limit: number): Promise<PostForSummary[]> {
+    const channels = await this.prisma.channel.findMany({
+      where: { userId, sourceType: "telegram_mtproto", isActive: true },
+      select: { id: true, isGroup: true },
+    });
+
+    const all: PostForSummary[] = [];
+    for (const ch of channels) {
+      try {
+        const msgs = ch.isGroup
+          ? await this.mtproto.fetchGroupMessages(userId, ch.id, limit)
+          : await this.mtproto.fetchChannelMessages(userId, ch.id, limit);
+        all.push(...msgs);
+      } catch {
+        // skip channels that fail (e.g. no session)
+      }
+    }
+    return all;
+  }
+
   async generateDaily(userId: string, force = false) {
     const today = new Date();
     const startOfDay = new Date(today);
     startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(today);
-    endOfDay.setHours(23, 59, 59, 999);
     const period = `daily-${today.toISOString().split("T")[0]}`;
 
     const existing = await this.prisma.summary.findFirst({ where: { userId, period } });
     if (existing && !force) return existing;
     if (existing && force) await this.prisma.summary.delete({ where: { id: existing.id } });
 
-    let posts = await this.prisma.post.findMany({
-      where: {
-        channel: { userId },
-        publishedAt: { gte: startOfDay, lte: endOfDay },
-      },
-      include: { channel: { select: { name: true } } },
-      orderBy: { publishedAt: "desc" },
-      take: 50,
-    });
+    let posts = (await this.fetchAllUserMessages(userId, 50)).filter(
+      (p) => p.publishedAt >= startOfDay
+    );
 
-    // Fallback: нет постов за сегодня — берём последние 50 постов без ограничения по дате
     if (posts.length === 0) {
-      posts = await this.prisma.post.findMany({
-        where: { channel: { userId } },
-        include: { channel: { select: { name: true } } },
-        orderBy: { publishedAt: "desc" },
-        take: 50,
-      });
+      posts = await this.fetchAllUserMessages(userId, 50);
     }
 
     if (posts.length === 0) throw new Error("Нет постов для генерации");
 
+    posts = posts.sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime()).slice(0, 50);
+
     const preferences = await this.prisma.userPreferences.findUnique({ where: { userId } });
     const language = preferences?.language || "ru";
 
-    const postsForSummary: PostForSummary[] = posts.map((p) => ({
-      id: p.id,
-      title: p.title,
-      content: p.contentPreview || "",
-      url: p.url,
-      channelName: p.channel.name,
-      publishedAt: p.publishedAt,
-    }));
-
-    const result = await this.callOpenAI(postsForSummary, language);
+    const result = await this.callOpenAI(posts, language);
     const todayFormatted = today.toLocaleDateString(language === "ru" ? "ru-RU" : "en-US", {
       day: "numeric",
       month: "long",
     });
     const title =
       language === "ru" ? `Саммари за ${todayFormatted}` : `Summary for ${todayFormatted}`;
-    const citedContent = injectCitationLinks(result.content, postsForSummary);
-    const content = citedContent + buildSourcesSection(postsForSummary, language);
+    const citedContent = injectCitationLinks(result.content, posts);
+    const content = citedContent + buildSourcesSection(posts, language);
 
     return this.prisma.summary.create({
       data: {
@@ -342,7 +305,6 @@ export class SummarizerService {
           })),
         },
         period,
-        posts: { connect: posts.map((p) => ({ id: p.id })) },
       },
     });
   }
@@ -352,56 +314,34 @@ export class SummarizerService {
     const weekNumber = getWeekNumber(today);
     const period = `weekly-${today.getFullYear()}-${weekNumber}`;
 
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay() + 1);
-    startOfWeek.setHours(0, 0, 0, 0);
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6);
-    endOfWeek.setHours(23, 59, 59, 999);
-
     const existing = await this.prisma.summary.findFirst({ where: { userId, period } });
     if (existing && !force) return existing;
     if (existing && force) await this.prisma.summary.delete({ where: { id: existing.id } });
 
-    let posts = await this.prisma.post.findMany({
-      where: {
-        channel: { userId },
-        publishedAt: { gte: startOfWeek, lte: endOfWeek },
-      },
-      include: { channel: { select: { name: true } } },
-      orderBy: { publishedAt: "desc" },
-      take: 100,
-    });
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay() + 1);
+    startOfWeek.setHours(0, 0, 0, 0);
 
-    // Fallback: нет постов за неделю — берём последние 100 постов без ограничения по дате
+    let posts = (await this.fetchAllUserMessages(userId, 100)).filter(
+      (p) => p.publishedAt >= startOfWeek
+    );
+
     if (posts.length === 0) {
-      posts = await this.prisma.post.findMany({
-        where: { channel: { userId } },
-        include: { channel: { select: { name: true } } },
-        orderBy: { publishedAt: "desc" },
-        take: 100,
-      });
+      posts = await this.fetchAllUserMessages(userId, 100);
     }
 
     if (posts.length === 0) throw new Error("Нет постов для генерации");
 
+    posts = posts.sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime()).slice(0, 100);
+
     const preferences = await this.prisma.userPreferences.findUnique({ where: { userId } });
     const language = preferences?.language || "ru";
 
-    const postsForSummary: PostForSummary[] = posts.map((p) => ({
-      id: p.id,
-      title: p.title,
-      content: p.contentPreview || "",
-      url: p.url,
-      channelName: p.channel.name,
-      publishedAt: p.publishedAt,
-    }));
-
-    const result = await this.callOpenAI(postsForSummary, language);
+    const result = await this.callOpenAI(posts, language);
     const title =
       language === "en" ? `Weekly Summary #${weekNumber}` : `Недельное саммари #${weekNumber}`;
-    const citedContent = injectCitationLinks(result.content, postsForSummary);
-    const content = citedContent + buildSourcesSection(postsForSummary, language);
+    const citedContent = injectCitationLinks(result.content, posts);
+    const content = citedContent + buildSourcesSection(posts, language);
 
     return this.prisma.summary.create({
       data: {
@@ -415,27 +355,19 @@ export class SummarizerService {
           })),
         },
         period,
-        posts: { connect: posts.map((p) => ({ id: p.id })) },
       },
     });
   }
 
   private async callOpenAI(posts: PostForSummary[], language: string, sourceContext?: string) {
     const model = this.config.get<string>("OPENAI_MODEL") || "gpt-4-turbo-preview";
-    let systemPrompt = language === "ru" ? SUMMARY_SYSTEM_PROMPT : SUMMARY_SYSTEM_PROMPT_EN;
-    if (sourceContext) {
-      const note =
-        language === "ru"
-          ? `\n\nЭто саммари ${sourceContext}. Фокусируйся на контенте именно этого источника.`
-          : `\n\nThis is a summary of ${sourceContext}. Focus on the content from this specific source.`;
-      systemPrompt = systemPrompt + note;
-    }
+    const systemPrompt = buildSystemPrompt(language, sourceContext);
 
     const response = await this.getOpenAI().chat.completions.create({
       model,
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: buildSummaryPrompt(posts, language) },
+        { role: "user", content: buildSummaryPrompt(posts) },
       ],
       temperature: 0.3,
       max_tokens: 4000,
@@ -472,21 +404,13 @@ export class SummarizerService {
     since.setDate(today.getDate() - daysBack);
     since.setHours(0, 0, 0, 0);
 
-    let posts = await this.prisma.post.findMany({
-      where: { channelId, channel: { userId }, publishedAt: { gte: since } },
-      include: { channel: { select: { name: true } } },
-      orderBy: { publishedAt: "desc" },
-      take: maxPosts,
-    });
+    let posts = channel.isGroup
+      ? await this.mtproto.fetchGroupMessages(userId, channelId, maxPosts)
+      : await this.mtproto.fetchChannelMessages(userId, channelId, maxPosts);
 
-    if (posts.length < 5) {
-      posts = await this.prisma.post.findMany({
-        where: { channelId, channel: { userId } },
-        include: { channel: { select: { name: true } } },
-        orderBy: { publishedAt: "desc" },
-        take: maxPosts,
-      });
-    }
+    let filtered = posts.filter((p) => p.publishedAt >= since);
+    if (filtered.length < 5) filtered = posts;
+    posts = filtered;
 
     if (posts.length === 0) throw new Error("Нет постов для генерации саммари");
 
@@ -500,20 +424,7 @@ export class SummarizerService {
         ? "канала"
         : "channel";
 
-    const postsForSummary: PostForSummary[] = posts.map((p) => ({
-      id: p.id,
-      title: p.title,
-      content: p.contentPreview || "",
-      url: p.url,
-      channelName: p.channel.name,
-      publishedAt: p.publishedAt,
-    }));
-
-    const result = await this.callOpenAI(
-      postsForSummary,
-      language,
-      `${sourceTypeName} «${channel.name}»`
-    );
+    const result = await this.callOpenAI(posts, language, `${sourceTypeName} «${channel.name}»`);
 
     const dateFormatted = today.toLocaleDateString(language === "ru" ? "ru-RU" : "en-US", {
       day: "numeric",
@@ -524,8 +435,8 @@ export class SummarizerService {
         ? `${channel.name} — саммари за ${dateFormatted}`
         : `${channel.name} — summary for ${dateFormatted}`;
 
-    const citedContent = injectCitationLinks(result.content, postsForSummary);
-    const content = citedContent + buildSourcesSection(postsForSummary, language);
+    const citedContent = injectCitationLinks(result.content, posts);
+    const content = citedContent + buildSourcesSection(posts, language);
 
     return this.prisma.summary.create({
       data: {
@@ -540,7 +451,6 @@ export class SummarizerService {
             create: { name },
           })),
         },
-        posts: { connect: posts.map((p) => ({ id: p.id })) },
       },
     });
   }
@@ -561,47 +471,38 @@ export class SummarizerService {
 
     const validChannels = await this.prisma.channel.findMany({
       where: { telegramId: { in: telegramIds }, userId },
-      select: { id: true },
+      select: { id: true, isGroup: true },
     });
-    const validIds = validChannels.map((c) => c.id);
-    if (validIds.length === 0) throw new Error("Нет доступных каналов в папке");
+    if (validChannels.length === 0) throw new Error("Нет доступных каналов в папке");
 
     const since = new Date(today);
     since.setDate(today.getDate() - 7);
     since.setHours(0, 0, 0, 0);
 
-    let posts = await this.prisma.post.findMany({
-      where: { channelId: { in: validIds }, channel: { userId }, publishedAt: { gte: since } },
-      include: { channel: { select: { name: true } } },
-      orderBy: { publishedAt: "desc" },
-      take: 100,
-    });
-
-    if (posts.length < 5) {
-      posts = await this.prisma.post.findMany({
-        where: { channelId: { in: validIds }, channel: { userId } },
-        include: { channel: { select: { name: true } } },
-        orderBy: { publishedAt: "desc" },
-        take: 100,
-      });
+    const allMessages: PostForSummary[] = [];
+    for (const ch of validChannels) {
+      try {
+        const msgs = ch.isGroup
+          ? await this.mtproto.fetchGroupMessages(userId, ch.id, 100)
+          : await this.mtproto.fetchChannelMessages(userId, ch.id, 100);
+        allMessages.push(...msgs);
+      } catch {
+        // skip channels that fail
+      }
     }
 
+    let posts = allMessages.filter((p) => p.publishedAt >= since);
+    if (posts.length < 5) posts = allMessages;
+
     if (posts.length === 0) throw new Error("Нет постов для генерации саммари");
+
+    posts = posts.sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime()).slice(0, 100);
 
     const preferences = await this.prisma.userPreferences.findUnique({ where: { userId } });
     const language = preferences?.language || "ru";
 
-    const postsForSummary: PostForSummary[] = posts.map((p) => ({
-      id: p.id,
-      title: p.title,
-      content: p.contentPreview || "",
-      url: p.url,
-      channelName: p.channel.name,
-      publishedAt: p.publishedAt,
-    }));
-
     const sourceContext = language === "ru" ? `папки «${folderTitle}»` : `folder "${folderTitle}"`;
-    const result = await this.callOpenAI(postsForSummary, language, sourceContext);
+    const result = await this.callOpenAI(posts, language, sourceContext);
 
     const dateFormatted = today.toLocaleDateString(language === "ru" ? "ru-RU" : "en-US", {
       day: "numeric",
@@ -612,8 +513,8 @@ export class SummarizerService {
         ? `${folderTitle} — саммари за ${dateFormatted}`
         : `${folderTitle} — summary for ${dateFormatted}`;
 
-    const citedContent = injectCitationLinks(result.content, postsForSummary);
-    const content = citedContent + buildSourcesSection(postsForSummary, language);
+    const citedContent = injectCitationLinks(result.content, posts);
+    const content = citedContent + buildSourcesSection(posts, language);
 
     return this.prisma.summary.create({
       data: {
@@ -627,7 +528,6 @@ export class SummarizerService {
             create: { name },
           })),
         },
-        posts: { connect: posts.map((p) => ({ id: p.id })) },
       },
     });
   }
@@ -635,37 +535,35 @@ export class SummarizerService {
   async regenerate(userId: string, summaryId: string) {
     const existing = await this.prisma.summary.findFirst({
       where: { id: summaryId, userId },
-      include: {
-        posts: {
-          select: {
-            id: true,
-            title: true,
-            contentPreview: true,
-            url: true,
-            publishedAt: true,
-            channel: { select: { name: true } },
-          },
-        },
-      },
     });
     if (!existing) throw new Error("Саммари не найдено");
-    if (existing.posts.length === 0) throw new Error("Нет постов для регенерации");
+
+    // Re-fetch from source and re-generate based on summary type
+    const period = existing.period;
+    let posts: PostForSummary[] = [];
+
+    if (period.startsWith("channel-") && existing.channelId) {
+      const channel = await this.prisma.channel.findFirst({
+        where: { id: existing.channelId, userId },
+      });
+      if (!channel) throw new Error("Канал не найден");
+      posts = channel.isGroup
+        ? await this.mtproto.fetchGroupMessages(userId, existing.channelId, 50)
+        : await this.mtproto.fetchChannelMessages(userId, existing.channelId, 50);
+    } else {
+      posts = await this.fetchAllUserMessages(userId, 50);
+    }
+
+    if (posts.length === 0) throw new Error("Нет постов для регенерации");
+
+    posts = posts.sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime()).slice(0, 50);
 
     const preferences = await this.prisma.userPreferences.findUnique({ where: { userId } });
     const language = preferences?.language || "ru";
 
-    const postsForSummary: PostForSummary[] = existing.posts.map((p) => ({
-      id: p.id,
-      title: p.title,
-      content: p.contentPreview || "",
-      url: p.url,
-      channelName: p.channel.name,
-      publishedAt: p.publishedAt,
-    }));
-
-    const result = await this.callOpenAI(postsForSummary, language);
-    const citedContent = injectCitationLinks(result.content, postsForSummary);
-    const content = citedContent + buildSourcesSection(postsForSummary, language);
+    const result = await this.callOpenAI(posts, language);
+    const citedContent = injectCitationLinks(result.content, posts);
+    const content = citedContent + buildSourcesSection(posts, language);
 
     return this.prisma.summary.update({
       where: { id: summaryId },
