@@ -5,8 +5,6 @@ import { ChannelDetailPage } from "./pages/ChannelDetailPage";
 import { ChannelsPage } from "./pages/ChannelsPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
-import { PostDetailPage } from "./pages/PostDetailPage";
-import { PostsPage } from "./pages/PostsPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { SummariesPage } from "./pages/SummariesPage";
@@ -22,8 +20,6 @@ export const router = createBrowserRouter([
       { path: "/dashboard", element: <DashboardPage /> },
       { path: "/channels", element: <ChannelsPage /> },
       { path: "/channels/:id", element: <ChannelDetailPage /> },
-      { path: "/posts", element: <PostsPage /> },
-      { path: "/posts/:id", element: <PostDetailPage /> },
       { path: "/summaries", element: <SummariesPage /> },
       { path: "/summaries/:id", element: <SummaryDetailPage /> },
       { path: "/settings", element: <SettingsPage /> },

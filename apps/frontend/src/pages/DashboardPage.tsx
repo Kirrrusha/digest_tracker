@@ -1,7 +1,7 @@
 import type { Summary } from "@devdigest/shared";
 import { useQuery } from "@tanstack/react-query";
-import { Bookmark, Download, Share2, TrendingDown, TrendingUp } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Download, Share2, TrendingDown, TrendingUp } from "lucide-react";
+import { toast } from "sonner";
 
 import { api } from "../api/client";
 import { summariesApi } from "../api/summaries";
@@ -13,21 +13,10 @@ interface TopTopic {
   count: number;
 }
 
-interface RecentPost {
-  id: string;
-  title?: string | null;
-  channelName: string;
-  channelType: string;
-  publishedAt: string;
-  topics: string[];
-}
-
 interface DashboardStats {
   channelsCount: number;
-  postsToday: number;
   summariesToday: number;
   topTopics: TopTopic[];
-  recentPosts: RecentPost[];
 }
 
 const TOPIC_COLORS = [
@@ -38,13 +27,6 @@ const TOPIC_COLORS = [
   "bg-pink-500",
   "bg-cyan-500",
 ];
-
-function formatTimeAgo(dateStr: string): string {
-  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-  if (diff < 3600) return `${Math.floor(diff / 60)} минут назад`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} часа назад`;
-  return "вчера";
-}
 
 function formatSummaryDate(period: string): string {
   const parts = period.split("-");
@@ -62,6 +44,26 @@ function formatSummaryDate(period: string): string {
 }
 
 function SummaryCard({ summary }: { summary: Summary }) {
+  async function handleShare() {
+    const url = `${window.location.origin}/summaries/${summary.id}`;
+    if (navigator.share) {
+      await navigator.share({ title: summary.title, url });
+    } else {
+      await navigator.clipboard.writeText(url);
+      toast.success("Ссылка скопирована");
+    }
+  }
+
+  function handleDownload() {
+    const blob = new Blob([summary.content], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${summary.title}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6">
       <div className="flex items-start justify-between mb-4">
@@ -70,10 +72,16 @@ function SummaryCard({ summary }: { summary: Summary }) {
           <p className="text-sm text-slate-400 mt-0.5">{formatSummaryDate(summary.period)}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0 ml-4">
-          <button className="p-2 rounded-lg hover:bg-[var(--border)] text-slate-400 hover:text-white transition-colors">
+          <button
+            onClick={handleShare}
+            className="p-2 rounded-lg hover:bg-[var(--border)] text-slate-400 hover:text-white transition-colors"
+          >
             <Share2 size={16} />
           </button>
-          <button className="p-2 rounded-lg hover:bg-[var(--border)] text-slate-400 hover:text-white transition-colors">
+          <button
+            onClick={handleDownload}
+            className="p-2 rounded-lg hover:bg-[var(--border)] text-slate-400 hover:text-white transition-colors"
+          >
             <Download size={16} />
           </button>
         </div>
@@ -81,13 +89,6 @@ function SummaryCard({ summary }: { summary: Summary }) {
 
       <div className="border-t border-[var(--border)] pt-4">
         <MarkdownContent content={summary.content} />
-      </div>
-
-      <div className="border-t border-[var(--border)] mt-4 pt-3 flex items-center justify-between">
-        <button className="text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-1">
-          Источники ({summary.postsCount}) <span className="text-slate-500">›</span>
-        </button>
-        <p className="text-xs text-slate-500">Основано на {summary.postsCount} постах</p>
       </div>
     </div>
   );
@@ -113,37 +114,6 @@ function TopicCard({ topic, colorClass }: { topic: TopTopic; colorClass: string 
       <p className="text-3xl font-bold mt-1">{topic.count}</p>
       <p className="text-sm text-white/70 mt-0.5">постов сегодня</p>
     </div>
-  );
-}
-
-function RecentPostItem({ post }: { post: RecentPost }) {
-  const initial = post.channelName?.[0]?.toUpperCase() ?? "?";
-  return (
-    <Link to={`/posts/${post.id}`} className="block">
-      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 flex items-center gap-4 hover:border-blue-500/40 transition-colors">
-        <div className="w-9 h-9 rounded-full bg-purple-600 flex items-center justify-center text-white text-sm font-semibold shrink-0">
-          {initial}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-xs text-slate-400 mb-0.5">{post.channelName}</p>
-          <p className="text-sm font-medium text-white truncate">{post.title ?? "Без заголовка"}</p>
-          <div className="flex items-center gap-2 mt-1.5">
-            <span className="text-xs text-slate-500">{formatTimeAgo(post.publishedAt)}</span>
-            {post.topics?.map((t) => (
-              <span
-                key={t}
-                className="text-xs bg-[var(--border)] text-slate-300 px-2 py-0.5 rounded"
-              >
-                {t}
-              </span>
-            ))}
-          </div>
-        </div>
-        <button className="text-slate-500 hover:text-white transition-colors shrink-0">
-          <Bookmark size={16} />
-        </button>
-      </div>
-    </Link>
   );
 }
 
@@ -174,7 +144,7 @@ export function DashboardPage() {
         </h1>
         {stats && (
           <p className="text-slate-400 mt-1">
-            У вас {stats.postsToday} новых постов из ваших каналов
+            Каналов: {stats.channelsCount} · Саммари сегодня: {stats.summariesToday}
           </p>
         )}
       </div>
@@ -196,25 +166,6 @@ export function DashboardPage() {
                 topic={t}
                 colorClass={TOPIC_COLORS[i % TOPIC_COLORS.length]}
               />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {stats?.recentPosts && stats.recentPosts.length > 0 && (
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-white">Последние посты</h2>
-            <Link
-              to="/posts"
-              className="text-blue-400 hover:text-blue-300 text-sm transition-colors"
-            >
-              Показать всё
-            </Link>
-          </div>
-          <div className="space-y-2">
-            {stats.recentPosts.map((post) => (
-              <RecentPostItem key={post.id} post={post} />
             ))}
           </div>
         </section>

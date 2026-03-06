@@ -72,9 +72,7 @@ export function SummaryDetailPage() {
             </button>
           </div>
         </div>
-        <p className="text-sm text-gray-500 mt-1">
-          {summary.period} · {summary.postsCount} постов
-        </p>
+        <p className="text-sm text-gray-500 mt-1">{summary.period}</p>
         {summary.topics.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
             {summary.topics.map((t) => (
@@ -88,49 +86,6 @@ export function SummaryDetailPage() {
       <div className="bg-white border rounded-lg p-6 prose prose-sm prose-headings:font-semibold prose-h1:text-xl prose-h2:text-lg prose-h3:text-base prose-li:my-0.5 max-w-none">
         <ReactMarkdown>{summary.content}</ReactMarkdown>
       </div>
-
-      {summary.sources && summary.sources.length > 0 && (
-        <div className="mt-6">
-          <h2 className="text-base font-semibold text-gray-700 mb-3">
-            Источники ({summary.sources.length})
-          </h2>
-          <div className="space-y-2">
-            {summary.sources.map((source) => (
-              <div key={source.id} className="bg-white border rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-medium">
-                    {source.channelName}
-                  </span>
-                  <span className="text-xs text-gray-400">
-                    {new Date(source.publishedAt).toLocaleDateString("ru", {
-                      day: "numeric",
-                      month: "short",
-                    })}
-                  </span>
-                </div>
-                {source.title && (
-                  <p className="text-sm font-medium text-gray-800 mb-1 line-clamp-2">
-                    {source.title}
-                  </p>
-                )}
-                {source.contentPreview && (
-                  <p className="text-xs text-gray-500 line-clamp-2">{source.contentPreview}</p>
-                )}
-                {source.url && (
-                  <a
-                    href={source.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 mt-2 text-xs text-blue-600 hover:text-blue-800 transition-colors"
-                  >
-                    Открыть →
-                  </a>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {confirmDelete && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
@@ -164,9 +119,7 @@ export function SummaryDetailPage() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-80 shadow-xl">
             <h2 className="text-lg font-semibold text-gray-900 mb-2">Перегенерировать саммари?</h2>
-            <p className="text-sm text-gray-500 mb-4">
-              Текущий текст будет заменён новым. Посты останутся те же.
-            </p>
+            <p className="text-sm text-gray-500 mb-4">Текущий текст будет заменён новым.</p>
             <div className="flex gap-2">
               <button
                 onClick={() => setConfirmRegenerate(false)}

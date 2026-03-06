@@ -5,17 +5,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { channelsApi } from "../api/channels";
-import { postsApi } from "../api/posts";
 import { summariesApi } from "../api/summaries";
-
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  const diff = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (diff < 3600) return `${Math.floor(diff / 60)} мин назад`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} ч назад`;
-  if (diff < 86400 * 2) return "вчера";
-  return date.toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
-}
 
 function channelInitial(name: string): string {
   const letter = name.match(/[A-Za-zА-Яа-яЁё]/);
@@ -64,12 +54,6 @@ export function ChannelDetailPage() {
       toast.info("Генерация саммари запущена...");
     },
     onError: () => toast.error("Ошибка запуска генерации"),
-  });
-
-  const { data: posts = [], isLoading: postsLoading } = useQuery({
-    queryKey: ["channel-posts", id],
-    queryFn: () => postsApi.byChannel(id!),
-    enabled: !!id,
   });
 
   if (channelLoading) {
@@ -121,12 +105,6 @@ export function ChannelDetailPage() {
           <span className="text-xs bg-[var(--border)] text-slate-300 px-2.5 py-1 rounded-full">
             {isTelegram ? (channel.isGroup ? "Telegram группа" : "Telegram") : "RSS"}
           </span>
-          <span className="text-sm text-slate-400">{channel.postsCount} постов</span>
-          {channel.lastPostAt && (
-            <span className="text-sm text-slate-500">
-              Последний: {formatDate(channel.lastPostAt)}
-            </span>
-          )}
           <button
             onClick={() => generateMutation.mutate()}
             disabled={generateMutation.isPending || !!jobId}
@@ -137,37 +115,6 @@ export function ChannelDetailPage() {
           </button>
         </div>
       </div>
-
-      <h2 className="text-lg font-semibold text-white mb-3">Посты</h2>
-
-      {postsLoading ? (
-        <div className="space-y-3">
-          {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 animate-pulse h-20"
-            />
-          ))}
-        </div>
-      ) : posts.length === 0 ? (
-        <p className="text-slate-400 text-center py-12">Постов нет</p>
-      ) : (
-        <div className="space-y-2">
-          {posts.map((post) => (
-            <Link
-              key={post.id}
-              to={`/posts/${post.id}`}
-              className="block bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 hover:border-blue-500/40 transition-colors"
-            >
-              <p className="font-medium text-white">{post.title || "Без заголовка"}</p>
-              {post.contentPreview && (
-                <p className="text-sm text-slate-400 mt-1 line-clamp-2">{post.contentPreview}</p>
-              )}
-              <p className="text-xs text-slate-500 mt-2">{formatDate(post.publishedAt)}</p>
-            </Link>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

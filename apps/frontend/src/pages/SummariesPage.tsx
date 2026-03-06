@@ -45,6 +45,26 @@ function SummaryCard({
 }) {
   const [showSources, setShowSources] = useState(false);
 
+  async function handleShare() {
+    const url = `${window.location.origin}/summaries/${summary.id}`;
+    if (navigator.share) {
+      await navigator.share({ title: summary.title, url });
+    } else {
+      await navigator.clipboard.writeText(url);
+      toast.success("Ссылка скопирована");
+    }
+  }
+
+  function handleDownload() {
+    const blob = new Blob([summary.content], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${summary.title}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   const { data: summaryDetail, isLoading: isLoadingSources } = useQuery({
     queryKey: ["summary", summary.id],
     queryFn: () => summariesApi.get(summary.id),
@@ -62,10 +82,16 @@ function SummaryCard({
           <p className="text-sm text-slate-400 mt-0.5">{formatSummaryDate(summary.period)}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0 ml-4">
-          <button className="p-2 rounded-lg hover:bg-[var(--border)] text-slate-400 hover:text-white transition-colors">
+          <button
+            onClick={handleShare}
+            className="p-2 rounded-lg hover:bg-[var(--border)] text-slate-400 hover:text-white transition-colors"
+          >
             <Share2 size={16} />
           </button>
-          <button className="p-2 rounded-lg hover:bg-[var(--border)] text-slate-400 hover:text-white transition-colors">
+          <button
+            onClick={handleDownload}
+            className="p-2 rounded-lg hover:bg-[var(--border)] text-slate-400 hover:text-white transition-colors"
+          >
             <Download size={16} />
           </button>
         </div>

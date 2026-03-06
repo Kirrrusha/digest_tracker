@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
-import type { Channel } from "@devdigest/shared";
+import type { AppFolder, Channel } from "@devdigest/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronDown,
   FolderOpen,
+  FolderPlus,
   Loader2,
   MoreVertical,
+  Pencil,
   Plus,
-  RefreshCw,
   Search,
+  Send,
   Sparkles,
   Trash2,
   X,
@@ -16,6 +18,7 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
+import { appFoldersApi } from "../api/appFolders";
 import { channelsApi } from "../api/channels";
 import { mtprotoApi, type MTProtoFolderInfo } from "../api/mtproto";
 import { summariesApi } from "../api/summaries";
@@ -24,7 +27,6 @@ import { TelegramFolderBrowser } from "../components/TelegramFolderBrowser";
 import { TelegramGroupBrowser } from "../components/TelegramGroupBrowser";
 
 type AddTab = "url" | "telegram" | "groups" | "folders";
-type TypeFilter = "all" | "telegram" | "rss";
 type ViewMode = "list" | "folders";
 
 const CHANNEL_COLORS = [
@@ -57,9 +59,9 @@ function isTelegramChannel(ch: Channel) {
   );
 }
 
-function buildFolderGroups(channels: Channel[], folders: MTProtoFolderInfo[]) {
+function buildTelegramFolderGroups(channels: Channel[], tgFolders: MTProtoFolderInfo[]) {
   const matchedIds = new Set<string>();
-  const folderGroups = folders
+  const groups = tgFolders
     .map((folder) => {
       const folderTelegramIds = new Set(folder.channels.map((c) => c.id));
       const matched = channels.filter(
@@ -69,24 +71,29 @@ function buildFolderGroups(channels: Channel[], folders: MTProtoFolderInfo[]) {
       return { id: folder.id, title: folder.title, channels: matched };
     })
     .filter((g) => g.channels.length > 0);
-  const ungrouped = channels.filter((ch) => !matchedIds.has(ch.id));
-  return { folderGroups, ungrouped };
+  return { groups, matchedIds };
 }
 
 export function ChannelsPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [url, setUrl] = useState("");
-  const [showDialog, setShowDialog] = useState(false);
+  const [showAddChannel, setShowAddChannel] = useState(false);
   const [activeTab, setActiveTab] = useState<AddTab>("folders");
-  const [syncingId, setSyncingId] = useState<string | null>(null);
-  const [syncingAll, setSyncingAll] = useState(false);
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("folders");
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [folderJobId, setFolderJobId] = useState<string | null>(null);
   const [generatingFolderKey, setGeneratingFolderKey] = useState<string | null>(null);
+
+  // Channel context menu
+  const [menuChannelId, setMenuChannelId] = useState<string | null>(null);
+
+  // App folder dialog state
+  const [showFolderDialog, setShowFolderDialog] = useState(false);
+  const [editingFolder, setEditingFolder] = useState<AppFolder | null>(null);
+  const [folderName, setFolderName] = useState("");
+  const [folderChannelIds, setFolderChannelIds] = useState<Set<string>>(new Set());
 
   const { data: channels = [], isLoading } = useQuery({
     queryKey: ["channels"],
@@ -94,15 +101,21 @@ export function ChannelsPage() {
   });
 
   const {
-    data: folders = [],
-    isLoading: foldersLoading,
-    isError: foldersError,
+    data: tgFolders = [],
+    isError: tgFoldersError,
+    isLoading: tgFoldersLoading,
   } = useQuery({
     queryKey: ["mtproto-folders"],
     queryFn: mtprotoApi.listFolders,
     enabled: viewMode === "folders",
     staleTime: 2 * 60 * 1000,
     retry: false,
+  });
+
+  const { data: appFolders = [], isLoading: appFoldersLoading } = useQuery({
+    queryKey: ["app-folders"],
+    queryFn: appFoldersApi.list,
+    enabled: viewMode === "folders",
   });
 
   const { data: folderJobData } = useQuery({
@@ -129,18 +142,18 @@ export function ChannelsPage() {
     }
   }, [folderJobData]);
 
-  const addMutation = useMutation({
+  const addChannelMutation = useMutation({
     mutationFn: () => channelsApi.create({ url }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["channels"] });
       setUrl("");
-      setShowDialog(false);
+      setShowAddChannel(false);
       toast.success("Канал добавлен");
     },
     onError: () => toast.error("Ошибка добавления канала"),
   });
 
-  const removeMutation = useMutation({
+  const removeChannelMutation = useMutation({
     mutationFn: channelsApi.remove,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["channels"] });
@@ -148,52 +161,71 @@ export function ChannelsPage() {
     },
   });
 
-  const handleSync = async (ch: Channel) => {
-    setSyncingId(ch.id);
-    try {
-      const result = await channelsApi.sync(ch.id);
-      qc.invalidateQueries({ queryKey: ["channels"] });
-      qc.invalidateQueries({ queryKey: ["posts"] });
-      qc.invalidateQueries({ queryKey: ["dashboard"] });
-      if (result.saved > 0) {
-        toast.success(`Получено ${result.saved} новых постов`);
-      } else {
-        toast.info("Новых постов нет");
-      }
-    } catch {
-      toast.error("Ошибка синхронизации");
-    } finally {
-      setSyncingId(null);
-    }
-  };
+  const createFolderMutation = useMutation({
+    mutationFn: () => appFoldersApi.create(folderName.trim(), Array.from(folderChannelIds)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["app-folders"] });
+      closeFolderDialog();
+      toast.success("Папка создана");
+    },
+    onError: () => toast.error("Ошибка создания папки"),
+  });
 
-  const handleSyncAll = async () => {
-    if (syncingAll || channels.length === 0) return;
-    setSyncingAll(true);
-    let totalSaved = 0;
-    let errors = 0;
-    for (const ch of channels) {
-      setSyncingId(ch.id);
-      try {
-        const result = await channelsApi.sync(ch.id);
-        totalSaved += result.saved;
-      } catch {
-        errors++;
-      }
-    }
-    setSyncingId(null);
-    setSyncingAll(false);
-    qc.invalidateQueries({ queryKey: ["channels"] });
-    qc.invalidateQueries({ queryKey: ["posts"] });
-    qc.invalidateQueries({ queryKey: ["dashboard"] });
-    if (errors > 0) {
-      toast.error(`Ошибки в ${errors} каналах`);
-    } else if (totalSaved > 0) {
-      toast.success(`Получено ${totalSaved} новых постов`);
-    } else {
-      toast.info("Новых постов нет");
-    }
-  };
+  const updateFolderMutation = useMutation({
+    mutationFn: () =>
+      appFoldersApi.update(editingFolder!.id, {
+        name: folderName.trim(),
+        channelIds: Array.from(folderChannelIds),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["app-folders"] });
+      closeFolderDialog();
+      toast.success("Папка обновлена");
+    },
+    onError: () => toast.error("Ошибка обновления папки"),
+  });
+
+  const deleteFolderMutation = useMutation({
+    mutationFn: (id: string) => appFoldersApi.remove(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["app-folders"] });
+      toast.success("Папка удалена");
+    },
+    onError: () => toast.error("Ошибка удаления папки"),
+  });
+
+  function toggleChannelInFolder(folder: AppFolder, channelId: string) {
+    const inFolder = folder.channelIds.includes(channelId);
+    const next = inFolder
+      ? folder.channelIds.filter((id) => id !== channelId)
+      : [...folder.channelIds, channelId];
+    appFoldersApi
+      .update(folder.id, { channelIds: next })
+      .then(() => qc.invalidateQueries({ queryKey: ["app-folders"] }))
+      .catch(() => toast.error("Ошибка обновления папки"));
+  }
+
+  function openCreateFolder() {
+    setEditingFolder(null);
+    setFolderName("");
+    setFolderChannelIds(new Set());
+    setShowFolderDialog(true);
+  }
+
+  function openEditFolder(folder: AppFolder, e: React.MouseEvent) {
+    e.stopPropagation();
+    setEditingFolder(folder);
+    setFolderName(folder.name);
+    setFolderChannelIds(new Set(folder.channelIds));
+    setShowFolderDialog(true);
+  }
+
+  function closeFolderDialog() {
+    setShowFolderDialog(false);
+    setEditingFolder(null);
+    setFolderName("");
+    setFolderChannelIds(new Set());
+  }
 
   function toggleSection(key: string) {
     setCollapsedSections((prev) => {
@@ -207,21 +239,19 @@ export function ChannelsPage() {
   const isExpanded = (key: string) => !collapsedSections.has(key);
 
   const filtered = channels.filter((ch: Channel) => {
-    const matchType =
-      typeFilter === "all" ||
-      (typeFilter === "telegram" && isTelegramChannel(ch)) ||
-      (typeFilter === "rss" && ch.sourceType === "rss");
-    const matchSearch =
+    return (
       !search ||
       ch.name.toLowerCase().includes(search.toLowerCase()) ||
-      ch.sourceUrl.toLowerCase().includes(search.toLowerCase());
-    return matchType && matchSearch;
+      ch.sourceUrl.toLowerCase().includes(search.toLowerCase())
+    );
   });
 
   function ChannelCard({ ch }: { ch: Channel }) {
     const color = channelColor(ch.name);
     const initial = channelInitial(ch.name);
     const typeLabel = isTelegramChannel(ch) ? "Telegram" : "RSS";
+    const menuOpen = menuChannelId === ch.id;
+
     return (
       <div className="bg-(--surface) border border-(--border) rounded-xl p-5 hover:border-blue-500/40 transition-colors">
         <div className="flex items-start gap-3 mb-3">
@@ -238,59 +268,84 @@ export function ChannelsPage() {
           </Link>
           <div className="flex items-center gap-1 shrink-0">
             <button
-              onClick={() => handleSync(ch)}
-              disabled={syncingId === ch.id}
-              title="Синхронизировать"
-              className="p-1.5 rounded-lg text-slate-500 hover:text-blue-400 hover:bg-(--border) transition-colors disabled:opacity-40"
-            >
-              <RefreshCw size={14} className={syncingId === ch.id ? "animate-spin" : ""} />
-            </button>
-            <button
-              onClick={() => removeMutation.mutate(ch.id)}
-              disabled={syncingAll || removeMutation.isPending}
+              onClick={() => removeChannelMutation.mutate(ch.id)}
+              disabled={removeChannelMutation.isPending}
               className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-(--border) transition-colors disabled:opacity-40"
             >
               <Trash2 size={14} />
             </button>
-            <button className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-(--border) transition-colors">
-              <MoreVertical size={14} />
-            </button>
+            {appFolders.length > 0 && (
+              <div className="relative">
+                <button
+                  onClick={() => setMenuChannelId(menuOpen ? null : ch.id)}
+                  className={`p-1.5 rounded-lg transition-colors ${
+                    menuOpen
+                      ? "text-white bg-(--border)"
+                      : "text-slate-500 hover:text-white hover:bg-(--border)"
+                  }`}
+                >
+                  <MoreVertical size={14} />
+                </button>
+                {menuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setMenuChannelId(null)} />
+                    <div className="absolute right-0 top-full mt-1 z-20 w-52 bg-(--surface) border border-(--border) rounded-xl shadow-2xl overflow-hidden">
+                      <p className="px-3 py-2 text-xs text-slate-500 border-b border-(--border)">
+                        Добавить в папку
+                      </p>
+                      {appFolders.map((folder) => {
+                        const inFolder = folder.channelIds.includes(ch.id);
+                        return (
+                          <button
+                            key={folder.id}
+                            onClick={() => {
+                              toggleChannelInFolder(folder, ch.id);
+                              setMenuChannelId(null);
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-slate-200 hover:bg-(--border) transition-colors text-left"
+                          >
+                            <FolderOpen
+                              size={13}
+                              className={inFolder ? "text-amber-400" : "text-slate-500"}
+                            />
+                            <span className="flex-1 truncate">{folder.name}</span>
+                            {inFolder && <span className="text-xs text-amber-400 shrink-0">✓</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
-
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs bg-(--border) text-slate-300 px-2 py-0.5 rounded">
             {typeLabel}
           </span>
         </div>
-
-        <div className="flex items-center gap-1.5 mt-3 text-sm text-slate-400">
-          <span className="text-base">📊</span>
-          <span>{ch.postsCount} постов</span>
-        </div>
       </div>
     );
   }
 
-  function FolderSection({
+  function TelegramFolderSection({
     sectionKey,
     title,
-    icon,
-    channels: sectionChannels,
+    sectionChannels,
     folderId,
   }: {
     sectionKey: string;
     title: string;
-    icon?: React.ReactNode;
-    channels: Channel[];
-    folderId?: number;
+    sectionChannels: Channel[];
+    folderId: number;
   }) {
     const expanded = isExpanded(sectionKey);
     const isGenerating = generatingFolderKey === sectionKey;
 
-    async function handleGenerateFolderSummary(e: React.MouseEvent) {
+    async function handleGenerateSummary(e: React.MouseEvent) {
       e.stopPropagation();
-      if (isGenerating || !folderId) return;
+      if (isGenerating) return;
       const ids = sectionChannels.map((ch) => ch.telegramId).filter((id): id is string => !!id);
       if (ids.length === 0) {
         toast.error("В папке нет каналов с Telegram ID");
@@ -312,29 +367,26 @@ export function ChannelsPage() {
           onClick={() => toggleSection(sectionKey)}
           className="w-full flex items-center gap-2.5 px-4 py-3 bg-(--surface) border border-(--border) rounded-xl hover:border-slate-600 transition-colors text-left"
         >
-          {icon ?? <FolderOpen size={16} className="text-slate-400 shrink-0" />}
+          <Send size={14} className="text-sky-400 shrink-0" />
           <span className="font-medium text-white flex-1 truncate">{title}</span>
+          <span className="text-xs text-sky-400/70 bg-sky-400/10 px-2 py-0.5 rounded-full shrink-0 font-medium">
+            Telegram
+          </span>
           <span className="text-xs text-slate-500 bg-(--bg) px-2 py-0.5 rounded-full shrink-0">
             {sectionChannels.length}
           </span>
-          {folderId !== undefined && (
-            <span
-              role="button"
-              onClick={handleGenerateFolderSummary}
-              title="Сгенерировать саммари по папке"
-              className={`p-1 rounded-md transition-colors shrink-0 ${
-                isGenerating
-                  ? "text-blue-400"
-                  : "text-slate-500 hover:text-blue-400 hover:bg-(--border)"
-              }`}
-            >
-              {isGenerating ? (
-                <Loader2 size={14} className="animate-spin" />
-              ) : (
-                <Sparkles size={14} />
-              )}
-            </span>
-          )}
+          <span
+            role="button"
+            onClick={handleGenerateSummary}
+            title="Сгенерировать саммари по папке"
+            className={`p-1 rounded-md transition-colors shrink-0 ${
+              isGenerating
+                ? "text-blue-400"
+                : "text-slate-500 hover:text-blue-400 hover:bg-(--border)"
+            }`}
+          >
+            {isGenerating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+          </span>
           <ChevronDown
             size={16}
             className={`text-slate-400 transition-transform shrink-0 ${expanded ? "" : "-rotate-90"}`}
@@ -351,10 +403,73 @@ export function ChannelsPage() {
     );
   }
 
-  const { folderGroups, ungrouped } =
-    viewMode === "folders" && folders.length > 0
-      ? buildFolderGroups(filtered, folders)
-      : { folderGroups: [], ungrouped: filtered };
+  function AppFolderSection({ folder }: { folder: AppFolder }) {
+    const sectionKey = `app-${folder.id}`;
+    const expanded = isExpanded(sectionKey);
+    const sectionChannels = filtered.filter((ch) => folder.channelIds.includes(ch.id));
+
+    return (
+      <div className="mb-3">
+        <button
+          onClick={() => toggleSection(sectionKey)}
+          className="w-full flex items-center gap-2.5 px-4 py-3 bg-(--surface) border border-(--border) rounded-xl hover:border-slate-600 transition-colors text-left"
+        >
+          <FolderOpen size={14} className="text-amber-400 shrink-0" />
+          <span className="font-medium text-white flex-1 truncate">{folder.name}</span>
+          <span className="text-xs text-amber-400/70 bg-amber-400/10 px-2 py-0.5 rounded-full shrink-0 font-medium">
+            Мои папки
+          </span>
+          <span className="text-xs text-slate-500 bg-(--bg) px-2 py-0.5 rounded-full shrink-0">
+            {sectionChannels.length}
+          </span>
+          <span
+            role="button"
+            onClick={(e) => openEditFolder(folder, e)}
+            title="Редактировать папку"
+            className="p-1 rounded-md text-slate-500 hover:text-amber-400 hover:bg-(--border) transition-colors shrink-0"
+          >
+            <Pencil size={13} />
+          </span>
+          <span
+            role="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              deleteFolderMutation.mutate(folder.id);
+            }}
+            title="Удалить папку"
+            className="p-1 rounded-md text-slate-500 hover:text-red-400 hover:bg-(--border) transition-colors shrink-0"
+          >
+            <Trash2 size={13} />
+          </span>
+          <ChevronDown
+            size={16}
+            className={`text-slate-400 transition-transform shrink-0 ${expanded ? "" : "-rotate-90"}`}
+          />
+        </button>
+        {expanded && (
+          <div className="mt-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pl-2">
+            {sectionChannels.length > 0 ? (
+              sectionChannels.map((ch) => <ChannelCard key={ch.id} ch={ch} />)
+            ) : (
+              <p className="text-sm text-slate-500 py-4 pl-1">Нет каналов в этой папке</p>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const { groups: tgGroups, matchedIds: tgMatchedIds } =
+    viewMode === "folders" && tgFolders.length > 0
+      ? buildTelegramFolderGroups(filtered, tgFolders)
+      : { groups: [], matchedIds: new Set<string>() };
+
+  const appFolderChannelIds = new Set(appFolders.flatMap((f) => f.channelIds));
+  const ungrouped = filtered.filter(
+    (ch) => !tgMatchedIds.has(ch.id) && !appFolderChannelIds.has(ch.id)
+  );
+
+  const isFolderSaving = createFolderMutation.isPending || updateFolderMutation.isPending;
 
   return (
     <div>
@@ -364,17 +479,17 @@ export function ChannelsPage() {
           <p className="text-sm text-slate-400 mt-0.5">{channels.length} каналов</p>
         </div>
         <div className="flex items-center gap-2">
+          {viewMode === "folders" && (
+            <button
+              onClick={openCreateFolder}
+              className="flex items-center gap-2 border border-(--border) text-slate-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-(--surface) transition-colors"
+            >
+              <FolderPlus size={15} />
+              Новая папка
+            </button>
+          )}
           <button
-            onClick={handleSyncAll}
-            disabled={syncingAll || channels.length === 0}
-            title="Обновить все каналы"
-            className="flex items-center gap-2 border border-(--border) text-slate-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-(--surface) disabled:opacity-40 transition-colors"
-          >
-            <RefreshCw size={15} className={syncingAll ? "animate-spin" : ""} />
-            Обновить все
-          </button>
-          <button
-            onClick={() => setShowDialog(true)}
+            onClick={() => setShowAddChannel(true)}
             className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
           >
             <Plus size={16} />
@@ -415,32 +530,28 @@ export function ChannelsPage() {
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div
-              key={i}
-              className="bg-(--surface) border border-(--border) rounded-xl p-5 animate-pulse h-40"
-            />
-          ))}
-        </div>
-      ) : viewMode === "folders" ? (
-        foldersLoading ? (
+      {isLoading || (viewMode === "folders" && (appFoldersLoading || tgFoldersLoading)) ? (
+        viewMode === "folders" ? (
           <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
+            {[1, 2, 3, 4].map((i) => (
               <div
                 key={i}
                 className="bg-(--surface) border border-(--border) rounded-xl h-14 animate-pulse"
               />
             ))}
           </div>
-        ) : foldersError ? (
-          <div className="text-center text-slate-400 py-16">
-            <FolderOpen size={40} className="mx-auto mb-3 opacity-30" />
-            <p className="mb-1">Не удалось загрузить папки</p>
-            <p className="text-sm text-slate-500">Подключите Telegram MTProto в настройках</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div
+                key={i}
+                className="bg-(--surface) border border-(--border) rounded-xl p-5 animate-pulse h-40"
+              />
+            ))}
           </div>
-        ) : filtered.length === 0 ? (
+        )
+      ) : viewMode === "folders" ? (
+        filtered.length === 0 && appFolders.length === 0 ? (
           <div className="text-center text-slate-400 py-16">
             {channels.length === 0
               ? "Каналов нет. Добавьте первый!"
@@ -448,22 +559,48 @@ export function ChannelsPage() {
           </div>
         ) : (
           <div>
-            {folderGroups.map((group) => (
-              <FolderSection
-                key={group.id}
-                sectionKey={String(group.id)}
-                title={group.title}
-                channels={group.channels}
-                folderId={group.id}
-              />
+            {/* App folders first */}
+            {appFolders.map((folder) => (
+              <AppFolderSection key={folder.id} folder={folder} />
             ))}
+
+            {/* Telegram folders */}
+            {!tgFoldersError &&
+              tgGroups.map((group) => (
+                <TelegramFolderSection
+                  key={group.id}
+                  sectionKey={String(group.id)}
+                  title={group.title}
+                  sectionChannels={group.channels}
+                  folderId={group.id}
+                />
+              ))}
+
+            {/* Ungrouped */}
             {ungrouped.length > 0 && (
-              <FolderSection
-                sectionKey="ungrouped"
-                title="Без папки"
-                icon={<span className="text-slate-500 text-sm">—</span>}
-                channels={ungrouped}
-              />
+              <div className="mb-3">
+                <button
+                  onClick={() => toggleSection("ungrouped")}
+                  className="w-full flex items-center gap-2.5 px-4 py-3 bg-(--surface) border border-(--border) rounded-xl hover:border-slate-600 transition-colors text-left"
+                >
+                  <span className="text-slate-500 text-sm shrink-0">—</span>
+                  <span className="font-medium text-white flex-1 truncate">Без папки</span>
+                  <span className="text-xs text-slate-500 bg-(--bg) px-2 py-0.5 rounded-full shrink-0">
+                    {ungrouped.length}
+                  </span>
+                  <ChevronDown
+                    size={16}
+                    className={`text-slate-400 transition-transform shrink-0 ${isExpanded("ungrouped") ? "" : "-rotate-90"}`}
+                  />
+                </button>
+                {isExpanded("ungrouped") && (
+                  <div className="mt-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pl-2">
+                    {ungrouped.map((ch) => (
+                      <ChannelCard key={ch.id} ch={ch} />
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )
@@ -481,13 +618,14 @@ export function ChannelsPage() {
         </div>
       )}
 
-      {showDialog && (
+      {/* Add channel dialog */}
+      {showAddChannel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
           <div className="bg-(--surface) border border-(--border) rounded-xl shadow-2xl w-full max-w-lg mx-4">
             <div className="flex items-center justify-between px-5 py-4 border-b border-(--border)">
               <h2 className="text-base font-semibold text-white">Добавить канал</h2>
               <button
-                onClick={() => setShowDialog(false)}
+                onClick={() => setShowAddChannel(false)}
                 className="text-slate-400 hover:text-white transition-colors"
               >
                 <X size={18} />
@@ -495,46 +633,27 @@ export function ChannelsPage() {
             </div>
 
             <div className="flex border-b border-(--border)">
-              <button
-                className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
-                  activeTab === "url"
-                    ? "border-b-2 border-blue-500 text-blue-400"
-                    : "text-slate-400 hover:text-white"
-                }`}
-                onClick={() => setActiveTab("url")}
-              >
-                По URL
-              </button>
-              <button
-                className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
-                  activeTab === "telegram"
-                    ? "border-b-2 border-blue-500 text-blue-400"
-                    : "text-slate-400 hover:text-white"
-                }`}
-                onClick={() => setActiveTab("telegram")}
-              >
-                Мои каналы
-              </button>
-              <button
-                className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
-                  activeTab === "groups"
-                    ? "border-b-2 border-blue-500 text-blue-400"
-                    : "text-slate-400 hover:text-white"
-                }`}
-                onClick={() => setActiveTab("groups")}
-              >
-                Мои группы
-              </button>
-              <button
-                className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
-                  activeTab === "folders"
-                    ? "border-b-2 border-blue-500 text-blue-400"
-                    : "text-slate-400 hover:text-white"
-                }`}
-                onClick={() => setActiveTab("folders")}
-              >
-                Папки
-              </button>
+              {(["url", "telegram", "groups", "folders"] as AddTab[]).map((tab) => {
+                const labels: Record<AddTab, string> = {
+                  url: "По URL",
+                  telegram: "Мои каналы",
+                  groups: "Мои группы",
+                  folders: "Папки TG",
+                };
+                return (
+                  <button
+                    key={tab}
+                    className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
+                      activeTab === tab
+                        ? "border-b-2 border-blue-500 text-blue-400"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                    onClick={() => setActiveTab(tab)}
+                  >
+                    {labels[tab]}
+                  </button>
+                );
+              })}
             </div>
 
             <div className="p-5">
@@ -545,13 +664,13 @@ export function ChannelsPage() {
                     placeholder="https://t.me/example или RSS URL"
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && addMutation.mutate()}
+                    onKeyDown={(e) => e.key === "Enter" && addChannelMutation.mutate()}
                     className="flex-1 bg-(--bg) border border-(--border) rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500"
                     autoFocus
                   />
                   <button
-                    onClick={() => addMutation.mutate()}
-                    disabled={!url || addMutation.isPending}
+                    onClick={() => addChannelMutation.mutate()}
+                    disabled={!url || addChannelMutation.isPending}
                     className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm disabled:opacity-50 hover:bg-blue-700 transition-colors"
                   >
                     Добавить
@@ -559,23 +678,107 @@ export function ChannelsPage() {
                 </div>
               ) : activeTab === "telegram" ? (
                 <TelegramChannelBrowser
-                  onAdded={() => {
-                    qc.invalidateQueries({ queryKey: ["channels"] });
-                  }}
+                  onAdded={() => qc.invalidateQueries({ queryKey: ["channels"] })}
                 />
               ) : activeTab === "groups" ? (
                 <TelegramGroupBrowser
-                  onAdded={() => {
-                    qc.invalidateQueries({ queryKey: ["channels"] });
-                  }}
+                  onAdded={() => qc.invalidateQueries({ queryKey: ["channels"] })}
                 />
               ) : (
                 <TelegramFolderBrowser
-                  onAdded={() => {
-                    qc.invalidateQueries({ queryKey: ["channels"] });
-                  }}
+                  onAdded={() => qc.invalidateQueries({ queryKey: ["channels"] })}
                 />
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* App folder create/edit dialog */}
+      {showFolderDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-(--surface) border border-(--border) rounded-xl shadow-2xl w-full max-w-lg mx-4 flex flex-col max-h-[80vh]">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-(--border) shrink-0">
+              <h2 className="text-base font-semibold text-white">
+                {editingFolder ? "Редактировать папку" : "Создать папку"}
+              </h2>
+              <button onClick={closeFolderDialog} className="text-slate-400 hover:text-white">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-5 overflow-y-auto flex-1">
+              <div className="mb-4">
+                <label className="block text-xs text-slate-400 mb-1.5">Название папки</label>
+                <input
+                  type="text"
+                  placeholder="Например: AI / Backend / Избранное"
+                  value={folderName}
+                  onChange={(e) => setFolderName(e.target.value)}
+                  autoFocus
+                  className="w-full bg-(--bg) border border-(--border) rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs text-slate-400 mb-2">
+                  Каналы ({folderChannelIds.size} выбрано)
+                </label>
+                <div className="space-y-1 max-h-64 overflow-y-auto">
+                  {channels.map((ch) => {
+                    const selected = folderChannelIds.has(ch.id);
+                    return (
+                      <label
+                        key={ch.id}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
+                          selected
+                            ? "bg-blue-600/20 border border-blue-500/40"
+                            : "hover:bg-(--border) border border-transparent"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={() => {
+                            setFolderChannelIds((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(ch.id)) next.delete(ch.id);
+                              else next.add(ch.id);
+                              return next;
+                            });
+                          }}
+                          className="accent-blue-500 shrink-0"
+                        />
+                        <div
+                          className={`w-7 h-7 rounded-full ${channelColor(ch.name)} flex items-center justify-center text-white text-xs font-semibold shrink-0`}
+                        >
+                          {channelInitial(ch.name)}
+                        </div>
+                        <span className="text-sm text-white truncate">{ch.name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="px-5 py-4 border-t border-(--border) flex gap-2 shrink-0">
+              <button
+                onClick={closeFolderDialog}
+                disabled={isFolderSaving}
+                className="flex-1 py-2 text-sm border border-(--border) text-slate-300 rounded-lg hover:bg-(--border) disabled:opacity-50 transition-colors"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={() =>
+                  editingFolder ? updateFolderMutation.mutate() : createFolderMutation.mutate()
+                }
+                disabled={!folderName.trim() || isFolderSaving}
+                className="flex-1 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              >
+                {isFolderSaving ? "Сохраняем..." : editingFolder ? "Сохранить" : "Создать"}
+              </button>
             </div>
           </div>
         </div>
