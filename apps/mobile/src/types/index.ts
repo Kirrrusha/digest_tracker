@@ -10,34 +10,6 @@ export interface Channel {
   createdAt: string;
 }
 
-export interface Post {
-  id: string;
-  title?: string | null;
-  contentPreview?: string | null;
-  url?: string | null;
-  author?: string | null;
-  publishedAt: string;
-  channelId: string;
-  channelName: string;
-  channelType: string;
-}
-
-export interface PostsListResponse {
-  posts: Post[];
-  total: number;
-  hasMore: boolean;
-}
-
-export interface PostSource {
-  id: string;
-  title: string | null;
-  contentPreview: string | null;
-  url: string | null;
-  publishedAt: string;
-  channelName: string;
-  channelType: string;
-}
-
 export interface Summary {
   id: string;
   content: string;
@@ -47,7 +19,6 @@ export interface Summary {
   createdAt: string;
   dateFrom: string;
   dateTo: string;
-  sources?: PostSource[];
 }
 
 export interface UserPreferences {
@@ -59,6 +30,7 @@ export interface UserPreferences {
   telegramNotifications: boolean;
   notifyOnNewSummary: boolean;
   notifyOnNewPosts: boolean;
+  markTelegramAsRead: boolean;
 }
 
 export interface UserProfile {
@@ -80,5 +52,4 @@ export interface DashboardStats {
   postsToday: number;
   summariesToday: number;
   topTopics: TopTopic[];
-  recentPosts: Post[];
 }

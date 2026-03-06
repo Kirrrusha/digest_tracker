@@ -1,12 +1,4 @@
-import type {
-  Channel,
-  DashboardStats,
-  Post,
-  PostsListResponse,
-  Summary,
-  UserPreferences,
-  UserProfile,
-} from "../types";
+import type { Channel, DashboardStats, Summary, UserPreferences, UserProfile } from "../types";
 import { apiClient } from "./client";
 
 // Auth
@@ -40,22 +32,6 @@ export const channelsApi = {
     apiClient.patch<Channel>(`/channels/${id}`, { isActive }).then((r) => r.data),
 
   refresh: (id: string) => apiClient.post(`/channels/${id}/refresh`).then((r) => r.data),
-
-  sync: (id: string) =>
-    apiClient.post<{ saved: number; skipped: number }>(`/channels/${id}/sync`).then((r) => r.data),
-
-  posts: (id: string, page = 1, limit = 20) =>
-    apiClient
-      .get<PostsListResponse>(`/channels/${id}/posts`, { params: { page, limit } })
-      .then((r) => r.data),
-};
-
-// Posts
-export const postsApi = {
-  list: (params?: { page?: number; limit?: number; channelId?: string }) =>
-    apiClient.get<PostsListResponse>("/posts", { params }).then((r) => r.data),
-
-  get: (id: string) => apiClient.get<Post>(`/posts/${id}`).then((r) => r.data),
 };
 
 export type JobStatus = "waiting" | "active" | "completed" | "failed" | "delayed" | "unknown";

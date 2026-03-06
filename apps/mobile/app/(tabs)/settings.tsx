@@ -186,6 +186,25 @@ export default function SettingsScreen() {
 
         <Divider />
 
+        <List.Section title="Telegram">
+          <List.Item
+            title="Помечать прочитанными в Telegram"
+            description="После генерации саммари"
+            left={(props) => <List.Icon {...props} icon="check-all" />}
+            right={() =>
+              prefs ? (
+                <Switch
+                  value={prefs.markTelegramAsRead}
+                  onValueChange={(v) => updatePrefs.mutate({ ...prefs, markTelegramAsRead: v })}
+                  disabled={updatePrefs.isPending}
+                />
+              ) : null
+            }
+          />
+        </List.Section>
+
+        <Divider />
+
         <List.Section title="Уведомления">
           <List.Item
             title="Уведомления"

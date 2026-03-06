@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useGenerateSummary, useSummaries, useSummaryTopics } from "../../../src/hooks";
+import { useJobsStore } from "../../../src/stores/jobs";
 import type { Summary } from "../../../src/types";
 
 const PERIOD_OPTIONS = [
@@ -30,6 +31,8 @@ export default function SummariesScreen() {
   const { data: allTopics = [] } = useSummaryTopics();
   const generateSummary = useGenerateSummary();
   const [showDialog, setShowDialog] = useState(false);
+  const activeJobs = useJobsStore((s) => s.activeJobs);
+  const hasActiveJobs = activeJobs.size > 0;
 
   const renderSummary = ({ item }: { item: Summary }) => (
     <Card style={styles.card} onPress={() => router.push(`/(tabs)/summaries/${item.id}`)}>
@@ -95,6 +98,15 @@ export default function SummariesScreen() {
             </Chip>
           ))}
         </ScrollView>
+      )}
+
+      {hasActiveJobs && (
+        <View style={styles.generatingBanner}>
+          <ActivityIndicator size="small" style={styles.bannerSpinner} />
+          <Text variant="bodySmall" style={styles.bannerText}>
+            Генерируется саммари...
+          </Text>
+        </View>
       )}
 
       {isLoading ? (
@@ -193,6 +205,17 @@ const styles = StyleSheet.create({
   selectedChip: { opacity: 0.8 },
   empty: { textAlign: "center", marginTop: 40, opacity: 0.5 },
   fab: { position: "absolute", right: 16, bottom: 16 },
+  generatingBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "rgba(255,255,255,0.15)",
+  },
+  bannerSpinner: {},
+  bannerText: { opacity: 0.7 },
   generateRow: {
     flexDirection: "row",
     alignItems: "center",

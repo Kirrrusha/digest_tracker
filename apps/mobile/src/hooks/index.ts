@@ -1,13 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import {
-  channelsApi,
-  dashboardApi,
-  mtprotoApi,
-  postsApi,
-  profileApi,
-  summariesApi,
-} from "../api/endpoints";
+import { channelsApi, dashboardApi, mtprotoApi, profileApi, summariesApi } from "../api/endpoints";
+import { useJobsStore } from "../stores/jobs";
 
 // Dashboard
 export const useDashboardStats = () =>
@@ -20,13 +14,6 @@ export const useChannel = (id: string) =>
   useQuery({
     queryKey: ["channels", id],
     queryFn: () => channelsApi.get(id),
-    enabled: !!id,
-  });
-
-export const useChannelPosts = (id: string, page = 1) =>
-  useQuery({
-    queryKey: ["channels", id, "posts", page],
-    queryFn: () => channelsApi.posts(id, page),
     enabled: !!id,
   });
 
@@ -55,32 +42,6 @@ export const useToggleChannel = () => {
   });
 };
 
-export const useSyncChannel = () => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => channelsApi.sync(id),
-    onSuccess: (_, id) => {
-      qc.invalidateQueries({ queryKey: ["channels", id, "posts"] });
-      qc.invalidateQueries({ queryKey: ["posts"] });
-      qc.invalidateQueries({ queryKey: ["dashboard", "stats"] });
-    },
-  });
-};
-
-// Posts
-export const usePosts = (page = 1, channelId?: string) =>
-  useQuery({
-    queryKey: ["posts", page, channelId],
-    queryFn: () => postsApi.list({ page, channelId }),
-  });
-
-export const usePost = (id: string) =>
-  useQuery({
-    queryKey: ["posts", id],
-    queryFn: () => postsApi.get(id),
-    enabled: !!id,
-  });
-
 // Summaries
 export const useSummaries = (type?: string, topic?: string) =>
   useQuery({
@@ -102,18 +63,24 @@ export const useSummary = (id: string) =>
   });
 
 async function pollJobStatus(jobId: string, qc: ReturnType<typeof useQueryClient>) {
+  const { addJob, removeJob } = useJobsStore.getState();
+  addJob(jobId);
+
   const poll = async () => {
     try {
       const { status } = await summariesApi.getJobStatus(jobId);
       if (status === "completed") {
+        removeJob(jobId);
         qc.invalidateQueries({ queryKey: ["summaries"] });
         return;
       }
-      if (status !== "failed") {
-        setTimeout(poll, 2000);
+      if (status === "failed") {
+        removeJob(jobId);
+        return;
       }
+      setTimeout(poll, 2000);
     } catch {
-      // silently stop polling on network error
+      removeJob(jobId);
     }
   };
   poll();
