@@ -29,6 +29,7 @@ export class PasskeyService {
   private rpID: string;
   private rpName: string;
   private origin: string;
+  private origins: string[];
 
   constructor(
     private prisma: PrismaService,
@@ -39,6 +40,13 @@ export class PasskeyService {
     this.rpID = config.get("WEBAUTHN_RP_ID", "localhost");
     this.rpName = config.get("WEBAUTHN_RP_NAME", "DevDigest");
     this.origin = config.get("WEBAUTHN_ORIGIN", "http://localhost:5173");
+    // Support multiple origins (e.g. web + Android native)
+    const extraOrigins = config.get<string>("WEBAUTHN_EXTRA_ORIGINS", "");
+    if (extraOrigins) {
+      this.origins = [this.origin, ...extraOrigins.split(",").map((s) => s.trim())];
+    } else {
+      this.origins = [this.origin];
+    }
   }
 
   // ---------- Registration ----------
@@ -86,7 +94,7 @@ export class PasskeyService {
     const verification = await verifyRegistrationResponse({
       response,
       expectedChallenge,
-      expectedOrigin: this.origin,
+      expectedOrigin: this.origins,
       expectedRPID: this.rpID,
     });
 
@@ -153,7 +161,7 @@ export class PasskeyService {
     const verification = await verifyRegistrationResponse({
       response,
       expectedChallenge,
-      expectedOrigin: this.origin,
+      expectedOrigin: this.origins,
       expectedRPID: this.rpID,
     });
 
@@ -214,7 +222,7 @@ export class PasskeyService {
     const verification = await verifyAuthenticationResponse({
       response,
       expectedChallenge,
-      expectedOrigin: this.origin,
+      expectedOrigin: this.origins,
       expectedRPID: this.rpID,
       credential: {
         id: authenticator.credentialID,
