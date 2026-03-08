@@ -1,12 +1,18 @@
 import { randomUUID } from "crypto";
 import type { AuthTokens } from "@devdigest/shared";
-import { ConflictException, Injectable, UnauthorizedException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcryptjs";
 import { Redis } from "ioredis";
 
 import { PrismaService } from "../prisma/prisma.service";
+import { ChangePasswordDto } from "./dto/change-password.dto";
 import { LoginDto } from "./dto/login.dto";
 import { RegisterDto } from "./dto/register.dto";
 
@@ -51,6 +57,29 @@ export class AuthService {
 
     await this.redis.del(key);
     return this.issueTokens(userId);
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user?.passwordHash) throw new BadRequestException("Пароль не установлен");
+
+    const valid = await bcrypt.compare(dto.currentPassword, user.passwordHash);
+    if (!valid) throw new UnauthorizedException("Неверный текущий пароль");
+
+    const hash = await bcrypt.hash(dto.newPassword, 12);
+    await this.prisma.user.update({ where: { id: userId }, data: { passwordHash: hash } });
+  }
+
+  async setPassword(userId: string, newPassword: string, login?: string): Promise<void> {
+    if (login) {
+      const existing = await this.prisma.user.findUnique({ where: { login } });
+      if (existing && existing.id !== userId) throw new ConflictException("Логин уже занят");
+    }
+    const hash = await bcrypt.hash(newPassword, 12);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash: hash, ...(login ? { login } : {}) },
+    });
   }
 
   async logout(userId: string, tokenId: string): Promise<void> {

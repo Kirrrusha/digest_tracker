@@ -29,6 +29,7 @@ export class ProfileController {
       name: user.name,
       hasTelegram: user.telegramAccount !== null,
       hasPasskey: user.authenticators.length > 0,
+      hasPassword: user.passwordHash !== null,
     };
   }
 }

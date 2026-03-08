@@ -20,4 +20,5 @@ export interface UserProfile {
   name: string | null;
   hasTelegram: boolean;
   hasPasskey: boolean;
+  hasPassword: boolean;
 }
