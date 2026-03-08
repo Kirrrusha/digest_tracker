@@ -22,7 +22,6 @@ import {
   useAddChannel,
   useChannels,
   useDeleteChannel,
-  useSyncChannel,
   useToggleChannel,
   useUnreadCounts,
 } from "../../../src/hooks";
@@ -43,7 +42,6 @@ export default function ChannelsScreen() {
   const addChannel = useAddChannel();
   const deleteChannel = useDeleteChannel();
   const toggleChannel = useToggleChannel();
-  const syncChannel = useSyncChannel();
   const { data: unreadCounts } = useUnreadCounts();
 
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -100,15 +98,6 @@ export default function ChannelsScreen() {
             compact
           >
             {item.isActive ? "Приостановить" : "Активировать"}
-          </Button>
-          <Button
-            onPress={() => syncChannel.mutate(item.id)}
-            loading={syncChannel.isPending && syncChannel.variables === item.id}
-            disabled={syncChannel.isPending && syncChannel.variables === item.id}
-            icon="sync"
-            compact
-          >
-            Синхр.
           </Button>
           <Button onPress={() => deleteChannel.mutate(item.id)} textColor="#ef4444" compact>
             Удалить

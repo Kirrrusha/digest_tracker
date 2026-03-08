@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
-import { Stack, useRouter, useSegments } from "expo-router";
+import { Stack, useRootNavigationState, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useColorScheme } from "react-native";
 import { MD3DarkTheme, MD3LightTheme, PaperProvider } from "react-native-paper";
@@ -27,12 +27,14 @@ function AuthGuard() {
   const { token, isLoading, loadFromStorage } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
+  const navigationState = useRootNavigationState();
 
   useEffect(() => {
     loadFromStorage();
   }, []);
 
   useEffect(() => {
+    if (!navigationState?.key) return;
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === "(auth)";
@@ -42,7 +44,7 @@ function AuthGuard() {
     } else if (token && inAuthGroup) {
       router.replace("/(tabs)");
     }
-  }, [token, isLoading, segments]);
+  }, [token, isLoading, segments, navigationState?.key]);
 
   return null;
 }

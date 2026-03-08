@@ -1,14 +1,25 @@
-import { useState } from "react";
-import { Modal, ScrollView, StyleSheet, View } from "react-native";
-import { ActivityIndicator, Button, Chip, Divider, List, Switch, Text } from "react-native-paper";
+import { useEffect, useState } from "react";
+import { Alert, Modal, ScrollView, StyleSheet, View } from "react-native";
+import {
+  ActivityIndicator,
+  Button,
+  Chip,
+  Divider,
+  List,
+  Switch,
+  Text,
+  TextInput,
+} from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { TelegramChannelBrowser } from "../../components/TelegramChannelBrowser";
 import { TelegramConnect } from "../../components/TelegramConnect";
 import {
+  useChangePassword,
   useMTProtoStatus,
   usePreferences,
   useProfile,
+  useSetPassword,
   useUpdatePreferences,
 } from "../../src/hooks";
 import { useAuthStore } from "../../src/stores/auth";
@@ -49,8 +60,62 @@ export default function SettingsScreen() {
   const updatePrefs = useUpdatePreferences();
   const { data: mtprotoStatus } = useMTProtoStatus();
 
+  const changePassword = useChangePassword();
+  const setPassword = useSetPassword();
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (profile && profile.hasPassword === false) {
+      setForgotPw(true);
+    }
+  }, [profile]);
   const [showChannelBrowser, setShowChannelBrowser] = useState(false);
+  const [pwCurrent, setPwCurrent] = useState("");
+  const [pwNext, setPwNext] = useState("");
+  const [pwConfirm, setPwConfirm] = useState("");
+  const [pwLogin, setPwLogin] = useState("");
+  const [forgotPw, setForgotPw] = useState(false);
+
+  const isPwPending = changePassword.isPending || setPassword.isPending;
+
+  const handleChangePassword = () => {
+    if (pwNext.length < 6) {
+      Alert.alert("Ошибка", "Новый пароль должен быть не короче 6 символов");
+      return;
+    }
+    if (pwNext !== pwConfirm) {
+      Alert.alert("Ошибка", "Пароли не совпадают");
+      return;
+    }
+    const needsLogin = forgotPw && !profile?.hasPassword && !profile?.login;
+    if (needsLogin && pwLogin.trim().length < 3) {
+      Alert.alert("Ошибка", "Логин должен быть не короче 3 символов");
+      return;
+    }
+    const onSuccess = () => {
+      setPwCurrent("");
+      setPwNext("");
+      setPwConfirm("");
+      setPwLogin("");
+      setForgotPw(false);
+      Alert.alert("Готово", "Пароль успешно изменён");
+    };
+    const onError = (e: unknown) => {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      Alert.alert("Ошибка", msg ?? "Не удалось сменить пароль");
+    };
+    if (forgotPw) {
+      setPassword.mutate(
+        { newPassword: pwNext, login: needsLogin ? pwLogin.trim() : undefined },
+        { onSuccess, onError }
+      );
+    } else {
+      changePassword.mutate(
+        { currentPassword: pwCurrent, newPassword: pwNext },
+        { onSuccess, onError }
+      );
+    }
+  };
 
   const toggleSection = (section: string) => {
     setExpandedSection(expandedSection === section ? null : section);
@@ -270,6 +335,87 @@ export default function SettingsScreen() {
           />
         </List.Section>
 
+        <Divider />
+
+        <List.Accordion
+          title="Смена пароля"
+          left={(props) => <List.Icon {...props} icon="lock-reset" />}
+          expanded={expandedSection === "password"}
+          onPress={() => toggleSection("password")}
+        >
+          <View style={styles.passwordSection}>
+            {forgotPw ? (
+              <Text variant="bodySmall" style={styles.forgotHint}>
+                Вы уже авторизованы — можете установить новый пароль без старого.
+              </Text>
+            ) : (
+              <TextInput
+                label="Текущий пароль"
+                value={pwCurrent}
+                onChangeText={setPwCurrent}
+                secureTextEntry
+                mode="outlined"
+                style={styles.passwordInput}
+              />
+            )}
+            {forgotPw && !profile?.hasPassword && !profile?.login && (
+              <TextInput
+                label="Логин (для входа по паролю)"
+                value={pwLogin}
+                onChangeText={setPwLogin}
+                autoCapitalize="none"
+                mode="outlined"
+                style={styles.passwordInput}
+              />
+            )}
+            <TextInput
+              label="Новый пароль (мин. 6 символов)"
+              value={pwNext}
+              onChangeText={setPwNext}
+              secureTextEntry
+              mode="outlined"
+              style={styles.passwordInput}
+            />
+            <TextInput
+              label="Повторите новый пароль"
+              value={pwConfirm}
+              onChangeText={setPwConfirm}
+              secureTextEntry
+              mode="outlined"
+              style={styles.passwordInput}
+            />
+            <Button
+              mode="contained"
+              onPress={handleChangePassword}
+              loading={isPwPending}
+              disabled={
+                isPwPending ||
+                (!forgotPw && !pwCurrent) ||
+                !pwNext ||
+                !pwConfirm ||
+                (forgotPw && !profile?.hasPassword && !profile?.login && !pwLogin)
+              }
+              style={styles.passwordButton}
+            >
+              {forgotPw ? "Установить пароль" : "Сменить пароль"}
+            </Button>
+            <Button
+              mode="text"
+              compact
+              onPress={() => {
+                setForgotPw((v) => !v);
+                setPwCurrent("");
+                setPwNext("");
+                setPwConfirm("");
+              }}
+            >
+              {forgotPw ? "Помню пароль" : "Не помню пароль"}
+            </Button>
+          </View>
+        </List.Accordion>
+
+        <Divider />
+
         <View style={styles.logout}>
           {updatePrefs.isPending && <Text style={styles.saving}>Сохранение...</Text>}
           <Button mode="outlined" textColor="#ef4444" icon="logout" onPress={clearAuth}>
@@ -321,6 +467,10 @@ const styles = StyleSheet.create({
   saving: { textAlign: "center", opacity: 0.5 },
   telegramSection: { paddingHorizontal: 16, paddingBottom: 12 },
   addChannelsButton: { marginTop: 8 },
+  passwordSection: { padding: 16, gap: 8 },
+  passwordInput: { marginBottom: 4 },
+  passwordButton: { marginTop: 4 },
+  forgotHint: { opacity: 0.6 },
   modal: { flex: 1 },
   modalHeader: {
     flexDirection: "row",

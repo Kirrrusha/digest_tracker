@@ -1,7 +1,32 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { channelsApi, dashboardApi, mtprotoApi, profileApi, summariesApi } from "../api/endpoints";
+import {
+  authApi,
+  channelsApi,
+  dashboardApi,
+  mtprotoApi,
+  profileApi,
+  summariesApi,
+} from "../api/endpoints";
 import { useJobsStore } from "../stores/jobs";
+
+// Auth
+export const useChangePassword = () =>
+  useMutation({
+    mutationFn: ({
+      currentPassword,
+      newPassword,
+    }: {
+      currentPassword: string;
+      newPassword: string;
+    }) => authApi.changePassword(currentPassword, newPassword),
+  });
+
+export const useSetPassword = () =>
+  useMutation({
+    mutationFn: ({ newPassword, login }: { newPassword: string; login?: string }) =>
+      authApi.setPassword(newPassword, login),
+  });
 
 // Dashboard
 export const useDashboardStats = () =>
