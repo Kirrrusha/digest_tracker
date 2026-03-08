@@ -14,9 +14,12 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.devdigest.mobile",
+      "associatedDomains": ["webcredentials:fitting-ant-light.ngrok-free.app"]
     },
     "android": {
+      "package": "com.devdigest.mobile",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"

@@ -3,7 +3,7 @@ import axios from "axios";
 import { useAuthStore } from "../stores/auth";
 
 const API_BASE_URL = __DEV__
-  ? "http://10.0.2.2:3000/api" // Android emulator → localhost
+  ? "https://fitting-ant-light.ngrok-free.app/api" // ngrok туннель
   : "https://your-domain.com/api";
 
 export const apiClient = axios.create({

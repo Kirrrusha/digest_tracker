@@ -1,20 +1,36 @@
 import type { Channel, DashboardStats, Summary, UserPreferences, UserProfile } from "../types";
 import { apiClient } from "./client";
 
-// Auth
-export const mobileAuth = {
-  loginTelegram: (initData: string) =>
+interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+}
+
+// Auth (login / register)
+export const authApi = {
+  login: (login: string, password: string) =>
+    apiClient.post<AuthTokens>("/auth/login", { login, password }).then((r) => r.data),
+
+  register: (login: string, password: string, name?: string) =>
+    apiClient.post<AuthTokens>("/auth/register", { login, password, name }).then((r) => r.data),
+
+  changePassword: (currentPassword: string, newPassword: string) =>
+    apiClient.patch("/auth/change-password", { currentPassword, newPassword }),
+
+  setPassword: (newPassword: string, login?: string) =>
+    apiClient.patch("/auth/set-password", { newPassword, ...(login ? { login } : {}) }),
+};
+
+// Passkey
+export const passkeyApi = {
+  getLoginOptions: () =>
     apiClient
-      .post<{
-        token: string;
-        user: UserProfile;
-        expiresAt: string;
-      }>("/auth/mobile/telegram", { initData })
+      .post<{ options: Record<string, unknown>; challengeId: string }>("/passkey/login/options")
       .then((r) => r.data),
 
-  refresh: () =>
+  verifyLogin: (challengeId: string, response: Record<string, unknown>) =>
     apiClient
-      .post<{ token: string; expiresAt: string }>("/auth/mobile/refresh")
+      .post<AuthTokens>("/passkey/login/verify", { challengeId, response })
       .then((r) => r.data),
 };
 
@@ -29,9 +45,7 @@ export const channelsApi = {
   delete: (id: string) => apiClient.delete(`/channels/${id}`),
 
   toggle: (id: string, isActive: boolean) =>
-    apiClient.patch<Channel>(`/channels/${id}`, { isActive }).then((r) => r.data),
-
-  refresh: (id: string) => apiClient.post(`/channels/${id}/refresh`).then((r) => r.data),
+    apiClient.put<Channel>(`/channels/${id}`, { isActive }).then((r) => r.data),
 };
 
 export type JobStatus = "waiting" | "active" | "completed" | "failed" | "delayed" | "unknown";

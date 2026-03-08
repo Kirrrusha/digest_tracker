@@ -11,6 +11,15 @@ export interface Channel {
   createdAt: string;
 }
 
+export interface SummarySource {
+  id: string;
+  channelName: string;
+  publishedAt: string;
+  title?: string | null;
+  contentPreview?: string | null;
+  url?: string | null;
+}
+
 export interface Summary {
   id: string;
   content: string;
@@ -20,6 +29,7 @@ export interface Summary {
   createdAt: string;
   dateFrom: string;
   dateTo: string;
+  sources?: SummarySource[];
 }
 
 export interface UserPreferences {
@@ -37,10 +47,12 @@ export interface UserPreferences {
 export interface UserProfile {
   id: string;
   name: string;
+  login?: string | null;
   email?: string;
   telegramId?: string;
   telegramUsername?: string;
   preferences?: UserPreferences;
+  hasPassword?: boolean;
 }
 
 export interface TopTopic {
