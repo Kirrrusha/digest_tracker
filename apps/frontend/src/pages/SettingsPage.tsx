@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, Code, Fingerprint, KeyRound, Settings, Trash2, User, X } from "lucide-react";
 import { toast } from "sonner";
 
+import { authApi } from "../api/auth";
 import { mtprotoApi } from "../api/mtproto";
 import { passkeyApi } from "../api/passkey";
 import { preferencesApi } from "../api/preferences";
@@ -54,6 +55,9 @@ export function SettingsPage() {
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<Tab>("preferences");
   const [showChannelBrowser, setShowChannelBrowser] = useState(false);
+  const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "", login: "" });
+  const [pwError, setPwError] = useState("");
+  const [forgotPw, setForgotPw] = useState(false);
 
   const { data: prefs, isLoading } = useQuery({
     queryKey: ["preferences"],
@@ -69,6 +73,71 @@ export function SettingsPage() {
     queryKey: ["passkeys"],
     queryFn: passkeyApi.list,
   });
+
+  const { data: profile } = useQuery({
+    queryKey: ["profile"],
+    queryFn: authApi.getProfile,
+  });
+
+  useEffect(() => {
+    if (profile && !profile.hasPassword) {
+      setForgotPw(true);
+    }
+  }, [profile]);
+
+  const changePasswordMutation = useMutation({
+    mutationFn: authApi.changePassword,
+    onSuccess: () => {
+      setPwForm({ current: "", next: "", confirm: "", login: "" });
+      setPwError("");
+      toast.success("Пароль изменён");
+    },
+    onError: (e: { response?: { data?: { message?: string } } }) => {
+      setPwError(e?.response?.data?.message ?? "Ошибка смены пароля");
+    },
+  });
+
+  const setPasswordMutation = useMutation({
+    mutationFn: ({ newPassword, login }: { newPassword: string; login?: string }) =>
+      authApi.setPassword(newPassword, login),
+    onSuccess: () => {
+      setPwForm({ current: "", next: "", confirm: "", login: "" });
+      setPwError("");
+      setForgotPw(false);
+      qc.invalidateQueries({ queryKey: ["profile"] });
+      toast.success("Пароль установлен");
+    },
+    onError: (e: { response?: { data?: { message?: string } } }) => {
+      setPwError(e?.response?.data?.message ?? "Ошибка установки пароля");
+    },
+  });
+
+  const isPwPending = changePasswordMutation.isPending || setPasswordMutation.isPending;
+
+  const handleChangePassword = () => {
+    setPwError("");
+    if (pwForm.next.length < 6) {
+      setPwError("Новый пароль должен быть не короче 6 символов");
+      return;
+    }
+    if (pwForm.next !== pwForm.confirm) {
+      setPwError("Пароли не совпадают");
+      return;
+    }
+    if (forgotPw) {
+      const needsLogin = !profile?.login;
+      if (needsLogin && pwForm.login.trim().length < 3) {
+        setPwError("Логин должен быть не короче 3 символов");
+        return;
+      }
+      setPasswordMutation.mutate({
+        newPassword: pwForm.next,
+        login: needsLogin ? pwForm.login.trim() : undefined,
+      });
+    } else {
+      changePasswordMutation.mutate({ currentPassword: pwForm.current, newPassword: pwForm.next });
+    }
+  };
 
   const deletePasskeyMutation = useMutation({
     mutationFn: (id: string) => passkeyApi.deleteKey(id),
@@ -166,7 +235,9 @@ export function SettingsPage() {
                   Входите без пароля с помощью Touch ID, Face ID или ключа безопасности
                 </p>
               </div>
-              <PasskeyRegisterButton />
+              <PasskeyRegisterButton
+                onSuccess={() => qc.invalidateQueries({ queryKey: ["passkeys"] })}
+              />
             </div>
             {passkeys && passkeys.length > 0 && (
               <div className="mt-1 space-y-1.5">
@@ -202,6 +273,76 @@ export function SettingsPage() {
               </div>
             )}
           </div>
+          <div className="bg-(--surface) border border-(--border) rounded-xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-medium text-white">Смена пароля</p>
+              <button
+                onClick={() => {
+                  setForgotPw((v) => !v);
+                  setPwForm({ current: "", next: "", confirm: "", login: "" });
+                  setPwError("");
+                }}
+                className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                {forgotPw ? "Помню пароль" : "Не помню пароль"}
+              </button>
+            </div>
+            {forgotPw && (
+              <p className="text-xs text-slate-400 mb-3">
+                Вы уже авторизованы — можете установить новый пароль без старого.
+              </p>
+            )}
+            <div className="space-y-2">
+              {!forgotPw && (
+                <input
+                  type="password"
+                  placeholder="Текущий пароль"
+                  value={pwForm.current}
+                  onChange={(e) => setPwForm((f) => ({ ...f, current: e.target.value }))}
+                  className="w-full bg-(--bg) border border-(--border) rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500 transition-colors"
+                />
+              )}
+              {forgotPw && !profile?.login && (
+                <input
+                  type="text"
+                  placeholder="Логин (для входа по паролю)"
+                  value={pwForm.login}
+                  onChange={(e) => setPwForm((f) => ({ ...f, login: e.target.value }))}
+                  autoComplete="username"
+                  className="w-full bg-(--bg) border border-(--border) rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500 transition-colors"
+                />
+              )}
+              <input
+                type="password"
+                placeholder="Новый пароль (мин. 6 символов)"
+                value={pwForm.next}
+                onChange={(e) => setPwForm((f) => ({ ...f, next: e.target.value }))}
+                className="w-full bg-(--bg) border border-(--border) rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500 transition-colors"
+              />
+              <input
+                type="password"
+                placeholder="Повторите новый пароль"
+                value={pwForm.confirm}
+                onChange={(e) => setPwForm((f) => ({ ...f, confirm: e.target.value }))}
+                className="w-full bg-(--bg) border border-(--border) rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500 transition-colors"
+              />
+              {pwError && <p className="text-xs text-red-400">{pwError}</p>}
+              <button
+                onClick={handleChangePassword}
+                disabled={
+                  isPwPending ||
+                  (!forgotPw && !pwForm.current) ||
+                  !pwForm.next ||
+                  !pwForm.confirm ||
+                  (forgotPw && !profile?.login && !pwForm.login)
+                }
+                className="w-full py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              >
+                {isPwPending ? "Сохранение..." : forgotPw ? "Установить пароль" : "Сменить пароль"}
+              </button>
+            </div>
+          </div>
+
           <TelegramConnect hasActiveSession={mtprotoStatus?.hasActiveSession ?? false} />
           {mtprotoStatus?.hasActiveSession && (
             <>
