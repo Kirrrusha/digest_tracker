@@ -28,10 +28,10 @@ Rules:
 8. Write the entire summary in ${outputLang}${contextNote}
 
 Formatting:
-- Use ## for main topic sections
-- Use ### for subsections if needed
+- Use ## for main topic sections — heading text must NOT be wrapped in **bold** (e.g. "## Технологии", not "## **Технологии**" and not "### **## Технологии**")
+- Use ### for subsections if needed — same rule, no bold wrapper
 - Use bullet lists for enumerations
-- Bold **important facts, names, and figures**`;
+- Bold **important facts, names, and figures** inside body text only`;
 }
 
 // ---- Topic extraction ----
