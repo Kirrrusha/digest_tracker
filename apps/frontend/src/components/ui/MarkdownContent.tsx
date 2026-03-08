@@ -36,10 +36,22 @@ const markdownComponents: Components = {
   },
 };
 
+function normalizeMarkdown(content: string): string {
+  // Normalize Windows line endings
+  let s = content.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  // Fix AI pattern: "### **## Heading**" → "## Heading"
+  s = s.replace(/^#{1,6}\s+\*+(#{1,6}\s+)(.*?)\*+\s*$/gm, "$1$2");
+  // Fix AI pattern: "## **Heading**" → "## Heading" (bold wrapper around heading text)
+  s = s.replace(/^(#{1,6})\s+\*+(.*?)\*+\s*$/gm, "$1 $2");
+  // Ensure ATX headings are preceded by a blank line so remark parses them
+  s = s.replace(/([^\n])\n(#{1,6} )/g, "$1\n\n$2");
+  return s;
+}
+
 export function MarkdownContent({ content, className }: MarkdownContentProps) {
   return (
     <div className={cn("prose prose-sm max-w-none", className)}>
-      <ReactMarkdown components={markdownComponents}>{content}</ReactMarkdown>
+      <ReactMarkdown components={markdownComponents}>{normalizeMarkdown(content)}</ReactMarkdown>
     </div>
   );
 }

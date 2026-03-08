@@ -13,6 +13,7 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    allowedHosts: ["fitting-ant-light.ngrok-free.app"],
     proxy: {
       "/api": {
         target: "http://localhost:4000",

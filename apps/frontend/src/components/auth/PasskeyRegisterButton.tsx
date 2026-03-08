@@ -33,7 +33,13 @@ export function PasskeyRegisterButton({ onSuccess, className, label = "Доба�
       }
     } catch (err: unknown) {
       if (err instanceof Error && err.name === "NotAllowedError") return;
-      toast.error("Не удалось добавить passkey");
+      if (err instanceof Error && err.name === "InvalidStateError") {
+        toast.error("Этот passkey уже зарегистрирован на этом устройстве");
+        return;
+      }
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data
+        ?.message;
+      toast.error(message ?? "Не удалось добавить passkey");
     } finally {
       setLoading(false);
     }
