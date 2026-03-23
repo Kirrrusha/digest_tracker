@@ -43,14 +43,6 @@ const ALL_TOPICS = [
   "UX/UI",
 ];
 
-type SummaryFrequency = "daily" | "weekly" | "manual";
-
-const FREQUENCY_OPTIONS: Array<{ value: SummaryFrequency; label: string }> = [
-  { value: "daily", label: "Ежедневно" },
-  { value: "weekly", label: "Еженедельно" },
-  { value: "manual", label: "Вручную" },
-];
-
 export function SettingsPage() {
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<Tab>("preferences");
@@ -149,12 +141,9 @@ export function SettingsPage() {
   });
 
   const [localTopics, setLocalTopics] = useState<string[] | null>(null);
-  const [localFrequency, setLocalFrequency] = useState<SummaryFrequency | null>(null);
   const [localLanguage, setLocalLanguage] = useState<string | null>(null);
 
   const selectedTopics = localTopics ?? prefs?.topics ?? [];
-  const selectedFrequency: SummaryFrequency =
-    localFrequency ?? (prefs?.summaryInterval as SummaryFrequency) ?? "daily";
   const selectedLanguage = localLanguage ?? prefs?.language ?? "ru";
 
   const mutation = useMutation({
@@ -162,7 +151,6 @@ export function SettingsPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["preferences"] });
       setLocalTopics(null);
-      setLocalFrequency(null);
       setLocalLanguage(null);
       toast.success("Настройки сохранены");
     },
@@ -170,17 +158,14 @@ export function SettingsPage() {
   });
 
   const handleSave = () => {
-    const interval = selectedFrequency === "manual" ? "daily" : selectedFrequency;
     mutation.mutate({
       topics: selectedTopics,
-      summaryInterval: interval,
       language: selectedLanguage,
     });
   };
 
   const handleCancel = () => {
     setLocalTopics(null);
-    setLocalFrequency(null);
     setLocalLanguage(null);
   };
 
@@ -360,26 +345,6 @@ export function SettingsPage() {
                   Добавить каналы
                 </button>
               </div>
-              <div className="bg-(--surface) border border-(--border) rounded-xl p-4 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-white">Помечать сообщения прочитанными</p>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    При синхронизации канала автоматически отмечать сообщения прочитанными в
-                    Telegram
-                  </p>
-                </div>
-                <button
-                  onClick={() =>
-                    mutation.mutate({ markTelegramAsRead: !prefs?.markTelegramAsRead })
-                  }
-                  disabled={mutation.isPending}
-                  className={`w-10 h-5 rounded-full transition-colors relative shrink-0 disabled:opacity-50 ${prefs?.markTelegramAsRead ? "bg-blue-600" : "bg-slate-600"}`}
-                >
-                  <span
-                    className={`absolute left-0 top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${prefs?.markTelegramAsRead ? "translate-x-5" : "translate-x-0.5"}`}
-                  />
-                </button>
-              </div>
             </>
           )}
         </div>
@@ -424,37 +389,6 @@ export function SettingsPage() {
                   </button>
                 );
               })}
-            </div>
-          </div>
-
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6">
-            <h3 className="text-base font-semibold text-white mb-4">Частота саммари</h3>
-            <div className="space-y-2">
-              {FREQUENCY_OPTIONS.map(({ value, label }) => (
-                <label
-                  key={value}
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg border border-[var(--border)] cursor-pointer hover:border-slate-600 transition-colors"
-                >
-                  <div
-                    className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                      selectedFrequency === value ? "border-blue-500" : "border-slate-500"
-                    }`}
-                  >
-                    {selectedFrequency === value && (
-                      <div className="w-2 h-2 rounded-full bg-blue-500" />
-                    )}
-                  </div>
-                  <input
-                    type="radio"
-                    name="frequency"
-                    value={value}
-                    checked={selectedFrequency === value}
-                    onChange={() => setLocalFrequency(value)}
-                    className="sr-only"
-                  />
-                  <span className="text-sm text-slate-300">{label}</span>
-                </label>
-              ))}
             </div>
           </div>
 

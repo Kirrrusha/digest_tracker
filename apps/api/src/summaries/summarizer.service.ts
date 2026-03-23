@@ -211,12 +211,6 @@ function injectCitationLinks(content: string, posts: PostForSummary[]): string {
 
 // ---- Service ----
 
-function getWeekNumber(date: Date): number {
-  const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-  const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
-  return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
-}
-
 @Injectable()
 export class SummarizerService {
   private openai: OpenAI | null = null;
@@ -258,90 +252,28 @@ export class SummarizerService {
     return all;
   }
 
-  async generateDaily(userId: string, force = false) {
-    const today = new Date();
-    const startOfDay = new Date(today);
-    startOfDay.setHours(0, 0, 0, 0);
-    const period = `daily-${today.toISOString().split("T")[0]}`;
+  async generateUnread(userId: string) {
+    const posts = await this.mtproto.fetchAllUnreadMessages(userId);
 
-    const existing = await this.prisma.summary.findFirst({ where: { userId, period } });
-    if (existing && !force) return existing;
-    if (existing && force) await this.prisma.summary.delete({ where: { id: existing.id } });
+    if (posts.length === 0) throw new Error("Нет непрочитанных сообщений");
 
-    let posts = (await this.fetchAllUserMessages(userId, 50)).filter(
-      (p) => p.publishedAt >= startOfDay
-    );
+    const sorted = posts
+      .sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime())
+      .slice(0, 150);
 
-    if (posts.length === 0) {
-      posts = await this.fetchAllUserMessages(userId, 50);
-    }
-
-    if (posts.length === 0) throw new Error("Нет постов для генерации");
-
-    posts = posts.sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime()).slice(0, 50);
-
+    const period = `unread-${new Date().toISOString()}`;
     const preferences = await this.prisma.userPreferences.findUnique({ where: { userId } });
     const language = preferences?.language || "ru";
 
-    const result = await this.callOpenAI(posts, language);
-    const todayFormatted = today.toLocaleDateString(language === "ru" ? "ru-RU" : "en-US", {
+    const result = await this.callOpenAI(sorted, language);
+    const todayFormatted = new Date().toLocaleDateString(language === "ru" ? "ru-RU" : "en-US", {
       day: "numeric",
       month: "long",
     });
     const title =
       language === "ru" ? `Саммари за ${todayFormatted}` : `Summary for ${todayFormatted}`;
-    const citedContent = injectCitationLinks(result.content, posts);
-    const content = citedContent + buildSourcesSection(posts, language);
-
-    return this.prisma.summary.create({
-      data: {
-        userId,
-        title,
-        content,
-        topics: {
-          connectOrCreate: result.topics.map((name: string) => ({
-            where: { name },
-            create: { name },
-          })),
-        },
-        period,
-      },
-    });
-  }
-
-  async generateWeekly(userId: string, force = false) {
-    const today = new Date();
-    const weekNumber = getWeekNumber(today);
-    const period = `weekly-${today.getFullYear()}-${weekNumber}`;
-
-    const existing = await this.prisma.summary.findFirst({ where: { userId, period } });
-    if (existing && !force) return existing;
-    if (existing && force) await this.prisma.summary.delete({ where: { id: existing.id } });
-
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay() + 1);
-    startOfWeek.setHours(0, 0, 0, 0);
-
-    let posts = (await this.fetchAllUserMessages(userId, 100)).filter(
-      (p) => p.publishedAt >= startOfWeek
-    );
-
-    if (posts.length === 0) {
-      posts = await this.fetchAllUserMessages(userId, 100);
-    }
-
-    if (posts.length === 0) throw new Error("Нет постов для генерации");
-
-    posts = posts.sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime()).slice(0, 100);
-
-    const preferences = await this.prisma.userPreferences.findUnique({ where: { userId } });
-    const language = preferences?.language || "ru";
-
-    const result = await this.callOpenAI(posts, language);
-    const title =
-      language === "en" ? `Weekly Summary #${weekNumber}` : `Недельное саммари #${weekNumber}`;
-    const citedContent = injectCitationLinks(result.content, posts);
-    const content = citedContent + buildSourcesSection(posts, language);
+    const citedContent = injectCitationLinks(result.content, sorted);
+    const content = citedContent + buildSourcesSection(sorted, language);
 
     return this.prisma.summary.create({
       data: {
@@ -382,38 +314,21 @@ export class SummarizerService {
     };
   }
 
-  async generateForChannel(
-    userId: string,
-    channelId: string,
-    opts: { daysBack?: number; maxPosts?: number } = {}
-  ) {
-    const { daysBack = 7, maxPosts = 50 } = opts;
-
+  async generateForChannel(userId: string, channelId: string) {
     const channel = await this.prisma.channel.findFirst({
       where: { id: channelId, userId },
     });
     if (!channel) throw new Error("Канал не найден");
 
-    const today = new Date();
-    const period = `channel-${channelId}-daily-${today.toISOString().split("T")[0]}`;
+    const posts = await this.mtproto.fetchAllUnreadMessages(userId, [channelId]);
 
-    const existing = await this.prisma.summary.findFirst({ where: { userId, period } });
-    if (existing) return existing;
+    if (posts.length === 0) throw new Error("Нет непрочитанных сообщений в этом канале");
 
-    const since = new Date(today);
-    since.setDate(today.getDate() - daysBack);
-    since.setHours(0, 0, 0, 0);
+    const sorted = posts
+      .sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime())
+      .slice(0, 100);
 
-    let posts = channel.isGroup
-      ? await this.mtproto.fetchGroupMessages(userId, channelId, maxPosts)
-      : await this.mtproto.fetchChannelMessages(userId, channelId, maxPosts);
-
-    let filtered = posts.filter((p) => p.publishedAt >= since);
-    if (filtered.length < 5) filtered = posts;
-    posts = filtered;
-
-    if (posts.length === 0) throw new Error("Нет постов для генерации саммари");
-
+    const period = `channel-${channelId}-unread-${Date.now()}`;
     const preferences = await this.prisma.userPreferences.findUnique({ where: { userId } });
     const language = preferences?.language || "ru";
     const sourceTypeName = channel.isGroup
@@ -424,9 +339,9 @@ export class SummarizerService {
         ? "канала"
         : "channel";
 
-    const result = await this.callOpenAI(posts, language, `${sourceTypeName} «${channel.name}»`);
+    const result = await this.callOpenAI(sorted, language, `${sourceTypeName} «${channel.name}»`);
 
-    const dateFormatted = today.toLocaleDateString(language === "ru" ? "ru-RU" : "en-US", {
+    const dateFormatted = new Date().toLocaleDateString(language === "ru" ? "ru-RU" : "en-US", {
       day: "numeric",
       month: "long",
     });
@@ -435,8 +350,8 @@ export class SummarizerService {
         ? `${channel.name} — саммари за ${dateFormatted}`
         : `${channel.name} — summary for ${dateFormatted}`;
 
-    const citedContent = injectCitationLinks(result.content, posts);
-    const content = citedContent + buildSourcesSection(posts, language);
+    const citedContent = injectCitationLinks(result.content, sorted);
+    const content = citedContent + buildSourcesSection(sorted, language);
 
     return this.prisma.summary.create({
       data: {
@@ -459,52 +374,31 @@ export class SummarizerService {
     userId: string,
     telegramIds: string[],
     folderId: number,
-    folderTitle: string,
-    force = false
+    folderTitle: string
   ) {
-    const today = new Date();
-    const period = `folder-${folderId}-daily-${today.toISOString().split("T")[0]}`;
-
-    const existing = await this.prisma.summary.findFirst({ where: { userId, period } });
-    if (existing && !force) return existing;
-    if (existing && force) await this.prisma.summary.delete({ where: { id: existing.id } });
-
     const validChannels = await this.prisma.channel.findMany({
       where: { telegramId: { in: telegramIds }, userId },
-      select: { id: true, isGroup: true },
+      select: { id: true },
     });
     if (validChannels.length === 0) throw new Error("Нет доступных каналов в папке");
 
-    const since = new Date(today);
-    since.setDate(today.getDate() - 7);
-    since.setHours(0, 0, 0, 0);
+    const channelIds = validChannels.map((c) => c.id);
+    const posts = await this.mtproto.fetchAllUnreadMessages(userId, channelIds);
 
-    const allMessages: PostForSummary[] = [];
-    for (const ch of validChannels) {
-      try {
-        const msgs = ch.isGroup
-          ? await this.mtproto.fetchGroupMessages(userId, ch.id, 100)
-          : await this.mtproto.fetchChannelMessages(userId, ch.id, 100);
-        allMessages.push(...msgs);
-      } catch {
-        // skip channels that fail
-      }
-    }
+    if (posts.length === 0) throw new Error("Нет непрочитанных сообщений в папке");
 
-    let posts = allMessages.filter((p) => p.publishedAt >= since);
-    if (posts.length < 5) posts = allMessages;
+    const sorted = posts
+      .sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime())
+      .slice(0, 100);
 
-    if (posts.length === 0) throw new Error("Нет постов для генерации саммари");
-
-    posts = posts.sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime()).slice(0, 100);
-
+    const period = `folder-${folderId}-unread-${Date.now()}`;
     const preferences = await this.prisma.userPreferences.findUnique({ where: { userId } });
     const language = preferences?.language || "ru";
 
     const sourceContext = language === "ru" ? `папки «${folderTitle}»` : `folder "${folderTitle}"`;
-    const result = await this.callOpenAI(posts, language, sourceContext);
+    const result = await this.callOpenAI(sorted, language, sourceContext);
 
-    const dateFormatted = today.toLocaleDateString(language === "ru" ? "ru-RU" : "en-US", {
+    const dateFormatted = new Date().toLocaleDateString(language === "ru" ? "ru-RU" : "en-US", {
       day: "numeric",
       month: "long",
     });
@@ -513,8 +407,8 @@ export class SummarizerService {
         ? `${folderTitle} — саммари за ${dateFormatted}`
         : `${folderTitle} — summary for ${dateFormatted}`;
 
-    const citedContent = injectCitationLinks(result.content, posts);
-    const content = citedContent + buildSourcesSection(posts, language);
+    const citedContent = injectCitationLinks(result.content, sorted);
+    const content = citedContent + buildSourcesSection(sorted, language);
 
     return this.prisma.summary.create({
       data: {

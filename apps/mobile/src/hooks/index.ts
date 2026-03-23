@@ -68,10 +68,10 @@ export const useToggleChannel = () => {
 };
 
 // Summaries
-export const useSummaries = (type?: string, topic?: string) =>
+export const useSummaries = (topic?: string) =>
   useQuery({
-    queryKey: ["summaries", type, topic],
-    queryFn: () => summariesApi.list({ type, topic }),
+    queryKey: ["summaries", topic],
+    queryFn: () => summariesApi.list({ topic }),
   });
 
 export const useSummaryTopics = () =>
@@ -114,8 +114,7 @@ async function pollJobStatus(jobId: string, qc: ReturnType<typeof useQueryClient
 export const useGenerateSummary = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ type, force }: { type: "daily" | "weekly"; force?: boolean }) =>
-      summariesApi.generate(type, force),
+    mutationFn: (force?: boolean) => summariesApi.generate(force),
     onSuccess: ({ jobId }) => pollJobStatus(jobId, qc),
   });
 };

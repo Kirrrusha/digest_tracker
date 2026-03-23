@@ -17,17 +17,10 @@ import { useGenerateSummary, useSummaries, useSummaryTopics } from "../../../src
 import { useJobsStore } from "../../../src/stores/jobs";
 import type { Summary } from "../../../src/types";
 
-const PERIOD_OPTIONS = [
-  { label: "Все", value: undefined as string | undefined },
-  { label: "Дневные", value: "daily" as string | undefined },
-  { label: "Недельные", value: "weekly" as string | undefined },
-];
-
 export default function SummariesScreen() {
   const router = useRouter();
-  const [type, setType] = useState<string | undefined>();
   const [topic, setTopic] = useState<string | undefined>();
-  const { data, isLoading, refetch } = useSummaries(type, topic);
+  const { data, isLoading, refetch } = useSummaries(topic);
   const { data: allTopics = [] } = useSummaryTopics();
   const generateSummary = useGenerateSummary();
   const [showDialog, setShowDialog] = useState(false);
@@ -41,7 +34,10 @@ export default function SummariesScreen() {
           day: "numeric",
           month: "long",
         })}
-        subtitle={item.period === "DAILY" ? "Дневной" : "Недельный"}
+        subtitle={new Date(item.createdAt).toLocaleTimeString("ru", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })}
       />
       <Card.Content>
         <Text numberOfLines={2}>{item.content}</Text>
@@ -63,19 +59,6 @@ export default function SummariesScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView horizontal style={styles.periodFilters} showsHorizontalScrollIndicator={false}>
-        {PERIOD_OPTIONS.map(({ label, value }) => (
-          <Chip
-            key={label}
-            selected={type === value}
-            onPress={() => setType(value)}
-            style={styles.filterChip}
-          >
-            {label}
-          </Chip>
-        ))}
-      </ScrollView>
-
       {allTopics.length > 0 && (
         <ScrollView horizontal style={styles.topicFilters} showsHorizontalScrollIndicator={false}>
           <Chip
@@ -129,46 +112,21 @@ export default function SummariesScreen() {
         <Dialog visible={showDialog} onDismiss={() => setShowDialog(false)}>
           <Dialog.Title>Создать саммари</Dialog.Title>
           <Dialog.Content>
-            {(
-              [
-                { type: "daily", label: "Дневное", desc: "Посты за сегодня" },
-                { type: "weekly", label: "Недельное", desc: "Посты за текущую неделю" },
-              ] as const
-            ).map(({ type, label, desc }) => (
-              <View key={type} style={styles.generateRow}>
-                <View style={styles.generateInfo}>
-                  <Text variant="bodyMedium">{label}</Text>
-                  <Text variant="bodySmall" style={styles.generateDesc}>
-                    {desc}
-                  </Text>
-                </View>
-                <View style={styles.generateActions}>
-                  <Button
-                    compact
-                    onPress={async () => {
-                      await generateSummary.mutateAsync({ type });
-                      setShowDialog(false);
-                    }}
-                    loading={generateSummary.isPending}
-                    disabled={generateSummary.isPending}
-                  >
-                    Создать
-                  </Button>
-                  <Button
-                    compact
-                    icon="refresh"
-                    onPress={async () => {
-                      await generateSummary.mutateAsync({ type, force: true });
-                      setShowDialog(false);
-                    }}
-                    loading={generateSummary.isPending}
-                    disabled={generateSummary.isPending}
-                  >
-                    Перегенерировать
-                  </Button>
-                </View>
-              </View>
-            ))}
+            <Text variant="bodySmall" style={styles.generateDesc}>
+              Саммари из непрочитанных сообщений выбранных каналов
+            </Text>
+            <Button
+              mode="contained"
+              onPress={async () => {
+                await generateSummary.mutateAsync();
+                setShowDialog(false);
+              }}
+              loading={generateSummary.isPending}
+              disabled={generateSummary.isPending}
+              style={styles.createButton}
+            >
+              Создать саммари
+            </Button>
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setShowDialog(false)} disabled={generateSummary.isPending}>
@@ -186,15 +144,10 @@ export default function SummariesScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  periodFilters: {
-    flexGrow: 0,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 4,
-  },
   topicFilters: {
     flexGrow: 0,
     paddingHorizontal: 16,
+    paddingTop: 12,
     paddingBottom: 8,
   },
   filterChip: { marginRight: 8 },
@@ -216,15 +169,6 @@ const styles = StyleSheet.create({
   },
   bannerSpinner: {},
   bannerText: { opacity: 0.7 },
-  generateRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(0,0,0,0.1)",
-  },
-  generateInfo: { flex: 1 },
-  generateDesc: { opacity: 0.5 },
-  generateActions: { flexDirection: "row", gap: 4 },
+  generateDesc: { opacity: 0.5, marginBottom: 12 },
+  createButton: { marginTop: 8 },
 });

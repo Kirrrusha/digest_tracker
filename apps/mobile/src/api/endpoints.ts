@@ -58,7 +58,7 @@ export interface JobStatusResponse {
 
 // Summaries
 export const summariesApi = {
-  list: (params?: { type?: string; topic?: string; page?: number; limit?: number }) =>
+  list: (params?: { topic?: string; page?: number; limit?: number }) =>
     apiClient
       .get<{ summaries: Summary[]; total: number; hasMore: boolean }>("/summaries", { params })
       .then((r) => r.data),
@@ -67,8 +67,8 @@ export const summariesApi = {
 
   get: (id: string) => apiClient.get<Summary>(`/summaries/${id}`).then((r) => r.data),
 
-  generate: (type: "daily" | "weekly", force?: boolean) =>
-    apiClient.post<{ jobId: string }>("/summaries/generate", { type, force }).then((r) => r.data),
+  generate: (force?: boolean) =>
+    apiClient.post<{ jobId: string }>("/summaries/generate", { force }).then((r) => r.data),
 
   generateForChannel: (channelId: string) =>
     apiClient

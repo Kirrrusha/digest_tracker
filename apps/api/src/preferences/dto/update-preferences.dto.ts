@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
-import { IsArray, IsBoolean, IsIn, IsOptional, IsString } from "class-validator";
+import { IsArray, IsBoolean, IsOptional, IsString } from "class-validator";
 
 export class UpdatePreferencesDto {
   @ApiPropertyOptional()
@@ -7,11 +7,6 @@ export class UpdatePreferencesDto {
   @IsArray()
   @IsString({ each: true })
   topics?: string[];
-
-  @ApiPropertyOptional({ enum: ["daily", "weekly"] })
-  @IsOptional()
-  @IsIn(["daily", "weekly"])
-  summaryInterval?: "daily" | "weekly";
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -42,9 +37,4 @@ export class UpdatePreferencesDto {
   @IsOptional()
   @IsBoolean()
   notifyOnNewPosts?: boolean;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
-  markTelegramAsRead?: boolean;
 }

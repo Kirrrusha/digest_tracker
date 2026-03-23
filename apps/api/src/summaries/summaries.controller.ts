@@ -42,32 +42,25 @@ export class SummariesController {
   @ApiOperation({ summary: "Список саммари" })
   @ApiQuery({ name: "page", required: false, type: Number })
   @ApiQuery({ name: "limit", required: false, type: Number })
-  @ApiQuery({ name: "type", required: false, enum: ["daily", "weekly"] })
   @ApiQuery({ name: "topic", required: false, type: String })
   @ApiQuery({ name: "channelId", required: false, type: String })
   findAll(
     @Request() req: { user: { userId: string } },
     @Query("page") page = "1",
     @Query("limit") limit = "10",
-    @Query("type") type?: string,
     @Query("topic") topic?: string,
     @Query("channelId") channelId?: string
   ) {
-    return this.summaries.findAll(req.user.userId, +page, +limit, type, topic, channelId);
+    return this.summaries.findAll(req.user.userId, +page, +limit, undefined, topic, channelId);
   }
 
   @Post("generate")
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({ summary: "Поставить саммари в очередь генерации (202 Accepted)" })
-  async generate(
-    @Request() req: { user: { userId: string } },
-    @Body() body: { type?: "daily" | "weekly"; force?: boolean }
-  ) {
-    const type = body?.type === "weekly" ? "weekly" : "daily";
+  async generate(@Request() req: { user: { userId: string } }, @Body() body?: { force?: boolean }) {
     const force = body?.force === true;
     const job = await this.summariesQueue.add("generate", {
       userId: req.user.userId,
-      type,
       force,
     });
     return { jobId: job.id };
@@ -79,12 +72,10 @@ export class SummariesController {
   async generateForFolder(
     @Request() req: { user: { userId: string } },
     @Body()
-    body: { telegramIds: string[]; folderId: number; folderTitle: string; force?: boolean }
+    body: { telegramIds: string[]; folderId: number; folderTitle: string }
   ) {
     const job = await this.summariesQueue.add("generate", {
       userId: req.user.userId,
-      type: "daily",
-      force: body.force ?? false,
       telegramIds: body.telegramIds,
       folderId: body.folderId,
       folderTitle: body.folderTitle,
@@ -101,8 +92,6 @@ export class SummariesController {
   ) {
     const job = await this.summariesQueue.add("generate", {
       userId: req.user.userId,
-      type: "daily",
-      force: false,
       channelId,
     });
     return { jobId: job.id };

@@ -15,14 +15,12 @@ export class PreferencesService {
     if (!prefs) throw new NotFoundException("Настройки не найдены");
     return {
       topics: prefs.topics,
-      summaryInterval: prefs.summaryInterval as "daily" | "weekly",
       language: prefs.language,
       notificationsEnabled: prefs.notificationsEnabled,
       notificationTime: prefs.notificationTime,
       telegramNotifications: prefs.telegramNotifications,
       notifyOnNewSummary: prefs.notifyOnNewSummary,
       notifyOnNewPosts: prefs.notifyOnNewPosts,
-      markTelegramAsRead: prefs.markTelegramAsRead,
     };
   }
 
@@ -34,14 +32,12 @@ export class PreferencesService {
     });
     return {
       topics: prefs.topics,
-      summaryInterval: prefs.summaryInterval as "daily" | "weekly",
       language: prefs.language,
       notificationsEnabled: prefs.notificationsEnabled,
       notificationTime: prefs.notificationTime,
       telegramNotifications: prefs.telegramNotifications,
       notifyOnNewSummary: prefs.notifyOnNewSummary,
       notifyOnNewPosts: prefs.notifyOnNewPosts,
-      markTelegramAsRead: prefs.markTelegramAsRead,
     };
   }
 }

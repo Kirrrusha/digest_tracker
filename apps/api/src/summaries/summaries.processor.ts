@@ -5,8 +5,7 @@ import { SummarizerService } from "./summarizer.service";
 
 interface GenerateJobData {
   userId: string;
-  type: "daily" | "weekly";
-  force: boolean;
+  force?: boolean;
   channelId?: string;
   telegramIds?: string[];
   folderId?: number;
@@ -20,15 +19,14 @@ export class SummariesProcessor extends WorkerHost {
   }
 
   async process(job: Job<GenerateJobData>): Promise<{ summaryId: string }> {
-    const { userId, type, force, channelId, telegramIds, folderId, folderTitle } = job.data;
+    const { userId, channelId, telegramIds, folderId, folderTitle } = job.data;
 
     if (telegramIds && folderId !== undefined && folderTitle) {
       const summary = await this.summarizer.generateForFolder(
         userId,
         telegramIds,
         folderId,
-        folderTitle,
-        force
+        folderTitle
       );
       return { summaryId: summary.id };
     }
@@ -38,10 +36,7 @@ export class SummariesProcessor extends WorkerHost {
       return { summaryId: summary.id };
     }
 
-    const summary =
-      type === "weekly"
-        ? await this.summarizer.generateWeekly(userId, force)
-        : await this.summarizer.generateDaily(userId, force);
+    const summary = await this.summarizer.generateUnread(userId);
     return { summaryId: summary.id };
   }
 }

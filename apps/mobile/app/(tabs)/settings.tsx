@@ -43,11 +43,6 @@ const AVAILABLE_TOPICS = [
   "Architecture",
 ];
 
-const INTERVAL_OPTIONS: { label: string; value: "daily" | "weekly" }[] = [
-  { label: "Ежедневно", value: "daily" },
-  { label: "Еженедельно", value: "weekly" },
-];
-
 const LANGUAGE_OPTIONS = [
   { label: "Русский", value: "ru" },
   { label: "English", value: "en" },
@@ -129,11 +124,6 @@ export default function SettingsScreen() {
     updatePrefs.mutate({ ...prefs, topics });
   };
 
-  const setInterval = (summaryInterval: "daily" | "weekly") => {
-    if (!prefs) return;
-    updatePrefs.mutate({ ...prefs, summaryInterval });
-  };
-
   const setLanguage = (language: string) => {
     if (!prefs) return;
     updatePrefs.mutate({ ...prefs, language });
@@ -200,33 +190,6 @@ export default function SettingsScreen() {
         <Divider />
 
         <List.Accordion
-          title="Интервал дайджеста"
-          description={
-            prefs
-              ? (INTERVAL_OPTIONS.find((o) => o.value === prefs.summaryInterval)?.label ?? "")
-              : ""
-          }
-          left={(props) => <List.Icon {...props} icon="clock-outline" />}
-          expanded={expandedSection === "interval"}
-          onPress={() => toggleSection("interval")}
-        >
-          <View style={styles.optionsRow}>
-            {INTERVAL_OPTIONS.map(({ label, value }) => (
-              <Chip
-                key={value}
-                selected={prefs?.summaryInterval === value}
-                onPress={() => setInterval(value)}
-                style={styles.optionChip}
-              >
-                {label}
-              </Chip>
-            ))}
-          </View>
-        </List.Accordion>
-
-        <Divider />
-
-        <List.Accordion
           title="Язык"
           description={
             prefs ? (LANGUAGE_OPTIONS.find((o) => o.value === prefs.language)?.label ?? "") : ""
@@ -248,25 +211,6 @@ export default function SettingsScreen() {
             ))}
           </View>
         </List.Accordion>
-
-        <Divider />
-
-        <List.Section title="Telegram">
-          <List.Item
-            title="Помечать прочитанными в Telegram"
-            description="После генерации саммари"
-            left={(props) => <List.Icon {...props} icon="check-all" />}
-            right={() =>
-              prefs ? (
-                <Switch
-                  value={prefs.markTelegramAsRead}
-                  onValueChange={(v) => updatePrefs.mutate({ ...prefs, markTelegramAsRead: v })}
-                  disabled={updatePrefs.isPending}
-                />
-              ) : null
-            }
-          />
-        </List.Section>
 
         <Divider />
 

@@ -731,8 +731,8 @@ export class MtprotoService {
 
       const messages = "messages" in result ? result.messages : [];
 
-      const prefs = await this.prisma.userPreferences.findUnique({ where: { userId } });
-      if (prefs?.markTelegramAsRead && messages.length > 0) {
+      // Always mark as read after fetching
+      if (messages.length > 0) {
         const maxId = Math.max(
           ...messages.filter((m): m is Api.Message => m instanceof Api.Message).map((m) => m.id)
         );
@@ -849,8 +849,8 @@ export class MtprotoService {
         ? channel.sourceUrl.replace("https://t.me/", "").split("/")[0] || null
         : null;
 
-      const prefs = await this.prisma.userPreferences.findUnique({ where: { userId } });
-      if (prefs?.markTelegramAsRead && messages.length > 0) {
+      // Always mark as read after fetching
+      if (messages.length > 0) {
         const maxId = Math.max(
           ...messages.filter((m): m is Api.Message => m instanceof Api.Message).map((m) => m.id)
         );
@@ -941,6 +941,180 @@ export class MtprotoService {
       return result;
     } catch {
       return {};
+    } finally {
+      try {
+        await client.destroy();
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  async fetchAllUnreadMessages(
+    userId: string,
+    restrictToChannelIds?: string[]
+  ): Promise<FetchedMessage[]> {
+    const session = await this.prisma.mTProtoSession.findUnique({ where: { userId } });
+    if (!session?.isActive) {
+      throw new UnauthorizedException(
+        "MTProto сессия не найдена или неактивна. Подключите Telegram в настройках."
+      );
+    }
+
+    const channels = await this.prisma.channel.findMany({
+      where: {
+        userId,
+        sourceType: "telegram_mtproto",
+        isActive: true,
+        telegramId: { not: null },
+        ...(restrictToChannelIds?.length ? { id: { in: restrictToChannelIds } } : {}),
+      },
+      select: {
+        id: true,
+        telegramId: true,
+        name: true,
+        accessHash: true,
+        sourceUrl: true,
+        isGroup: true,
+        groupType: true,
+      },
+    });
+    if (channels.length === 0) return [];
+
+    const channelByTelegramId = new Map(channels.map((c) => [c.telegramId!, c]));
+    const trackedIds = new Set(channelByTelegramId.keys());
+
+    const sanitize = (text: string): string =>
+      text
+        .replace(/\x00/g, "")
+        .replace(/[\uD800-\uDFFF]/g, "")
+        .replace(/\\(?!["\\\/nrtbf]|u[0-9a-fA-F]{4})/g, "");
+
+    const client = createClientFromEncrypted(session.sessionData);
+    try {
+      await client.connect();
+      const dialogs = await client.getDialogs({ limit: 500 });
+
+      const allMessages: FetchedMessage[] = [];
+      const channelsToMarkRead: Array<{
+        peer: Api.TypeInputPeer;
+        maxId: number;
+        isGroup: boolean;
+      }> = [];
+
+      for (const dialog of dialogs) {
+        if (!dialog.id || !dialog.entity) continue;
+        const idStr = dialog.id.toString();
+        if (!trackedIds.has(idStr) || dialog.unreadCount <= 0) continue;
+
+        const channel = channelByTelegramId.get(idStr);
+        if (!channel) continue;
+
+        const readInboxMaxId = Number(dialog.dialog.readInboxMaxId ?? 0);
+
+        let peer: Api.TypeInputPeer;
+        if (channel.isGroup) {
+          if (channel.groupType === "group") {
+            peer = new Api.InputPeerChat({ chatId: bigInt(channel.telegramId!) });
+          } else {
+            if (!channel.accessHash) continue;
+            const decryptedHash = decryptSession(channel.accessHash);
+            peer = new Api.InputPeerChannel({
+              channelId: bigInt(channel.telegramId!),
+              accessHash: bigInt(decryptedHash),
+            });
+          }
+        } else {
+          if (!channel.accessHash) continue;
+          const decryptedHash = decryptSession(channel.accessHash);
+          peer = new Api.InputPeerChannel({
+            channelId: bigInt(channel.telegramId!),
+            accessHash: bigInt(decryptedHash),
+          });
+        }
+
+        const result = await client.invoke(
+          new Api.messages.GetHistory({
+            peer,
+            limit: 100,
+            offsetId: 0,
+            offsetDate: 0,
+            addOffset: 0,
+            maxId: 0,
+            minId: readInboxMaxId,
+            hash: bigInt(0),
+          })
+        );
+
+        const messages = "messages" in result ? result.messages : [];
+        const username = channel.sourceUrl.startsWith("https://t.me/")
+          ? channel.sourceUrl.replace("https://t.me/", "").split("/")[0] || null
+          : null;
+
+        let maxId = 0;
+        for (const m of messages) {
+          if (m instanceof Api.Message && m.message) {
+            const fm: FetchedMessage = {
+              title: sanitize(m.message).split("\n")[0].slice(0, 100) || null,
+              content: sanitize(m.message).slice(0, 500),
+              url: username
+                ? `https://t.me/${username}/${m.id}`
+                : `https://t.me/c/${channel.telegramId}/${m.id}`,
+              channelName: channel.name,
+              publishedAt: new Date(m.date * 1000),
+            };
+            allMessages.push(fm);
+            if (m.id > maxId) maxId = m.id;
+          }
+        }
+
+        if (maxId > 0) {
+          channelsToMarkRead.push({
+            peer,
+            maxId,
+            isGroup: channel.groupType === "group",
+          });
+        }
+      }
+
+      for (const { peer, maxId, isGroup } of channelsToMarkRead) {
+        try {
+          if (isGroup) {
+            await client.invoke(new Api.messages.ReadHistory({ peer, maxId }));
+          } else {
+            const inputChannel =
+              peer instanceof Api.InputPeerChannel
+                ? new Api.InputChannel({ channelId: peer.channelId, accessHash: peer.accessHash })
+                : (peer as unknown as Api.TypeInputChannel);
+            await client.invoke(new Api.channels.ReadHistory({ channel: inputChannel, maxId }));
+          }
+        } catch (e) {
+          this.logger.warn(`ReadHistory failed: ${(e as Error)?.message}`);
+        }
+      }
+
+      await this.prisma.mTProtoSession.update({
+        where: { userId },
+        data: { lastUsedAt: new Date() },
+      });
+
+      return allMessages;
+    } catch (error) {
+      if (error instanceof errors.AuthKeyError) {
+        await this.prisma.mTProtoSession.update({
+          where: { userId },
+          data: { isActive: false },
+        });
+        throw new UnauthorizedException(
+          "MTProto сессия истекла. Необходима повторная авторизация в настройках."
+        );
+      }
+      if (error instanceof UnauthorizedException) throw error;
+      this.logger.error(
+        `fetchAllUnreadMessages error: ${(error as Error)?.message}`,
+        (error as Error)?.stack
+      );
+      throw new BadRequestException("Не удалось получить непрочитанные сообщения.");
     } finally {
       try {
         await client.destroy();

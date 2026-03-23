@@ -67,11 +67,10 @@ model Authenticator {
 
 // Настройки пользователя
 model UserPreferences {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  topics          String[] // Избранные темы (React, TS, etc)
-  summaryInterval String   @default("daily") // daily, weekly
-  language        String   @default("ru")
+  id   String   @id @default(cuid())
+  userId String @unique
+  topics String[] // Избранные темы (React, TS, etc)
+  language String @default("ru")
 
   // Общие настройки уведомлений
   notificationsEnabled Boolean  @default(false)
@@ -82,14 +81,10 @@ model UserPreferences {
   notifyOnNewSummary    Boolean @default(true)
   notifyOnNewPosts      Boolean @default(false)
 
-  // MTProto настройки
-  markTelegramAsRead Boolean @default(false) // Помечать сообщения прочитанными при синхронизации
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([summaryInterval])
   @@map("user_preferences")
 }
 

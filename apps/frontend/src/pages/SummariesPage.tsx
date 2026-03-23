@@ -1,37 +1,20 @@
 import { useRef, useState } from "react";
 import type { Summary } from "@devdigest/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calendar, Download, ExternalLink, FolderOpen, Loader2, Share2 } from "lucide-react";
+import { Download, ExternalLink, FolderOpen, Loader2, Share2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { mtprotoApi } from "../api/mtproto";
 import { summariesApi } from "../api/summaries";
 import { MarkdownContent } from "../components/ui/MarkdownContent";
 
-type PeriodFilter = "daily" | "weekly" | "monthly";
-
-const PERIOD_LABELS: Record<PeriodFilter, string> = {
-  daily: "День",
-  weekly: "Неделя",
-  monthly: "Месяц",
-};
-
-function formatSummaryDate(period: string): string {
-  const parts = period.split("-");
-  if (parts.length < 2) return period;
-  const type = parts[0];
-  if (type === "daily" && parts.length === 4) {
-    const date = new Date(`${parts[1]}-${parts[2]}-${parts[3]}`);
-    const today = new Date();
-    if (date.toDateString() === today.toDateString()) {
-      return `Сегодня, ${date.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}`;
-    }
-    return date.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
-  }
-  if (type === "weekly" && parts.length >= 3) {
-    return `${parts[1]}-${parts[2]}`;
-  }
-  return period;
+function formatSummaryDate(createdAt: string): string {
+  const date = new Date(createdAt);
+  return date.toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 }
 
 function SummaryCard({
@@ -79,7 +62,7 @@ function SummaryCard({
       <div className="flex items-start justify-between mb-4">
         <div>
           <h3 className="font-semibold text-white text-lg">{summary.title}</h3>
-          <p className="text-sm text-slate-400 mt-0.5">{formatSummaryDate(summary.period)}</p>
+          <p className="text-sm text-slate-400 mt-0.5">{formatSummaryDate(summary.createdAt)}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0 ml-4">
           <button
@@ -179,7 +162,6 @@ export function SummariesPage() {
   const queryClient = useQueryClient();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("daily");
   const [topicFilter, setTopicFilter] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [confirmRegenerate, setConfirmRegenerate] = useState<string | null>(null);
@@ -203,13 +185,12 @@ export function SummariesPage() {
   );
 
   const { data, isLoading } = useQuery({
-    queryKey: ["summaries", { type: periodFilter, topic: topicFilter }],
+    queryKey: ["summaries", { topic: topicFilter }],
     queryFn: () =>
       summariesApi.list({
         limit: 20,
-        type: periodFilter,
         ...(topicFilter ? { topic: topicFilter } : {}),
-      } as Parameters<typeof summariesApi.list>[0]),
+      }),
   });
 
   function startPolling(jobId: string) {
@@ -240,8 +221,7 @@ export function SummariesPage() {
   }
 
   const generateMutation = useMutation({
-    mutationFn: ({ type, force }: { type: "daily" | "weekly"; force?: boolean }) =>
-      summariesApi.generate(type, force),
+    mutationFn: () => summariesApi.generate(),
     onSuccess: ({ jobId }) => startPolling(jobId),
     onError: (e) => toast.error((e as Error).message || "Ошибка генерации"),
   });
@@ -310,18 +290,11 @@ export function SummariesPage() {
               <div className="fixed inset-0 z-10" onClick={() => setDropdownOpen(false)} />
               <div className="absolute right-0 top-full mt-1 z-20 w-56 bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-2xl overflow-hidden">
                 <button
-                  onClick={() => generateMutation.mutate({ type: "daily" })}
+                  onClick={() => generateMutation.mutate()}
                   className="w-full flex items-center justify-between px-4 py-3 text-sm text-slate-200 hover:bg-[var(--border)] transition-colors text-left"
                 >
-                  <span className="font-medium">Дневное</span>
-                  <span className="text-xs text-slate-500">за сегодня</span>
-                </button>
-                <button
-                  onClick={() => generateMutation.mutate({ type: "weekly" })}
-                  className="w-full flex items-center justify-between px-4 py-3 text-sm text-slate-200 hover:bg-[var(--border)] transition-colors text-left border-t border-[var(--border)]"
-                >
-                  <span className="font-medium">Недельное</span>
-                  <span className="text-xs text-slate-500">за неделю</span>
+                  <span className="font-medium">Сгенерировать</span>
+                  <span className="text-xs text-slate-500">из непрочитанных</span>
                 </button>
                 {trackedFolders.length > 0 && (
                   <>
@@ -355,24 +328,6 @@ export function SummariesPage() {
               </div>
             </>
           )}
-        </div>
-      </div>
-
-      {/* Period filter */}
-      <div className="flex items-center gap-3 mt-5 mb-4">
-        <Calendar size={18} className="text-slate-400 shrink-0" />
-        <div className="flex items-center gap-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg p-1">
-          {(Object.keys(PERIOD_LABELS) as PeriodFilter[]).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPeriodFilter(p)}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                periodFilter === p ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"
-              }`}
-            >
-              {PERIOD_LABELS[p]}
-            </button>
-          ))}
         </div>
       </div>
 
