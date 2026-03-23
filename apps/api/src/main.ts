@@ -11,8 +11,10 @@ async function bootstrap() {
 
   app.enableCors({
     origin: [
-      "http://localhost:5173", // React frontend
-      "http://localhost:3000", // Next.js
+      "http://localhost:5173",
+      "http://localhost:3000",
+      "https://digest.kirrrusha.ru",
+      "https://tracker.kirrrusha.ru",
     ],
     credentials: true,
   });

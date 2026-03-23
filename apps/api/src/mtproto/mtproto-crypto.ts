@@ -24,6 +24,25 @@ export function getApiCredentials(): { apiId: number; apiHash: string } {
   return { apiId, apiHash };
 }
 
+/** Returns SOCKS5 proxy config if MTPROTO_PROXY_HOST is set, otherwise undefined */
+function getProxyConfig():
+  | { ip: string; port: number; socksType: 5; username?: string; password?: string }
+  | undefined {
+  const host = process.env.MTPROTO_PROXY_HOST;
+  if (!host) return undefined;
+  const port = parseInt(process.env.MTPROTO_PROXY_PORT ?? "1080", 10);
+  const config: { ip: string; port: number; socksType: 5; username?: string; password?: string } = {
+    ip: host,
+    port,
+    socksType: 5,
+  };
+  const user = process.env.MTPROTO_PROXY_USER;
+  const pass = process.env.MTPROTO_PROXY_PASS;
+  if (user) config.username = user;
+  if (pass) config.password = pass;
+  return config;
+}
+
 /** Шифрует строку AES-256-CBC. Формат: iv_hex:ciphertext_hex */
 export function encryptSession(plaintext: string): string {
   const key = getEncryptionKey();
@@ -48,10 +67,12 @@ export function decryptSession(encryptedData: string): string {
 export function createClient(sessionString?: string): TelegramClient {
   const { apiId, apiHash } = getApiCredentials();
   const session = new StringSession(sessionString ?? "");
+  const proxy = getProxyConfig();
   return new TelegramClient(session, apiId, apiHash, {
     connectionRetries: 1,
     retryDelay: 1000,
     autoReconnect: false,
+    ...(proxy && { proxy, useWSS: false }),
   });
 }
 
@@ -59,10 +80,12 @@ export function createClientForDC(dcId: number, ipAddress: string, port: number)
   const { apiId, apiHash } = getApiCredentials();
   const session = new StringSession("");
   session.setDC(dcId, ipAddress, port);
+  const proxy = getProxyConfig();
   return new TelegramClient(session, apiId, apiHash, {
     connectionRetries: 1,
     retryDelay: 1000,
     autoReconnect: false,
+    ...(proxy && { proxy, useWSS: false }),
   });
 }
 

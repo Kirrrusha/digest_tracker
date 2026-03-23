@@ -76,5 +76,6 @@ lib/generated/
 apps/web/lib/generated/
 
 .claude
+.cursor/
 .docs
 .pnpm-store/

@@ -7,8 +7,20 @@
 - Ubuntu 22.04+ / Debian 11+ (или другой Linux)
 - Docker 24.0+
 - Docker Compose v2
-- Минимум 2GB RAM, 20GB диск
-- Открытые порты: 80, 443
+- Минимум 2GB RAM, 20GB диск (рекомендуется 4GB для production)
+- Открытые порты: 80, 443, 22
+
+## Архитектура (VPS + docker-compose)
+
+Все сервисы на одном VPS:
+
+- **Traefik** — реверс-прокси, SSL (Let's Encrypt), роутинг
+- **Frontend** — nginx со статикой SPA (React/Vite)
+- **Backend** — NestJS API
+- **PostgreSQL** — база данных
+- **Redis** — кеш и очереди
+
+Образы хранятся в GitHub Container Registry (ghcr.io). CI/CD через GitHub Actions: build → push → SSH deploy.
 
 ## Быстрый старт
 
@@ -29,47 +41,54 @@ sudo apt install docker-compose-plugin
 exit
 ```
 
-### 2. Клонирование проекта
+### 2. Клонирование и настройка
 
 ```bash
-git clone https://github.com/your-repo/devdigest-tracker.git
-cd devdigest-tracker
-```
+# Создать директорию
+sudo mkdir -p /opt/devdigest
+sudo chown $USER:$USER /opt/devdigest
+cd /opt/devdigest
 
-### 3. Настройка окружения
+# Скопировать deploy/vm (traefik, docker-compose, .env.example)
+# из репозитория
+cp deploy/vm/docker-compose.yml .
+cp -r deploy/vm/traefik .
+cp deploy/vm/.env.example .env
+mkdir -p letsencrypt
 
-```bash
-# Копировать шаблон
-cp .env.production.example .env
-
-# Редактировать настройки
+# Редактировать .env
 nano .env
 ```
 
-**Обязательные переменные:**
+**Обязательные переменные (см. deploy/vm/.env.example):**
 
-- `NEXTAUTH_URL` - URL вашего сайта (https://your-domain.com)
-- `NEXTAUTH_SECRET` - случайная строка (openssl rand -base64 32)
-- `POSTGRES_PASSWORD` - пароль для PostgreSQL
-- `OPENAI_API_KEY` - ключ OpenAI API
-- `TELEGRAM_BOT_TOKEN` - токен Telegram бота
+- `GITHUB_REPO` — owner/repo (например, `username/digest_tracker`)
+- `POSTGRES_PASSWORD`, `REDIS_PASSWORD`
+- `JWT_SECRET`, `JWT_REFRESH_SECRET`
+- `OPENAI_API_KEY`, `TELEGRAM_API_ID`, `TELEGRAM_API_HASH`
+- `MTPROTO_ENCRYPTION_KEY`
+- `WEBAUTHN_RP_ID`, `WEBAUTHN_RP_NAME`, `WEBAUTHN_ORIGIN`
 
-### 4. Первый запуск
-
-```bash
-# Сделать скрипты исполняемыми
-chmod +x scripts/*.sh
-
-# Сборка и запуск с миграциями
-./scripts/deploy.sh --build --migrate
-```
-
-### 5. Настройка SSL (Let's Encrypt)
+### 3. Первый запуск
 
 ```bash
-# Получить сертификат
-./scripts/setup-ssl.sh your-domain.com admin@your-domain.com
+# Логин в GHCR (для pull образов)
+echo $GITHUB_TOKEN | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
+
+# Запуск
+docker compose up -d
+
+# Traefik автоматически получит сертификат Let's Encrypt
+# DNS: A-запись tracker.kirrrusha.ru -> IP VPS
 ```
+
+### 4. GitHub Secrets для CI/CD
+
+- `VPS_HOST` — IP или домен VPS
+- `VPS_USER` — SSH-пользователь
+- `VPS_SSH_KEY` — приватный SSH-ключ
+
+Workflow: `.github/workflows/deploy.yml` (manual trigger: frontend / backend / all)
 
 ## Структура файлов
 

@@ -8,4 +8,6 @@ RUN pnpm install --ignore-scripts
 COPY . .
 WORKDIR /app/apps/api
 RUN pnpm prisma generate && pnpm build
-CMD ["node", "dist/main"]
+COPY apps/api/entrypoint.sh /app/apps/api/entrypoint.sh
+RUN chmod +x /app/apps/api/entrypoint.sh
+ENTRYPOINT ["./entrypoint.sh"]

@@ -1,0 +1,95 @@
+services:
+  traefik:
+    image: traefik:v3.3
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+      - ./letsencrypt:/letsencrypt
+    networks:
+      - devdigest
+
+  frontend:
+    image: ghcr.io/${GITHUB_REPO}/devdigest-frontend:${FRONTEND_TAG:-latest}
+    restart: unless-stopped
+    networks:
+      - devdigest
+
+  backend:
+    image: ghcr.io/${GITHUB_REPO}/devdigest-api:${BACKEND_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-devdigest}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-devdigest_db}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4-turbo-preview}
+      TELEGRAM_API_ID: ${TELEGRAM_API_ID}
+      TELEGRAM_API_HASH: ${TELEGRAM_API_HASH}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:-}
+      MTPROTO_ENCRYPTION_KEY: ${MTPROTO_ENCRYPTION_KEY}
+      MTPROTO_PROXY_HOST: ${MTPROTO_PROXY_HOST:-}
+      MTPROTO_PROXY_PORT: ${MTPROTO_PROXY_PORT:-}
+      MTPROTO_PROXY_USER: ${MTPROTO_PROXY_USER:-}
+      MTPROTO_PROXY_PASS: ${MTPROTO_PROXY_PASS:-}
+      CRON_SECRET: ${CRON_SECRET:-}
+      WEBAUTHN_RP_ID: ${WEBAUTHN_RP_ID}
+      WEBAUTHN_RP_NAME: ${WEBAUTHN_RP_NAME}
+      WEBAUTHN_ORIGIN: ${WEBAUTHN_ORIGIN}
+      WEBAUTHN_EXTRA_ORIGINS: ${WEBAUTHN_EXTRA_ORIGINS:-}
+      NODE_ENV: production
+      PORT: "4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - devdigest
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-devdigest}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-devdigest_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-devdigest}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - devdigest
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: >-
+      redis-server --appendonly yes
+      --maxmemory 256mb --maxmemory-policy allkeys-lru
+      --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - devdigest
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  devdigest:
+    driver: bridge
